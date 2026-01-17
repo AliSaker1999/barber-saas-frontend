@@ -15,7 +15,8 @@ const authSlice = createSlice({
   name: "auth",
   initialState: {
     user: null,
-    loading: false
+    isLoading: false, // Changed from 'loading' to match component logic
+    token: localStorage.getItem("token") || null,
   },
   reducers: {
     logout(state) {
@@ -31,7 +32,8 @@ const authSlice = createSlice({
       })
       .addCase(login.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload;
+        state.user = action.payload.user;   // ✅ FIX
+        state.token = action.payload.token; // ✅ optional but correct
         connectSocket(action.payload.token);
       });
   }

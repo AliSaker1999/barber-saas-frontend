@@ -1,6 +1,15 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../services/api";
 
+/* Join queue */
+export const joinQueue = createAsyncThunk(
+  "queue/join",
+  async (tenantId) => {
+    await api.post(`/queue/${tenantId}/join`);
+    return tenantId;
+  }
+);
+
 /* Fetch queue */
 export const fetchQueue = createAsyncThunk(
   "queue/fetch",
@@ -17,6 +26,7 @@ export const moveNext = createAsyncThunk(
     await api.post("/queue/next");
   }
 );
+
 export const fetchMyQueuePosition = createAsyncThunk(
   "queue/position",
   async (tenantId) => {
@@ -26,14 +36,13 @@ export const fetchMyQueuePosition = createAsyncThunk(
     return res.data.position;
   }
 );
+
 export const leaveQueue = createAsyncThunk(
   "queue/leave",
   async (tenantId) => {
     await api.patch(`/queue/me/${tenantId}/leave`);
   }
 );
-
-
 
 const queueSlice = createSlice({
   name: "queue",
@@ -44,22 +53,31 @@ const queueSlice = createSlice({
   },
   extraReducers: builder => {
     builder
-      .addCase(fetchQueue.pending, state => {
-        state.loading = true;
+      .addCase(joinQueue.pending, s => {
+        s.loading = true;
       })
-      .addCase(fetchQueue.fulfilled, (state, action) => {
-        state.loading = false;
-        state.items = action.payload;
+      .addCase(joinQueue.fulfilled, s => {
+        s.loading = false;
       })
-      .addCase(moveNext.fulfilled, state => {
-        state.loading = false;
+      .addCase(joinQueue.rejected, s => {
+        s.loading = false;
       })
-      .addCase(fetchMyQueuePosition.fulfilled, (state, action) => {
-        state.myPosition = action.payload;
+      .addCase(fetchQueue.pending, s => {
+        s.loading = true;
       })
-      .addCase(leaveQueue.fulfilled, state => {
-        state.myPosition = null;
-        });
+      .addCase(fetchQueue.fulfilled, (s, a) => {
+        s.loading = false;
+        s.items = a.payload;
+      })
+      .addCase(moveNext.fulfilled, s => {
+        s.loading = false;
+      })
+      .addCase(fetchMyQueuePosition.fulfilled, (s, a) => {
+        s.myPosition = a.payload;
+      })
+      .addCase(leaveQueue.fulfilled, s => {
+        s.myPosition = null;
+      });
   }
 });
 

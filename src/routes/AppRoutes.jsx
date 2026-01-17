@@ -41,13 +41,16 @@ export default function AppRoutes() {
 
   /* ---------------- LOGGED IN ---------------- */
   return (
+    
     <Routes>
 
       {/* ✅ ROOT REDIRECT — THIS FIXES WHITE SCREEN */}
       <Route
         path="/"
         element={
-          <Navigate to={
+          <Navigate 
+          replace
+          to={
             user.role === "SUPER_ADMIN"
               ? "/platform"
               : user.role === "CUSTOMER"
@@ -93,7 +96,7 @@ export default function AppRoutes() {
       <Route
         path="*"
         element={
-          <Navigate to={
+          <Navigate replace to={
             user.role === "SUPER_ADMIN"
               ? "/platform"
               : user.role === "CUSTOMER"
