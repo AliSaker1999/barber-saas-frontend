@@ -1,0 +1,27 @@
+import { configureStore } from "@reduxjs/toolkit";
+import authReducer from "../features/auth/authSlice";
+import tenantsReducer from "../features/tenants/tenantsSlice";
+import bookingReducer from "../features/booking/bookingSlice";
+import queueReducer from "../features/queue/queueSlice";
+import appointmentsReducer from "../features/appointments/appointmentsSlice";
+import servicesReducer from "../features/services/servicesSlice";
+import staffReducer from "../features/staff/staffSlice";
+import barbersReducer from "../features/barbers/barbersSlice";
+import workingHoursReducer from "../features/workingHours/workingHoursSlice";
+import  toggleAvailability  from "../features/barbers/barbersSlice";
+import platformTenantsReducer from "../features/platformTenants/platformTenantsSlice";
+export const store = configureStore({
+  reducer: {
+    auth: authReducer,
+    tenants: tenantsReducer,
+    booking: bookingReducer,
+    queue: queueReducer,
+    appointments: appointmentsReducer,
+    services: servicesReducer,
+    staff: staffReducer,
+    barbers: barbersReducer,
+    workingHours: workingHoursReducer,
+    toggleAvailability: toggleAvailability,
+    platformTenants: platformTenantsReducer
+  }
+});
