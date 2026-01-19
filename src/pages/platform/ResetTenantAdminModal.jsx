@@ -1,25 +1,17 @@
 import { useState } from "react";
 import { useAppDispatch } from "../../app/hooks";
-import { createTenantAdmin } from "../../features/platformTenants/platformTenantsSlice";
+import { resetTenantAdminPassword } from "../../features/platformTenants/platformTenantsSlice";
 import Modal from "../../components/Modal";
 
-export default function CreateTenantAdminModal({ tenantId, open, onClose }) {
+export default function ResetTenantAdminModal({ tenantId, open, onClose }) {
   const dispatch = useAppDispatch();
-
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const submit = async e => {
     e.preventDefault();
     await dispatch(
-      createTenantAdmin({
-        tenantId,
-        admin: { fullName, email, password }
-      })
+      resetTenantAdminPassword({ tenantId, password })
     );
-    setFullName("");
-    setEmail("");
     setPassword("");
     onClose();
   };
@@ -28,29 +20,14 @@ export default function CreateTenantAdminModal({ tenantId, open, onClose }) {
     <Modal open={open} onClose={onClose}>
       <div className="p-6 w-96">
         <h3 className="text-xl font-semibold mb-4">
-          Create Tenant Admin
+          Reset Admin Password
         </h3>
 
         <form onSubmit={submit} className="space-y-3">
           <input
             className="w-full border rounded px-3 py-2"
-            placeholder="Full name"
-            value={fullName}
-            onChange={e => setFullName(e.target.value)}
-            required
-          />
-          <input
-            className="w-full border rounded px-3 py-2"
-            placeholder="Email"
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-          />
-          <input
-            className="w-full border rounded px-3 py-2"
-            placeholder="Password"
             type="password"
+            placeholder="New password"
             value={password}
             onChange={e => setPassword(e.target.value)}
             required
@@ -65,9 +42,9 @@ export default function CreateTenantAdminModal({ tenantId, open, onClose }) {
               Cancel
             </button>
             <button
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-800"
             >
-              Create Admin
+              Reset Password
             </button>
           </div>
         </form>

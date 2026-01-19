@@ -13,11 +13,12 @@ export const fetchBarbers = createAsyncThunk(
 /* Create barber profile */
 export const createBarber = createAsyncThunk(
   "barbers/create",
-  async (userId) => {
-    const res = await api.post("/barbers", { userId });
+  async (data) => {
+    const res = await api.post("/barbers", data);
     return res.data.data;
   }
 );
+
 
 /* Assign service */
 export const assignService = createAsyncThunk(

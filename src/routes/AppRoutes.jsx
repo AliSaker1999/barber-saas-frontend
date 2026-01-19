@@ -11,12 +11,13 @@ import Login from "../pages/auth/login";
 
 /* Platform */
 import PlatformTenants from "../pages/platform/Tenants";
+import PlatformCustomers from "../pages/platform/Customers";
 
 /* Company */
 import Queue from "../pages/company/Queue";
 import Appointments from "../pages/company/Appointments";
 import Services from "../pages/company/Services";
-import Staff from "../pages/company/Staff";
+// import Staff from "../pages/company/Staff";
 import Barbers from "../pages/company/Barbers";
 
 /* Customer */
@@ -41,16 +42,13 @@ export default function AppRoutes() {
 
   /* ---------------- LOGGED IN ---------------- */
   return (
-    
     <Routes>
 
       {/* ✅ ROOT REDIRECT — THIS FIXES WHITE SCREEN */}
       <Route
         path="/"
         element={
-          <Navigate 
-          replace
-          to={
+          <Navigate to={
             user.role === "SUPER_ADMIN"
               ? "/platform"
               : user.role === "CUSTOMER"
@@ -64,6 +62,7 @@ export default function AppRoutes() {
       {user.role === "SUPER_ADMIN" && (
         <Route path="/platform" element={<PlatformLayout />}>
           <Route path="tenants" element={<PlatformTenants />} />
+          <Route path="customers" element={<PlatformCustomers />} />
           <Route index element={<Navigate to="tenants" />} />
         </Route>
       )}
@@ -74,8 +73,9 @@ export default function AppRoutes() {
           <Route path="queue" element={<Queue />} />
           <Route path="appointments" element={<Appointments />} />
           <Route path="services" element={<Services />} />
-          <Route path="staff" element={<Staff />} />
+          {/* <Route path="staff" element={<Staff />} /> */}
           <Route path="barbers" element={<Barbers />} />
+     
           <Route path="settings" element={<p>Settings page</p>} />
           <Route index element={<Navigate to="queue" />} />
         </Route>
@@ -96,7 +96,7 @@ export default function AppRoutes() {
       <Route
         path="*"
         element={
-          <Navigate replace to={
+          <Navigate to={
             user.role === "SUPER_ADMIN"
               ? "/platform"
               : user.role === "CUSTOMER"

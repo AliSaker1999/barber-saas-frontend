@@ -6,8 +6,13 @@ import {
 } from "../../features/workingHours/workingHoursSlice";
 
 const DAYS = [
-  "Sunday", "Monday", "Tuesday",
-  "Wednesday", "Thursday", "Friday", "Saturday"
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday"
 ];
 
 export default function BarberWorkingHours({ barber }) {
@@ -19,66 +24,126 @@ export default function BarberWorkingHours({ barber }) {
     dispatch(fetchWorkingHours(barber.Id));
   }, [barber.Id, dispatch]);
 
-  /* Derive initial values (pure, no state) */
-  const derived = useMemo(() => {
-    const map = {};
-    hours.forEach(h => {
-      map[h.DayOfWeek] = {
-        start: h.StartTime.substring(0, 5),
-        end: h.EndTime.substring(0, 5)
-      };
-    });
-    return map;
-  }, [hours]);
+  /* Normalize DB → UI */
+const initial = useMemo(() => {
+  const map = {};
+  hours.forEach(h => {
+    map[h.DayOfWeek] = {
+      start: h.StartTime.slice(0, 5),
+      end: h.EndTime.slice(0, 5),
+      active: true
+    };
+  });
+  return map;
+}, [hours]);
 
-  /* ✅ Initialize editable state ONCE per barber */
-  const [draft, setDraft] = useState(() => derived);
+const [draft, setDraft] = useState({});
 
-  /* 🔑 Reset state when barber changes (NO EFFECT!) */
-  const barberKey = barber.Id;
+/* 🔥 THIS WAS MISSING */
+useEffect(() => {
+  setDraft(initial);
+}, [initial]);
 
-  const saveDay = (day) => {
-    const data = draft[day];
-    if (!data?.start || !data?.end) return;
 
-    dispatch(saveWorkingHours({
-      barberId: barber.Id,
-      dayOfWeek: day,
-      startTime: data.start,
-      endTime: data.end
-    }));
-  };
+  const saveDay = async (day) => {
+  const d = draft[day];
+  if (!d?.start || !d?.end) return;
+
+  await dispatch(saveWorkingHours({
+    barberId: barber.Id,
+    dayOfWeek: day,
+    startTime: d.start,
+    endTime: d.end
+  }));
+
+  dispatch(fetchWorkingHours(barber.Id));
+};
+
 
   return (
-    <div key={barberKey}>
-      <h4>Working Hours</h4>
+    <div className="mt-6">
+      <h3 className="font-semibold mb-3">
+        Working Hours
+      </h3>
 
-      {DAYS.map((d, i) => (
-        <div key={i}>
-          <strong>{d}</strong>{" "}
-          <input
-            type="time"
-            value={draft[i]?.start || ""}
-            onChange={e =>
-              setDraft(prev => ({
-                ...prev,
-                [i]: { ...prev[i], start: e.target.value }
-              }))
-            }
-          />
-          <input
-            type="time"
-            value={draft[i]?.end || ""}
-            onChange={e =>
-              setDraft(prev => ({
-                ...prev,
-                [i]: { ...prev[i], end: e.target.value }
-              }))
-            }
-          />
-          <button onClick={() => saveDay(i)}>Save</button>
-        </div>
-      ))}
+      <div className="bg-gray-50 border rounded overflow-hidden">
+        {DAYS.map((dayName, dayIndex) => {
+          const day = draft[dayIndex] || {};
+
+          return (
+            <div
+              key={dayIndex}
+              className="grid grid-cols-12 gap-2 items-center p-3 border-b last:border-b-0"
+            >
+              {/* DAY NAME */}
+              <div className="col-span-3 font-medium text-sm">
+                {dayName}
+              </div>
+
+              {/* TIME INPUTS */}
+              {day.active ? (
+                <>
+                  <input
+                    type="time"
+                    value={day.start || ""}
+                    onChange={e =>
+                      setDraft(prev => ({
+                        ...prev,
+                        [dayIndex]: {
+                          ...prev[dayIndex],
+                          start: e.target.value,
+                          active: true
+                        }
+                      }))
+                    }
+                    className="col-span-3 border rounded px-2 py-1 text-sm"
+                  />
+
+                  <input
+                    type="time"
+                    value={day.end || ""}
+                    onChange={e =>
+                      setDraft(prev => ({
+                        ...prev,
+                        [dayIndex]: {
+                          ...prev[dayIndex],
+                          end: e.target.value,
+                          active: true
+                        }
+                      }))
+                    }
+                    className="col-span-3 border rounded px-2 py-1 text-sm"
+                  />
+
+                  <button
+                    onClick={() => saveDay(dayIndex)}
+                    className="col-span-3 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    Save
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="col-span-6 text-sm text-gray-500">
+                    Off
+                  </div>
+                  <button
+                    onClick={() =>
+                      setDraft(prev => ({
+                        ...prev,
+                        [dayIndex]: { active: true }
+                      }))
+                    }
+                    className="col-span-3 px-3 py-1 text-sm border rounded hover:bg-gray-100"
+                  >
+                    Enable
+                  </button>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

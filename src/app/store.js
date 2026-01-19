@@ -10,6 +10,7 @@ import barbersReducer from "../features/barbers/barbersSlice";
 import workingHoursReducer from "../features/workingHours/workingHoursSlice";
 import  toggleAvailability  from "../features/barbers/barbersSlice";
 import platformTenantsReducer from "../features/platformTenants/platformTenantsSlice";
+import platformCustomersReducer from "../features/platformCustomers/platformCustomersSlice";
 export const store = configureStore({
   reducer: {
     auth: authReducer,
@@ -22,6 +23,7 @@ export const store = configureStore({
     barbers: barbersReducer,
     workingHours: workingHoursReducer,
     toggleAvailability: toggleAvailability,
-    platformTenants: platformTenantsReducer
+    platformTenants: platformTenantsReducer,
+    platformCustomers: platformCustomersReducer
   }
 });
