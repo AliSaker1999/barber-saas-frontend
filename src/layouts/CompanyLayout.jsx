@@ -19,13 +19,11 @@ export default function CompanyLayout() {
           <NavItem to="queue" label="Queue" />
           <NavItem to="appointments" label="Appointments" />
          
-          {user.role === "ADMIN" && (
+          {user.roles?.includes("ADMIN") && (
             <>
               <NavItem to="services" label="Services" />
               <NavItem to="barbers" label="Barbers" />
-              {/* <NavItem to="staff" label="Staff" /> */}
               <NavItem to="settings" label="Settings" />
-              
             </>
           )}
         </nav>
@@ -36,7 +34,7 @@ export default function CompanyLayout() {
         {/* TOP BAR */}
         <header className="bg-white shadow px-6 py-4 flex justify-between items-center">
           <h2 className="text-lg font-semibold">
-            {user.role === "ADMIN" ? "Admin" : "Staff"} Panel
+            {user.roles?.includes("ADMIN") ? "Admin" : "Barber"} Panel
           </h2>
 
           <div className="text-sm text-gray-600">

@@ -5,7 +5,6 @@ import bookingReducer from "../features/booking/bookingSlice";
 import queueReducer from "../features/queue/queueSlice";
 import appointmentsReducer from "../features/appointments/appointmentsSlice";
 import servicesReducer from "../features/services/servicesSlice";
-import staffReducer from "../features/staff/staffSlice";
 import barbersReducer from "../features/barbers/barbersSlice";
 import workingHoursReducer from "../features/workingHours/workingHoursSlice";
 import  toggleAvailability  from "../features/barbers/barbersSlice";
@@ -19,7 +18,6 @@ export const store = configureStore({
     queue: queueReducer,
     appointments: appointmentsReducer,
     services: servicesReducer,
-    staff: staffReducer,
     barbers: barbersReducer,
     workingHours: workingHoursReducer,
     toggleAvailability: toggleAvailability,

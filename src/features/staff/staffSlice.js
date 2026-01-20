@@ -1,29 +1,29 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../services/api";
 
-/* Fetch staff */
+/* Fetch barbers */
 export const fetchStaff = createAsyncThunk(
   "staff/fetch",
   async () => {
-    const res = await api.get("/staff");
+    const res = await api.get("/barbers");
     return res.data.data;
   }
 );
 
-/* Add staff */
+/* Add barber */
 export const addStaff = createAsyncThunk(
   "staff/add",
   async (data) => {
-    const res = await api.post("/staff", data);
+    const res = await api.post("/users/barber", data);
     return res.data.data;
   }
 );
 
-/* Toggle active */
+/* Toggle barber availability */
 export const toggleStaff = createAsyncThunk(
   "staff/toggle",
   async (id) => {
-    await api.patch(`/staff/${id}/toggle`);
+    await api.patch(`/barbers/${id}/toggle-availability`);
     return id;
   }
 );

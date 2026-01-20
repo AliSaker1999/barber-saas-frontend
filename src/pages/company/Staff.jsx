@@ -26,7 +26,7 @@ export default function Staff() {
 
   return (
     <div>
-      <h2>Staff</h2>
+      <h2>Barbers</h2>
 
       <form onSubmit={submit}>
         <input
@@ -39,7 +39,7 @@ export default function Staff() {
           value={email}
           onChange={e => setEmail(e.target.value)}
         />
-        <button>Add Staff</button>
+        <button>Add Barber</button>
       </form>
 
       {loading && <p>Loading...</p>}

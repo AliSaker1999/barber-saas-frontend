@@ -49,9 +49,9 @@ export default function AppRoutes() {
         path="/"
         element={
           <Navigate to={
-            user.role === "SUPER_ADMIN"
+            user.roles?.includes("SUPER_ADMIN")
               ? "/platform"
-              : user.role === "CUSTOMER"
+              : user.roles?.includes("CUSTOMER")
               ? "/customer"
               : "/company"
           } />
@@ -59,7 +59,7 @@ export default function AppRoutes() {
       />
 
       {/* ---------- PLATFORM ---------- */}
-      {user.role === "SUPER_ADMIN" && (
+      {user.roles?.includes("SUPER_ADMIN") && (
         <Route path="/platform" element={<PlatformLayout />}>
           <Route path="tenants" element={<PlatformTenants />} />
           <Route path="customers" element={<PlatformCustomers />} />
@@ -68,12 +68,11 @@ export default function AppRoutes() {
       )}
 
       {/* ---------- COMPANY ---------- */}
-      {(user.role === "ADMIN" || user.role === "STAFF") && (
+      {(user.roles?.includes("ADMIN") || user.roles?.includes("BARBER")) && (
         <Route path="/company" element={<CompanyLayout />}>
           <Route path="queue" element={<Queue />} />
           <Route path="appointments" element={<Appointments />} />
           <Route path="services" element={<Services />} />
-          {/* <Route path="staff" element={<Staff />} /> */}
           <Route path="barbers" element={<Barbers />} />
      
           <Route path="settings" element={<p>Settings page</p>} />
@@ -82,7 +81,7 @@ export default function AppRoutes() {
       )}
 
       {/* ---------- CUSTOMER ---------- */}
-      {user.role === "CUSTOMER" && (
+      {user.roles?.includes("CUSTOMER") && (
         <Route path="/customer" element={<CustomerLayout />}>
           <Route index element={<Tenants />} />
           <Route path="services" element={<CustomerServices />} />
@@ -97,9 +96,9 @@ export default function AppRoutes() {
         path="*"
         element={
           <Navigate to={
-            user.role === "SUPER_ADMIN"
+            user.roles?.includes("SUPER_ADMIN")
               ? "/platform"
-              : user.role === "CUSTOMER"
+              : user.roles?.includes("CUSTOMER")
               ? "/customer"
               : "/company"
           } />
