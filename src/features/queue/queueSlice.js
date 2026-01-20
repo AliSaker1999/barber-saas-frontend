@@ -5,7 +5,7 @@ import api from "../../services/api";
 export const joinQueue = createAsyncThunk(
   "queue/join",
   async (tenantId) => {
-    await api.post(`/queue/${tenantId}/join`);
+    await api.post(`/queue/tenants/${tenantId}/join`);
     return tenantId;
   }
 );

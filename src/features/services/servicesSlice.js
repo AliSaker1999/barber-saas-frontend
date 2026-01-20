@@ -4,8 +4,8 @@ import api from "../../services/api";
 /* Fetch tenant services */
 export const fetchServices = createAsyncThunk(
   "services/fetch",
-  async (tenantId) => {
-    const res = await api.get(`/tenants/${tenantId}/services`);
+  async () => {
+    const res = await api.get("/services");
     return res.data.data;
   }
 );
@@ -22,8 +22,17 @@ export const addService = createAsyncThunk(
 /* Toggle active */
 export const toggleService = createAsyncThunk(
   "services/toggle",
+  async ({ id, isActive }) => {
+    await api.patch(`/services/${id}/status`, { isActive });
+    return { id, isActive };
+  }
+);
+
+/* Delete service */
+export const deleteService = createAsyncThunk(
+  "services/delete",
   async (id) => {
-    await api.patch(`/services/${id}/toggle`);
+    await api.delete(`/services/${id}`);
     return id;
   }
 );
@@ -47,8 +56,11 @@ const servicesSlice = createSlice({
         state.items.push(action.payload);
       })
       .addCase(toggleService.fulfilled, (state, action) => {
-        const s = state.items.find(x => x.Id === action.payload);
-        if (s) s.IsActive = !s.IsActive;
+        const s = state.items.find(x => x.Id === action.payload.id);
+        if (s) s.IsActive = action.payload.isActive;
+      })
+      .addCase(deleteService.fulfilled, (state, action) => {
+        state.items = state.items.filter(x => x.Id !== action.payload);
       });
   }
 });

@@ -16,10 +16,10 @@ export default function Barbers() {
   const services = useAppSelector(s => s.services.items);
 
   const [selectedBarber, setSelectedBarber] = useState(null);
-
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [formError, setFormError] = useState("");
 
   useEffect(() => {
     dispatch(fetchBarbers());
@@ -28,6 +28,12 @@ export default function Barbers() {
 
   const submit = e => {
     e.preventDefault();
+    setFormError("");
+
+    if (!fullName.trim() || !email.trim() || !password.trim()) {
+      setFormError("Please fill all fields");
+      return;
+    }
 
     dispatch(createBarber({ fullName, email, password }))
       .unwrap()
@@ -36,145 +42,188 @@ export default function Barbers() {
         setEmail("");
         setPassword("");
         dispatch(fetchBarbers());
-      });
+      })
+      .catch(() => setFormError("Failed to add barber"));
   };
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Barbers</h1>
+      {/* Header */}
+      <div className="mb-10">
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">👥 Team Management</h1>
+        <p className="text-gray-600">Manage your barber team, services, and schedule</p>
+      </div>
 
-      {/* ADD BARBER */}
-      <div className="bg-white rounded shadow p-4 mb-6">
-        <h2 className="font-semibold mb-3">Add Barber</h2>
+      {/* Add Barber Form */}
+      <div className="bg-white rounded-2xl shadow-lg p-8 mb-10">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">➕ Add New Barber</h2>
+        
+        {formError && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-700 font-medium">{formError}</p>
+          </div>
+        )}
 
-        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <input
-            className="border rounded px-3 py-2"
-            placeholder="Full name"
-            value={fullName}
-            onChange={e => setFullName(e.target.value)}
-            required
-          />
-          <input
-            className="border rounded px-3 py-2"
-            placeholder="Email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-          />
-          <input
-            type="password"
-            className="border rounded px-3 py-2"
-            placeholder="Password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-          />
-          <button className="md:col-span-3 bg-blue-600 text-white rounded py-2 hover:bg-blue-700">
-            Create Barber
-          </button>
+        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
+            <input
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+              placeholder="John Doe"
+              value={fullName}
+              onChange={e => setFullName(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+            <input
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+              placeholder="john@barber.com"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+            <input
+              type="password"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+              placeholder="••••••••"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          <div className="flex items-end">
+            <button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg hover:shadow-xl">
+              Add Barber
+            </button>
+          </div>
         </form>
       </div>
 
-      {/* BARBERS LIST */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded shadow p-4">
-          <h2 className="font-semibold mb-3">Existing Barbers</h2>
-
-          {barbers.length === 0 && (
-            <p className="text-sm text-gray-500">No barbers yet.</p>
-          )}
-
-          <ul className="space-y-2">
-            {barbers.map(b => (
-              <li
-                key={b.Id}
-                className={`p-3 rounded border cursor-pointer ${
-                  selectedBarber?.Id === b.Id
-                    ? "border-blue-600 bg-blue-50"
-                    : "hover:bg-gray-50"
-                }`}
-                onClick={() => setSelectedBarber(b)}
-              >
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">{b.FullName}</span>
-                  <span
-                    className={`text-xs px-2 py-1 rounded ${
-                      b.IsAvailable
-                        ? "bg-green-600 text-white"
-                        : "bg-gray-400 text-white"
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Barbers List */}
+        <div>
+          <h3 className="text-xl font-bold text-gray-900 mb-4">Team Members</h3>
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            {barbers.length === 0 ? (
+              <div className="p-8 text-center">
+                <svg className="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-2a6 6 0 0112 0v2z" />
+                </svg>
+                <p className="text-gray-500 font-medium">No barbers added yet</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {barbers.map(barber => (
+                  <button
+                    key={barber.Id}
+                    onClick={() => setSelectedBarber(barber.Id === selectedBarber ? null : barber.Id)}
+                    className={`w-full text-left p-4 transition-all hover:bg-blue-50 ${
+                      barber.Id === selectedBarber ? "bg-blue-50 border-l-4 border-blue-600" : ""
                     }`}
                   >
-                    {b.IsAvailable ? "Available" : "Unavailable"}
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                        {barber.FullName?.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900">{barber.FullName}</p>
+                        <p className="text-xs text-gray-600">{barber.Email}</p>
+                      </div>
+                      {barber.IsAvailable && (
+                        <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* CONFIG */}
-        <div className="md:col-span-2 bg-white rounded shadow p-4">
-          {!selectedBarber && (
-            <p className="text-gray-500">Select a barber to configure.</p>
-          )}
+        {/* Configuration Panel */}
+        {selectedBarber && (
+          <div className="lg:col-span-2">
+            {(() => {
+              const barber = barbers.find(b => b.Id === selectedBarber);
+              return (
+                barber && (
+                  <div className="space-y-6">
+                    {/* Availability & Info */}
+                    <div className="bg-white rounded-2xl shadow-lg p-6">
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-2xl font-bold text-gray-900">{barber.FullName}</h3>
+                        <button
+                          onClick={() => dispatch(toggleAvailability({
+                            barberId: barber.Id,
+                            isAvailable: !barber.IsAvailable
+                          }))}
+                          className={`px-6 py-2 rounded-full font-semibold transition-all ${
+                            barber.IsAvailable
+                              ? "bg-green-100 text-green-700 hover:bg-green-200 border-2 border-green-300"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200 border-2 border-gray-300"
+                          }`}
+                        >
+                          {barber.IsAvailable ? "✓ Available" : "○ Unavailable"}
+                        </button>
+                      </div>
+                      <p className="text-gray-600">{barber.Email}</p>
+                    </div>
 
-          {selectedBarber && (
-            <>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">
-                  {selectedBarber.FullName}
-                </h2>
+                    {/* Services */}
+                    <div className="bg-white rounded-2xl shadow-lg p-6">
+                      <h4 className="text-lg font-bold text-gray-900 mb-4">Services</h4>
+                      {services.length === 0 ? (
+                        <p className="text-gray-500">No services available. Add services first.</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {services.map(service => (
+                            <label key={service.Id} className="flex items-center p-3 border-2 border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-all">
+                              <input
+                                type="checkbox"
+                                checked={barber.ServiceIds?.includes(service.Id) || false}
+                                onChange={() => dispatch(toggleBarberService({ barberId: barber.Id, serviceId: service.Id }))}
+                                className="w-5 h-5 text-blue-600 rounded border-gray-300"
+                              />
+                              <span className="ml-3 flex-1">
+                                <p className="font-semibold text-gray-900">{service.Name}</p>
+                                <p className="text-sm text-gray-600">${service.Price} • {service.DurationMinutes}min</p>
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
 
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedBarber.IsAvailable}
-                    onChange={e =>
-                      dispatch(
-                        toggleAvailability({
-                          barberId: selectedBarber.Id,
-                          isAvailable: e.target.checked
-                        })
-                      )
-                    }
-                  />
-                  <span className="text-sm">Available</span>
-                </label>
-              </div>
+                    {/* Working Hours */}
+                    <div className="bg-white rounded-2xl shadow-lg p-6">
+                      <h4 className="text-lg font-bold text-gray-900 mb-4">⏰ Working Hours</h4>
+                      <BarberWorkingHours barber={barber} />
+                    </div>
+                  </div>
+                )
+              );
+            })()}
+          </div>
+        )}
 
-              {/* SERVICES */}
-              <div className="mb-6">
-                <h3 className="font-semibold mb-2">Services</h3>
-
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {services.map(s => (
-                    <label
-                      key={s.Id}
-                      className="flex items-center gap-2 text-sm border rounded px-2 py-1 cursor-pointer hover:bg-gray-50"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedBarber.ServiceIds?.includes(s.Id)}
-                        onChange={() =>
-                          dispatch(
-                            toggleBarberService({
-                              barberId: selectedBarber.Id,
-                              serviceId: s.Id
-                            })
-                          )
-                        }
-                      />
-                      {s.Name}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <BarberWorkingHours barber={selectedBarber} />
-            </>
-          )}
-        </div>
+        {/* Empty State */}
+        {!selectedBarber && barbers.length > 0 && (
+          <div className="lg:col-span-2 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-lg p-12 flex items-center justify-center">
+            <div className="text-center">
+              <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
+              <p className="text-gray-600 font-medium">Select a barber to view and manage their details</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

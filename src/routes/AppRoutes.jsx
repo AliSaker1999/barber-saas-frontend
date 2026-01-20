@@ -8,6 +8,7 @@ import CustomerLayout from "../layouts/CustomerLayout";
 
 /* Pages */
 import Login from "../pages/auth/login";
+import Signup from "../pages/auth/Signup";
 
 /* Platform */
 import PlatformTenants from "../pages/platform/Tenants";
@@ -35,6 +36,7 @@ export default function AppRoutes() {
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     );

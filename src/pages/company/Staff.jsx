@@ -19,7 +19,7 @@ export default function Staff() {
 
   const submit = e => {
     e.preventDefault();
-    dispatch(addStaff({ email, name }));
+    dispatch(addStaff({ email, fullName: name }));
     setEmail("");
     setName("");
   };
@@ -48,8 +48,11 @@ export default function Staff() {
         {items.map(u => (
           <li key={u.Id}>
             {u.FullName} – {u.Email}
-            <button onClick={() => dispatch(toggleStaff(u.Id))}>
-              {u.IsActive ? "Deactivate" : "Activate"}
+            <button onClick={() => dispatch(toggleStaff({
+              id: u.Id,
+              isAvailable: !u.IsAvailable
+            }))}>
+              {u.IsAvailable ? "Set Unavailable" : "Set Available"}
             </button>
           </li>
         ))}

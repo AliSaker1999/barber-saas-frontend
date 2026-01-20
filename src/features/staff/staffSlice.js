@@ -14,7 +14,10 @@ export const fetchStaff = createAsyncThunk(
 export const addStaff = createAsyncThunk(
   "staff/add",
   async (data) => {
-    const res = await api.post("/users/barber", data);
+    const res = await api.post("/users/barber", {
+      email: data.email,
+      fullName: data.fullName
+    });
     return res.data.data;
   }
 );
@@ -22,9 +25,9 @@ export const addStaff = createAsyncThunk(
 /* Toggle barber availability */
 export const toggleStaff = createAsyncThunk(
   "staff/toggle",
-  async (id) => {
-    await api.patch(`/barbers/${id}/toggle-availability`);
-    return id;
+  async ({ id, isAvailable }) => {
+    await api.patch(`/barbers/${id}/availability`, { isAvailable });
+    return { id, isAvailable };
   }
 );
 
@@ -47,8 +50,8 @@ const staffSlice = createSlice({
         s.items.push(a.payload);
       })
       .addCase(toggleStaff.fulfilled, (s, a) => {
-        const u = s.items.find(x => x.Id === a.payload);
-        if (u) u.IsActive = !u.IsActive;
+        const u = s.items.find(x => x.Id === a.payload.id);
+        if (u) u.IsAvailable = a.payload.isAvailable;
       });
   }
 });

@@ -9,7 +9,7 @@ import {
 export const fetchServices = createAsyncThunk(
   "booking/fetchServices",
   async (tenantId) => {
-    const res = await api.get(`/tenants/${tenantId}/services`);
+    const res = await api.get(`/services/tenant/${tenantId}`);
     return res.data.data;
   }
 );
@@ -26,7 +26,7 @@ export const fetchSlots = createAsyncThunk(
   "booking/fetchSlots",
   async ({ tenantId, barberId, serviceIds, date }) => {
     const res = await api.get(
-      `/tenants/${tenantId}/barbers/${barberId}/slots`,
+      `/barbers/tenants/${tenantId}/barbers/${barberId}/slots`,
       { params: { serviceId: serviceIds[0], date } } // first version
     );
     return res.data.data;
@@ -55,7 +55,8 @@ const bookingSlice = createSlice({
   slots: [],
   selectedServiceIds: persisted?.selectedServiceIds || [],
   selectedBarberId: persisted?.selectedBarberId || null,
-  loading: false
+  loading: false,
+  error: null
 },
   reducers: {
     selectTenant(state, action) {
@@ -82,6 +83,11 @@ const bookingSlice = createSlice({
       .addCase(fetchServices.fulfilled, (s, a) => {
         s.loading = false;
         s.services = a.payload;
+        s.error = null;
+      })
+      .addCase(fetchServices.rejected, (s, a) => {
+        s.loading = false;
+        s.error = a.error?.message || "Failed to load services";
       })
       .addCase(fetchBarbersByService.fulfilled, (s, a) => {
         s.barbers = a.payload;
