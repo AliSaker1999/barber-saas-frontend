@@ -3,7 +3,7 @@ import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import {
   fetchServices,
   addService,
-  toggleService,
+  updateService,
   deleteService
 } from "../../features/services/servicesSlice";
 
@@ -15,6 +15,11 @@ export default function Services() {
   const [price, setPrice] = useState("");
   const [duration, setDuration] = useState("");
   const [formError, setFormError] = useState("");
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editService, setEditService] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [editPrice, setEditPrice] = useState("");
+  const [editDuration, setEditDuration] = useState("");
 
   useEffect(() => {
     dispatch(fetchServices());
@@ -33,11 +38,66 @@ export default function Services() {
       name,
       price: Number(price),
       durationMinutes: Number(duration)
-    }));
+    }))
+      .unwrap()
+      .then(() => dispatch(fetchServices()))
+      .catch(err => setFormError(err?.message || "Failed to add service"));
 
     setName("");
     setPrice("");
     setDuration("");
+  };
+
+  const toggleActive = service => {
+    setFormError("");
+    dispatch(updateService({
+      serviceId: service.Id,
+      updates: {
+        name: service.Name,
+        durationMinutes: service.DurationMinutes,
+        price: service.Price,
+        isActive: !service.IsActive
+      }
+    }))
+      .unwrap()
+      .catch(err => setFormError(err || "Failed to update service"));
+  };
+
+  const openEditModal = service => {
+    setEditService(service);
+    setEditName(service.Name || "");
+    setEditPrice(String(service.Price ?? ""));
+    setEditDuration(String(service.DurationMinutes ?? ""));
+    setEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setEditModalOpen(false);
+    setEditService(null);
+    setEditName("");
+    setEditPrice("");
+    setEditDuration("");
+  };
+
+  const saveEdit = () => {
+    if (!editService) return;
+    if (!editName.trim() || !editPrice || !editDuration) {
+      setFormError("Please fill all fields");
+      return;
+    }
+
+    dispatch(updateService({
+      serviceId: editService.Id,
+      updates: {
+        name: editName.trim(),
+        price: Number(editPrice),
+        durationMinutes: Number(editDuration),
+        isActive: editService.IsActive
+      }
+    }))
+      .unwrap()
+      .then(() => closeEditModal())
+      .catch(err => setFormError(err || "Failed to update service"));
   };
 
   return (
@@ -158,34 +218,91 @@ export default function Services() {
                   </div>
                 </div>
 
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => dispatch(toggleService({
-                      id: service.Id,
-                      isActive: !service.IsActive
-                    }))}
-                    className={`flex-1 font-semibold py-2 px-4 rounded-lg transition-all ${
-                      service.IsActive
-                        ? "bg-green-100 hover:bg-green-200 text-green-700 border-2 border-green-300"
-                        : "bg-gray-100 hover:bg-gray-200 text-gray-700 border-2 border-gray-300"
-                    }`}
-                  >
-                    {service.IsActive ? "✓ Active" : "○ Inactive"}
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (window.confirm("Delete this service?")) {
-                        dispatch(deleteService(service.Id));
-                      }
-                    }}
-                    className="font-semibold py-2 px-4 rounded-lg transition-all bg-red-100 hover:bg-red-200 text-red-700 border-2 border-red-300"
-                  >
-                    Delete
-                  </button>
-                </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => toggleActive(service)}
+                      className={`flex-1 font-semibold py-2 px-4 rounded-lg transition-all ${
+                        service.IsActive
+                          ? "bg-green-100 hover:bg-green-200 text-green-700 border-2 border-green-300"
+                          : "bg-gray-100 hover:bg-gray-200 text-gray-700 border-2 border-gray-300"
+                      }`}
+                    >
+                      {service.IsActive ? "✓ Active" : "○ Inactive"}
+                    </button>
+                    <button
+                      onClick={() => openEditModal(service)}
+                      className="font-semibold py-2 px-4 rounded-lg transition-all bg-blue-100 hover:bg-blue-200 text-blue-700 border-2 border-blue-300"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm("Delete this service?")) {
+                          dispatch(deleteService(service.Id));
+                        }
+                      }}
+                      className="font-semibold py-2 px-4 rounded-lg transition-all bg-red-100 hover:bg-red-200 text-red-700 border-2 border-red-300"
+                    >
+                      Delete
+                    </button>
+                  </div>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {editModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Edit Service</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Name</label>
+                <input
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Price ($)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={editPrice}
+                  onChange={e => setEditPrice(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Duration (min)</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={editDuration}
+                  onChange={e => setEditDuration(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={closeEditModal}
+                className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveEdit}
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-sm font-semibold text-white hover:from-blue-700 hover:to-indigo-700 transition"
+              >
+                Save
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

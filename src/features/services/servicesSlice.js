@@ -20,11 +20,17 @@ export const addService = createAsyncThunk(
 );
 
 /* Toggle active */
-export const toggleService = createAsyncThunk(
-  "services/toggle",
-  async ({ id, isActive }) => {
-    await api.patch(`/services/${id}/status`, { isActive });
-    return { id, isActive };
+export const updateService = createAsyncThunk(
+  "services/update",
+  async ({ serviceId, updates }, thunkAPI) => {
+    try {
+      const res = await api.patch(`/services/${serviceId}`, updates);
+      return res.data.data;
+    } catch (err) {
+      return thunkAPI.rejectWithValue(
+        err?.response?.data?.message || err?.message || "Failed to update service"
+      );
+    }
   }
 );
 
@@ -55,9 +61,11 @@ const servicesSlice = createSlice({
       .addCase(addService.fulfilled, (state, action) => {
         state.items.push(action.payload);
       })
-      .addCase(toggleService.fulfilled, (state, action) => {
-        const s = state.items.find(x => x.Id === action.payload.id);
-        if (s) s.IsActive = action.payload.isActive;
+      .addCase(updateService.fulfilled, (state, action) => {
+        const idx = state.items.findIndex(x => x.Id === action.payload.Id);
+        if (idx >= 0) {
+          state.items[idx] = action.payload;
+        }
       })
       .addCase(deleteService.fulfilled, (state, action) => {
         state.items = state.items.filter(x => x.Id !== action.payload);

@@ -14,28 +14,28 @@ export default function Barbers() {
 
   const barbers = useAppSelector(s => s.barbers.items);
   const services = useAppSelector(s => s.services.items);
+  const user = useAppSelector(s => s.auth.user);
 
   const [selectedBarber, setSelectedBarber] = useState(null);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState("");
+  const [selfAssignModal, setSelfAssignModal] = useState(false);
+  const [selfAssignPayload, setSelfAssignPayload] = useState(null);
 
   useEffect(() => {
     dispatch(fetchBarbers());
     dispatch(fetchServices());
   }, [dispatch]);
 
-  const submit = e => {
-    e.preventDefault();
-    setFormError("");
+  const isSelfAssign =
+    user?.email &&
+    email.trim() &&
+    email.trim().toLowerCase() === user.email.toLowerCase();
 
-    if (!fullName.trim() || !email.trim() || !password.trim()) {
-      setFormError("Please fill all fields");
-      return;
-    }
-
-    dispatch(createBarber({ fullName, email, password }))
+  const submitPayload = payload => {
+    dispatch(createBarber(payload))
       .unwrap()
       .then(() => {
         setFullName("");
@@ -43,7 +43,39 @@ export default function Barbers() {
         setPassword("");
         dispatch(fetchBarbers());
       })
-      .catch(() => setFormError("Failed to add barber"));
+      .catch(error => {
+        const message =
+          typeof error === "string"
+            ? error
+            : error?.response?.data?.message ||
+              error?.message ||
+              "Failed to add barber";
+
+        if (
+          message ===
+          "Email already exists. Confirm self-assign to add yourself as barber."
+        ) {
+          setFormError("");
+          setSelfAssignPayload({ ...payload, selfAssign: true });
+          setSelfAssignModal(true);
+          return;
+        }
+
+        setFormError(message);
+      });
+  };
+
+  const submit = e => {
+    e.preventDefault();
+    setFormError("");
+
+    if (!fullName.trim() || !email.trim() || (!isSelfAssign && !password.trim())) {
+      setFormError("Please fill all fields");
+      return;
+    }
+
+    const payload = { fullName, email, password };
+    submitPayload(payload);
   };
 
   return (
@@ -91,11 +123,17 @@ export default function Barbers() {
             <input
               type="password"
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
-              placeholder="••••••••"
+              placeholder={isSelfAssign ? "Uses your admin password" : "••••••••"}
               value={password}
               onChange={e => setPassword(e.target.value)}
-              required
+              required={!isSelfAssign}
+              disabled={isSelfAssign}
             />
+            {isSelfAssign && (
+              <p className="text-xs text-gray-500 mt-2">
+                You can use your admin password for barber login.
+              </p>
+            )}
           </div>
           <div className="flex items-end">
             <button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg hover:shadow-xl">
@@ -225,6 +263,39 @@ export default function Barbers() {
           </div>
         )}
       </div>
+
+      {selfAssignModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md">
+            <h3 className="text-xl font-bold text-gray-900 mb-3">Confirm barber assignment</h3>
+            <p className="text-sm text-gray-600">
+              You are about to assign yourself as a barber. You can continue using your admin password for barber logins.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setSelfAssignModal(false);
+                  setSelfAssignPayload(null);
+                }}
+                className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+              >
+                No
+              </button>
+              <button
+                onClick={() => {
+                  if (!selfAssignPayload) return;
+                  setSelfAssignModal(false);
+                  submitPayload(selfAssignPayload);
+                  setSelfAssignPayload(null);
+                }}
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-sm font-semibold text-white hover:from-blue-700 hover:to-indigo-700 transition"
+              >
+                Yes, continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
