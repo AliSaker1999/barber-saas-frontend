@@ -1,82 +1,161 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../services/api";
 
-/* Join queue */
-export const joinQueue = createAsyncThunk(
-  "queue/join",
-  async (tenantId) => {
-    await api.post(`/queue/tenants/${tenantId}/join`);
-    return tenantId;
+/* Fetch Queue Stats (Customer view) */
+export const fetchQueueStats = createAsyncThunk(
+  "queue/fetchStats",
+  async (tenantId, { rejectWithValue }) => {
+    try {
+      const res = await api.get(`/queue/tenants/${tenantId}/stats`);
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to fetch queue stats");
+    }
   }
 );
 
-/* Fetch queue */
+/* Join queue (with barberId) */
+export const joinQueue = createAsyncThunk(
+  "queue/join",
+  async ({ tenantId, barberId }, { rejectWithValue }) => {
+    try {
+      await api.post(`/queue/tenants/${tenantId}/join`, { barberId });
+      return tenantId;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to join queue");
+    }
+  }
+);
+
+/* Fetch queue (Admin/Barber view) */
 export const fetchQueue = createAsyncThunk(
   "queue/fetch",
-  async () => {
-    const res = await api.get("/queue");
-    return res.data.data;
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      // params can specify barberId filter
+      const res = await api.get("/queue", { params });
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to fetch queue");
+    }
   }
 );
 
 /* Move to next */
 export const moveNext = createAsyncThunk(
   "queue/next",
-  async () => {
-    await api.post("/queue/next");
+  async (barberId, { rejectWithValue }) => {
+    try {
+      await api.post("/queue/next", { barberId }); 
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to move queue");
+    }
+  }
+);
+
+export const markQueueNoShow = createAsyncThunk(
+  "queue/noShow",
+  async (queueId, { rejectWithValue }) => {
+    try {
+      await api.patch(`/queue/${queueId}/no-show`);
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to mark no show");
+    }
   }
 );
 
 export const fetchMyQueuePosition = createAsyncThunk(
   "queue/position",
-  async (tenantId) => {
-    const res = await api.get(
-      `/queue/me/${tenantId}/position`
-    );
-    return res.data.position;
+  async (tenantId, { rejectWithValue }) => {
+    try {
+      const res = await api.get(
+        `/queue/me/${tenantId}/position`
+      );
+      // Backend now returns full object { inQueue, barberName, position, status }
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to get queue position");
+    }
   }
 );
 
 export const leaveQueue = createAsyncThunk(
   "queue/leave",
-  async (tenantId) => {
-    await api.patch(`/queue/me/${tenantId}/leave`);
+  async (tenantId, { rejectWithValue }) => {
+    try {
+      await api.patch(`/queue/me/${tenantId}/leave`);
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to leave queue");
+    }
   }
 );
 
 const queueSlice = createSlice({
   name: "queue",
   initialState: {
-    items: [],
+    items: [], // Active queue items for Admin/Barber
+    stats: [], // Barber stats for Customer
     loading: false,
-    myPosition: null
+    myPosition: null, // { inQueue, position, barberName }
+    error: null
   },
   extraReducers: builder => {
     builder
+      .addCase(fetchQueueStats.pending, s => {
+        s.loading = true;
+      })
+      .addCase(fetchQueueStats.fulfilled, (s, a) => {
+        s.loading = false;
+        s.stats = a.payload;
+        s.error = null;
+      })
+      .addCase(fetchQueueStats.rejected, (s, a) => {
+        s.loading = false;
+        s.error = a.payload;
+      })
       .addCase(joinQueue.pending, s => {
         s.loading = true;
+        s.error = null;
       })
       .addCase(joinQueue.fulfilled, s => {
         s.loading = false;
+        s.error = null;
       })
-      .addCase(joinQueue.rejected, s => {
+      .addCase(joinQueue.rejected, (s, a) => {
         s.loading = false;
+        s.error = a.payload;
       })
       .addCase(fetchQueue.pending, s => {
         s.loading = true;
+        s.error = null;
       })
       .addCase(fetchQueue.fulfilled, (s, a) => {
         s.loading = false;
         s.items = a.payload;
+        s.error = null;
+      })
+      .addCase(fetchQueue.rejected, (s, a) => {
+        s.loading = false;
+        s.error = a.payload;
       })
       .addCase(moveNext.fulfilled, s => {
         s.loading = false;
+        s.error = null;
+      })
+      .addCase(moveNext.rejected, (s, a) => {
+        s.loading = false;
+        s.error = a.payload;
       })
       .addCase(fetchMyQueuePosition.fulfilled, (s, a) => {
         s.myPosition = a.payload;
+        s.error = null;
       })
       .addCase(leaveQueue.fulfilled, s => {
         s.myPosition = null;
+        s.error = null;
+      })
+      .addCase(leaveQueue.rejected, (s, a) => {
+        s.error = a.payload;
       });
   }
 });

@@ -1,14 +1,15 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { fetchMyQueuePosition, leaveQueue } from "../../features/queue/queueSlice";
+import { fetchMyQueuePosition, leaveQueue, fetchQueueStats, joinQueue } from "../../features/queue/queueSlice";
 import { getSocket } from "../../services/socket";
 
 export default function QueueStatus() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const tenantId = useAppSelector(s => s.booking.tenantId);
-  const position = useAppSelector(s => s.queue.myPosition);
+  const myPosition = useAppSelector(s => s.queue.myPosition);
+  const stats = useAppSelector(s => s.queue.stats);
   const loading = useAppSelector(s => s.queue.loading);
 
   useEffect(() => {
@@ -18,8 +19,11 @@ export default function QueueStatus() {
 
     const socket = getSocket();
     if (socket) {
+      // Listen for queue updates to refresh position or stats
       socket.on("queue:update", () => {
         dispatch(fetchMyQueuePosition(tenantId));
+        // If not joined, refresh stats to see queue lengths update
+        dispatch(fetchQueueStats(tenantId));
       });
     }
 
@@ -28,11 +32,34 @@ export default function QueueStatus() {
     };
   }, [dispatch, tenantId]);
 
+  // Fetch stats if not in queue and we know definitely (myPosition loaded)
+  useEffect(() => {
+      // If myPosition is loaded (not null) and inQueue is false
+      if (tenantId && myPosition && myPosition.inQueue === false) { 
+          dispatch(fetchQueueStats(tenantId));
+      }
+      // Or if myPosition is null, we might be loading, but good to fetch stats anyway if we end up not being in queue
+      // For now, allow fetch if tenant exists
+      if (tenantId) {
+         dispatch(fetchQueueStats(tenantId));
+      }
+  }, [dispatch, tenantId, myPosition?.inQueue]);
+
+
+  const handleJoin = async (barberId) => {
+      try {
+          await dispatch(joinQueue({ tenantId, barberId })).unwrap();
+          // After joining, fetch status (will update myPosition)
+          dispatch(fetchMyQueuePosition(tenantId));
+      } catch (err) {
+          alert("Failed to join queue: " + err);
+      }
+  };
+
   const handleLeaveQueue = async () => {
     if (window.confirm("Are you sure you want to leave the queue?")) {
       try {
         await dispatch(leaveQueue(tenantId)).unwrap();
-        navigate("/customer");
       } catch (err) {
         alert("Failed to leave queue. Please try again.");
       }
@@ -42,7 +69,7 @@ export default function QueueStatus() {
   if (!tenantId) {
     return (
       <div className="text-center py-20">
-        <p className="text-gray-600 text-lg">No active queue</p>
+        <p className="text-gray-600 text-lg">No active queue context</p>
         <button
           onClick={() => navigate("/customer")}
           className="mt-4 text-indigo-600 hover:text-indigo-700 font-semibold"
@@ -53,124 +80,94 @@ export default function QueueStatus() {
     );
   }
 
-  if (position === null && !loading) {
-    return (
-      <div className="text-center py-20">
-        <p className="text-gray-600 text-lg">You are not currently in a queue</p>
-        <button
-          onClick={() => navigate("/customer")}
-          className="mt-4 text-indigo-600 hover:text-indigo-700 font-semibold"
-        >
-          Back to Barbershops
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="max-w-md mx-auto">
-      {/* Loading State */}
-      {loading && (
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <svg className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <p className="text-gray-600">Updating your position...</p>
-          </div>
-        </div>
-      )}
-
-      {/* Queue Position Card */}
-      {!loading && position !== null && (
-        <>
-          <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-3xl shadow-2xl p-8 text-center text-white mb-8">
-            {/* Position Badge */}
-            <div className="mb-6">
-              <div className="text-6xl font-black mb-2">{position}</div>
-              <p className="text-blue-100 text-lg">Your Position in Line</p>
-            </div>
-
-            {/* Status */}
-            <div className="bg-white bg-opacity-20 rounded-2xl p-6 backdrop-blur-sm mb-6">
-              <p className="text-sm text-blue-100 mb-2">Estimated Wait Time</p>
-              <p className="text-3xl font-bold">
-                {position > 1 ? `${(position - 1) * 15}-${(position - 1) * 20} min` : "You're next!"}
-              </p>
-            </div>
-
-            {/* Info */}
-            <p className="text-blue-100 text-sm">
-              {position === 1 
-                ? "🎉 You're next! Get ready!" 
-                : `There are ${position - 1} ${position - 1 === 1 ? 'person' : 'people'} ahead of you`}
-            </p>
-          </div>
-
-          {/* Progress Visualization */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-            <h3 className="font-semibold text-gray-900 mb-4">Queue Progress</h3>
-            <div className="space-y-3">
-              {[...Array(Math.min(3, position))].map((_, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm ${
-                    i === position - 1
-                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
-                      : "bg-gray-200 text-gray-600"
-                  }`}>
-                    {i === position - 1 ? "📍" : i + 1}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">
-                      {i === position - 1 ? "Your Position" : `Position ${i + 1}`}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {i === 0 ? "In Progress" : "Waiting"}
-                    </p>
-                  </div>
+  // Case: User is IN Queue
+  if (myPosition?.inQueue) {
+      const { position, barberName } = myPosition;
+      const peopleAhead = position > 0 ? position - 1 : 0;
+      
+      return (
+        <div className="max-w-md mx-auto p-4">
+          {/* Queue Position Card */}
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-3xl shadow-2xl p-8 text-center text-white mb-8">
+                <div className="mb-4">
+                    <p className="text-blue-200 text-sm uppercase tracking-wider font-semibold">Barber</p>
+                    <h2 className="text-2xl font-bold">{barberName}</h2>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-2 gap-4 mb-8">
-            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border-2 border-green-200">
-              <p className="text-xs text-green-600 font-semibold mb-1">Status</p>
-              <p className="text-lg font-bold text-green-700">Active</p>
-              <div className="mt-2 flex items-center gap-1">
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                <span className="text-xs text-green-600">Live</span>
-              </div>
-            </div>
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border-2 border-blue-200">
-              <p className="text-xs text-blue-600 font-semibold mb-1">Check-in</p>
-              <p className="text-lg font-bold text-blue-700">Ready</p>
-              <p className="text-xs text-blue-600 mt-2">Get ready soon</p>
-            </div>
-          </div>
+                {position === 0 ? (
+                    <div className="mb-6 animate-pulse">
+                        <div className="text-4xl font-black mb-2">NOW SERVING</div>
+                        <p className="text-blue-100 text-lg">It's your turn!</p>
+                    </div>
+                ) : (
+                    <div className="mb-6">
+                        <div className="text-6xl font-black mb-2">{position}</div>
+                        <p className="text-blue-100 text-lg">Your Number</p>
+                        <p className="text-sm text-blue-200 mt-2">({peopleAhead} people ahead of you)</p>
+                    </div>
+                )}
 
-          {/* Action Buttons */}
-          <div className="space-y-3">
+                <div className="bg-white bg-opacity-20 rounded-2xl p-6 backdrop-blur-sm mb-6">
+                  <p className="text-sm text-blue-100 mb-2">Estimated Wait Time</p>
+                  <p className="text-3xl font-bold">
+                    {position > 0 ? `${position * 20} min` : "0 min"}
+                  </p>
+                </div>
+            </div>
+
             <button
               onClick={handleLeaveQueue}
               className="w-full bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 font-bold py-3 px-6 rounded-lg transition-all duration-200 border-2 border-red-200"
             >
-              <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
               Leave Queue
             </button>
-            <button
-              onClick={() => navigate("/customer")}
-              className="w-full bg-gray-50 hover:bg-gray-100 text-gray-600 hover:text-gray-700 font-semibold py-3 px-6 rounded-lg transition-all duration-200 border-2 border-gray-200"
-            >
-              Back to Barbershops
-            </button>
-          </div>
-        </>
-      )}
+            
+            <div className="mt-6 text-center bg-gray-50 p-4 rounded-lg">
+                 <p className="text-gray-600 font-medium">Need to talk to {barberName}?</p>
+                 <button className="mt-2 text-indigo-600 font-bold hover:underline">Start Chat (Coming Soon)</button>
+            </div>
+        </div>
+      );
+  }
+
+  // Case: User NOT in Queue - Select Logic
+  return (
+    <div className="max-w-lg mx-auto p-4">
+        <h1 className="text-3xl font-bold text-gray-900 mb-6 text-center">Join the Queue</h1>
+        <p className="text-gray-600 mb-8 text-center">Select a barber to see their wait time.</p>
+        
+        {loading && stats.length === 0 && <p className="text-center">Loading live stats...</p>}
+        
+        <div className="space-y-4">
+            {stats.map(barber => (
+                <div key={barber.barberId} className="bg-white rounded-xl shadow p-6 flex items-center justify-between border hover:border-blue-500 transition-all cursor-pointer group">
+                    <div>
+                        <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{barber.barberName}</h3>
+                        <p className="text-gray-500 text-sm mt-1">
+                            <span className="font-semibold text-gray-900">{barber.queueLength}</span> people waiting
+                        </p>
+                        <p className="text-blue-600 text-sm font-semibold mt-1">~ {barber.estimatedWaitMinutes} min wait</p>
+                    </div>
+                    <button
+                        onClick={() => handleJoin(barber.barberId)}
+                        className="bg-blue-600 text-white px-6 py-2 rounded-full font-semibold hover:bg-blue-700 shadow-md transform hover:scale-105 transition-all"
+                    >
+                        Join
+                    </button>
+                </div>
+            ))}
+            
+            {stats.length === 0 && !loading && (
+                <p className="text-center text-gray-500 bg-gray-50 p-8 rounded-xl">No barbers currently available for walk-ins.</p>
+            )}
+        </div>
+        
+         <button
+          onClick={() => navigate("/customer")}
+          className="mt-8 w-full text-center text-gray-400 hover:text-gray-600 text-sm"
+        >
+          Cancel and return to list
+        </button>
     </div>
   );
 }

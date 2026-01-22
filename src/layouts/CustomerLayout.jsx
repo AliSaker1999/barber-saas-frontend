@@ -13,6 +13,8 @@ export default function CustomerLayout() {
     navigate("/login");
   };
 
+  const isActive = (path) => location.pathname === path ? "border-b-2 border-indigo-600 text-indigo-600" : "text-gray-600 hover:text-gray-900";
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       {/* Navigation Bar */}
@@ -28,6 +30,32 @@ export default function CustomerLayout() {
               </div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">BarberSaaS</h1>
             </div>
+
+            {/* Navigation Links */}
+            <div className="hidden md:flex items-center gap-8">
+              <button
+                onClick={() => navigate("/customer")}
+                className={`font-semibold transition-colors pb-2 ${isActive("/customer")}`}
+              >
+                🏪 Browse
+              </button>
+              <button
+                onClick={() => navigate("/customer/appointments")}
+                className={`font-semibold transition-colors pb-2 ${isActive("/customer/appointments")}`}
+              >
+                📅 My Appointments
+              </button>
+              <button
+                onClick={() => navigate("/customer/queue")}
+                className={`font-semibold transition-colors pb-2 ${isActive("/customer/queue")}`}
+              >
+                ⏱️ Queue
+              </button>              <button
+                onClick={() => navigate("/customer/profile")}
+                className={`font-semibold transition-colors pb-2 ${isActive("/customer/profile")}`}
+              >
+                👤 My Profile
+              </button>            </div>
 
             {/* User Menu */}
             <div className="flex items-center gap-6">

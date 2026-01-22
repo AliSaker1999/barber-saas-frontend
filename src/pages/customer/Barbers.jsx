@@ -1,8 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import {
-  fetchBarbersByService,
+  fetchBarbersForTenant,
   selectBarber
 } from "../../features/booking/bookingSlice";
 
@@ -12,13 +12,16 @@ export default function Barbers() {
 
   const {
     tenantId,
+    services,
     selectedServiceIds,
     barbers,
     selectedBarberId,
-    loading
+    barbersLoading,
+    barbersError
   } = useAppSelector(state => state.booking);
 
-  /* 🚨 Guards */
+  const [expandedBarbers, setExpandedBarbers] = useState({});
+
   useEffect(() => {
     if (!tenantId) {
       navigate("/customer");
@@ -30,20 +33,61 @@ export default function Barbers() {
       return;
     }
 
-    dispatch(fetchBarbersByService(selectedServiceIds[0]));
+    dispatch(fetchBarbersForTenant({ tenantId }));
   }, [tenantId, selectedServiceIds, dispatch, navigate]);
 
-  const handleSelectBarber = (barberId) => {
-    dispatch(selectBarber(barberId));
+  useEffect(() => {
+    if (!selectedBarberId) return;
+    const currentBarber = barbers.find(b => b.barberId === selectedBarberId);
+    if (!currentBarber) return;
+    const missing = selectedServiceIds.filter(id => !currentBarber.serviceIds.includes(id));
+    if (missing.length) {
+      dispatch(selectBarber(null));
+    }
+  }, [barbers, selectedBarberId, selectedServiceIds, dispatch]);
+
+  const serviceLookup = useMemo(() => {
+    return services.reduce((acc, service) => {
+      acc[service.Id] = service;
+      return acc;
+    }, {});
+  }, [services]);
+
+  const selectedServiceNames = selectedServiceIds.map(
+    id => serviceLookup[id]?.Name || "Unknown service"
+  );
+
+  const matchedBarbersCount = barbers.filter(barber =>
+    selectedServiceIds.every(id => barber.serviceIds.includes(id))
+  ).length;
+
+  const toggleServices = (barberId) => {
+    setExpandedBarbers(prev => ({
+      ...prev,
+      [barberId]: !prev[barberId]
+    }));
+  };
+
+  const handleSelectBarber = (barber) => {
+    const missing = selectedServiceIds.filter(id => !barber.serviceIds.includes(id));
+    if (missing.length) return;
+    dispatch(selectBarber(barber.barberId));
     navigate("/customer/slots");
   };
 
-  if (loading) {
+  const formatPrice = (value) => {
+    if (value === null || value === undefined) {
+      return "—";
+    }
+    return Number(value).toFixed(2);
+  };
+
+  if (barbersLoading) {
     return (
       <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="text-gray-600 mt-4">Finding available barbers...</p>
+          <p className="text-gray-600 mt-4">Loading barbers that match your services...</p>
         </div>
       </div>
     );
@@ -51,9 +95,8 @@ export default function Barbers() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
+      <div className="max-w-5xl mx-auto space-y-8">
+        <div>
           <button
             onClick={() => navigate("/customer/services")}
             className="text-blue-600 hover:text-blue-700 font-medium text-sm flex items-center gap-2 mb-4"
@@ -64,107 +107,137 @@ export default function Barbers() {
             Back to Services
           </button>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Choose Your Barber</h1>
-          <p className="text-gray-600">Select your preferred barber for the best experience</p>
+          <p className="text-gray-600">
+            You selected {selectedServiceIds.length} service{selectedServiceIds.length > 1 ? "s" : ""}: {" "}
+            {selectedServiceNames.join(", ")}. Only cards labeled as a full match can be booked directly.
+          </p>
         </div>
 
-        {/* Empty State */}
-        {barbers.length === 0 && (
-          <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        {barbersError && (
+          <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {barbersError}
+          </div>
+        )}
+
+        <div className={`rounded-2xl border px-5 py-4 text-sm ${matchedBarbersCount ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-orange-100 bg-orange-50 text-orange-700"}`}>
+          {matchedBarbersCount
+            ? `${matchedBarbersCount} ${matchedBarbersCount === 1 ? "barber" : "barbers"} can serve every selected service.`
+            : "No barber currently covers every selected service. Try reducing the selection or choose a barber and update services accordingly."}
+        </div>
+
+        {barbers.length === 0 ? (
+          <div className="bg-white rounded-2xl shadow-lg p-10 text-center space-y-3">
+            <svg className="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M15 12a3 3 0 11-6 0 3 3 0 016 0zm6 0a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="text-gray-500 text-lg font-medium">No barbers available</p>
-            <p className="text-gray-400 text-sm mt-2">No barbers are currently available for this service</p>
+            <p className="text-gray-500 text-lg font-medium">No barbers are linked to this tenant yet.</p>
+            <p className="text-gray-400 text-sm">We could not find any barbers available for your services right now.</p>
             <button
               onClick={() => navigate("/customer/services")}
-              className="mt-6 inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+              className="mt-6 inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-xl transition-colors"
             >
-              Try Another Service
+              Try another shop
             </button>
           </div>
-        )}
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2">
+            {barbers.map(barber => {
+              const missingServices = selectedServiceIds.filter(id => !barber.serviceIds.includes(id));
+              const supportsAll = missingServices.length === 0;
+              const selectedCount = selectedServiceIds.length - missingServices.length;
 
-        {/* Barbers Grid */}
-        {barbers.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {barbers.map(barber => (
-              <div
-                key={barber.BarberId}
-                onClick={() => handleSelectBarber(barber.BarberId)}
-                className={`rounded-lg shadow-md overflow-hidden cursor-pointer transition-all hover:shadow-xl ${
-                  selectedBarberId === barber.BarberId
-                    ? "ring-2 ring-blue-500 bg-blue-50"
-                    : "bg-white hover:shadow-lg"
-                }`}
-              >
-                {/* Barber Avatar */}
-                <div className="h-40 bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center">
-                  <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center">
-                    <svg className="w-12 h-12 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                    </svg>
-                  </div>
-                </div>
-
-                {/* Barber Info */}
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900">{barber.FullName}</h3>
-                  
-                  {/* Rating */}
-                  <div className="flex items-center gap-2 my-3">
-                    <div className="flex text-yellow-400">
-                      {[...Array(5)].map((_, i) => (
-                        <svg key={i} className="w-4 h-4 fill-current" viewBox="0 0 20 20">
-                          <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                        </svg>
-                      ))}
+              return (
+                <article
+                  key={barber.barberId}
+                  className={`rounded-2xl border transition ${selectedBarberId === barber.barberId ? "ring-2 ring-blue-500 border-blue-300" : "border-gray-200"} ${supportsAll ? "bg-white" : "bg-gray-50"}`}
+                >
+                  <div className="p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xl font-bold text-gray-900">{barber.fullName}</h3>
+                      <span className={`text-[11px] font-semibold uppercase tracking-wide px-3 py-1 rounded-full ${supportsAll ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-700"}`}>
+                        {supportsAll ? "Full match" : `${selectedCount}/${selectedServiceIds.length} services`}
+                      </span>
                     </div>
-                    <span className="text-sm text-gray-600">(24 reviews)</span>
+
+                    <div className="h-32 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-600 flex flex-col items-center justify-center text-white">
+                      <p className="text-sm font-semibold">{barber.isAvailable ? "Available now" : "Currently offline"}</p>
+                      <p className="text-xs text-blue-100 mt-1">Tap to see services ⬇</p>
+                    </div>
+
+                    {missingServices.length > 0 && (
+                      <p className="text-sm text-red-600">
+                        Missing {missingServices.map(id => serviceLookup[id]?.Name || "service").join(", ")}
+                      </p>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        toggleServices(barber.barberId);
+                      }}
+                      className="text-left text-sm font-semibold uppercase tracking-wide text-blue-600 hover:text-blue-800"
+                    >
+                      {expandedBarbers[barber.barberId] ? "Hide linked services" : "View linked services"}
+                    </button>
+
+                    {expandedBarbers[barber.barberId] && (
+                      <div className="space-y-3">
+                        {barber.services.length === 0 && (
+                          <p className="text-sm text-gray-500">This barber has no services linked right now.</p>
+                        )}
+                        {barber.services.map(service => (
+                          <div
+                            key={service.id}
+                            className="flex items-center justify-between rounded-xl border border-gray-100 bg-white px-3 py-2 shadow-sm"
+                          >
+                            <div>
+                              <p className="text-sm font-semibold text-gray-900">
+                                {service.name || serviceLookup[service.id]?.Name || "Unknown service"}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {service.durationMinutes ?? 0} min · ${formatPrice(service.price)}
+                              </p>
+                            </div>
+                            <span className={`text-[11px] px-2 py-1 rounded-full ${selectedServiceIds.includes(service.id) ? "bg-blue-50 text-blue-600" : "bg-gray-100 text-gray-600"}`}>
+                              {selectedServiceIds.includes(service.id) ? "Selected" : "Available"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => handleSelectBarber(barber)}
+                      disabled={!supportsAll}
+                      className={`w-full py-3 rounded-xl font-semibold transition ${supportsAll ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg" : "bg-gray-200 text-gray-500 cursor-not-allowed"}`}
+                    >
+                      {selectedBarberId === barber.barberId
+                        ? "✓ Selected"
+                        : supportsAll
+                          ? "Select barber"
+                          : "Can’t serve selected services"}
+                    </button>
                   </div>
-
-                  {/* Experience */}
-                  <p className="text-sm text-gray-600 mb-4">
-                    <span className="font-semibold">8+ years</span> of experience
-                  </p>
-
-                  {/* Select Button */}
-                  <button
-                    onClick={() => handleSelectBarber(barber.BarberId)}
-                    className={`w-full py-2 px-4 rounded-lg font-semibold transition-all ${
-                      selectedBarberId === barber.BarberId
-                        ? "bg-blue-600 text-white shadow-md"
-                        : "bg-gray-100 text-gray-900 hover:bg-gray-200"
-                    }`}
-                  >
-                    {selectedBarberId === barber.BarberId ? "✓ Selected" : "Select"}
-                  </button>
-                </div>
-              </div>
-            ))}
+                </article>
+              );
+            })}
           </div>
         )}
 
-        {/* Bottom Navigation */}
         {barbers.length > 0 && (
-          <div className="mt-12 flex gap-4">
+          <div className="flex flex-col gap-4 md:flex-row">
             <button
               onClick={() => navigate("/customer/services")}
-              className="flex-1 py-3 px-4 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 hover:border-gray-400 transition-colors"
+              className="flex-1 py-3 px-4 border border-gray-300 rounded-xl font-semibold text-gray-900 hover:border-gray-400 transition-colors"
             >
-              ← Back
+              ← Update Services
             </button>
             <button
-              onClick={() => {
-                if (selectedBarberId) {
-                  navigate("/customer/slots");
-                }
-              }}
+              onClick={() => selectedBarberId && navigate("/customer/slots")}
               disabled={!selectedBarberId}
-              className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${
-                selectedBarberId
-                  ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
-                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
-              }`}
+              className={`flex-1 py-3 px-4 rounded-xl font-semibold transition ${selectedBarberId ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg" : "bg-gray-300 text-gray-500 cursor-not-allowed"}`}
             >
               Continue →
             </button>

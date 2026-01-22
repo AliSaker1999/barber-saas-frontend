@@ -4,30 +4,38 @@ import api from "../../services/api";
 /* Fetch tenant services */
 export const fetchServices = createAsyncThunk(
   "services/fetch",
-  async () => {
-    const res = await api.get("/services");
-    return res.data.data;
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.get("/services");
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to fetch services");
+    }
   }
 );
 
 /* Add service */
 export const addService = createAsyncThunk(
   "services/add",
-  async (data) => {
-    const res = await api.post("/services", data);
-    return res.data.data;
+  async (data, { rejectWithValue }) => {
+    try {
+      const res = await api.post("/services", data);
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to add service");
+    }
   }
 );
 
 /* Toggle active */
 export const updateService = createAsyncThunk(
   "services/update",
-  async ({ serviceId, updates }, thunkAPI) => {
+  async ({ serviceId, updates }, { rejectWithValue }) => {
     try {
       const res = await api.patch(`/services/${serviceId}`, updates);
       return res.data.data;
     } catch (err) {
-      return thunkAPI.rejectWithValue(
+      return rejectWithValue(
         err?.response?.data?.message || err?.message || "Failed to update service"
       );
     }
@@ -37,9 +45,13 @@ export const updateService = createAsyncThunk(
 /* Delete service */
 export const deleteService = createAsyncThunk(
   "services/delete",
-  async (id) => {
-    await api.delete(`/services/${id}`);
-    return id;
+  async (id, { rejectWithValue }) => {
+    try {
+      await api.delete(`/services/${id}`);
+      return id;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to delete service");
+    }
   }
 );
 

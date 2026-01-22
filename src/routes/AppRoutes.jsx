@@ -20,6 +20,7 @@ import Appointments from "../pages/company/Appointments";
 import Services from "../pages/company/Services";
 // import Staff from "../pages/company/Staff";
 import Barbers from "../pages/company/Barbers";
+import CompanyProfile from "../pages/company/CompanyProfile";
 
 /* Customer */
 import Tenants from "../pages/customer/Tenants";
@@ -27,6 +28,8 @@ import CustomerServices from "../pages/customer/Services";
 import CustomerBarbers from "../pages/customer/Barbers";
 import Slots from "../pages/customer/Slots";
 import QueueStatus from "../pages/customer/QueueStatus";
+import CustomerAppointments from "../pages/customer/Appointments";
+import CustomerProfile from "../pages/customer/Profile";
 
 export default function AppRoutes() {
   const user = useAppSelector(state => state.auth.user);
@@ -72,6 +75,7 @@ export default function AppRoutes() {
       {/* ---------- COMPANY ---------- */}
       {(user.roles?.includes("ADMIN") || user.roles?.includes("BARBER")) && (
         <Route path="/company" element={<CompanyLayout />}>
+          <Route path="profile" element={<CompanyProfile />} />
           <Route path="queue" element={<Queue />} />
           <Route path="appointments" element={<Appointments />} />
           <Route path="services" element={<Services />} />
@@ -90,6 +94,8 @@ export default function AppRoutes() {
           <Route path="barbers" element={<CustomerBarbers />} />
           <Route path="slots" element={<Slots />} />
           <Route path="queue" element={<QueueStatus />} />
+          <Route path="appointments" element={<CustomerAppointments />} />
+          <Route path="profile" element={<CustomerProfile />} />
         </Route>
       )}
 

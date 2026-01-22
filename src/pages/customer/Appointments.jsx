@@ -1,34 +1,31 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import {
-  fetchAppointments,
-  cancelAppointment,
-  markNoShow,
-  completeAppointment,
-  clearAppointmentsError
+  fetchCustomerAppointments,
+  cancelAppointment
 } from "../../features/appointments/appointmentsSlice";
-import { fetchCustomerDetails, clearSelectedCustomer } from "../../features/customers/customersSlice";
+import {
+  selectTenant,
+  setSelectedServices,
+  selectBarber,
+  startReschedule
+} from "../../features/booking/bookingSlice";
 import { getSocket } from "../../services/socket";
-import CustomerModal from "../../components/CustomerModal";
 
 export default function Appointments() {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { items, loading, error } = useAppSelector(s => s.appointments);
   const [filter, setFilter] = useState("SCHEDULED");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const handleOpenCustomer = (customerId) => {
-    dispatch(fetchCustomerDetails({ customerId }));
-    setIsModalOpen(true);
-  };
 
   useEffect(() => {
-    dispatch(fetchAppointments());
+    dispatch(fetchCustomerAppointments());
 
     const socket = getSocket();
     if (socket) {
       socket.on("appointments:update", () => {
-        dispatch(fetchAppointments());
+        dispatch(fetchCustomerAppointments());
       });
     }
 
@@ -57,12 +54,36 @@ export default function Appointments() {
     };
   };
 
+  const handleReschedule = (appointment) => {
+    const serviceIds = Array.isArray(appointment.services)
+      ? Array.from(new Set(appointment.services.map(s => s.id))).filter(Boolean)
+      : [];
+
+    if (!appointment.TenantId || !appointment.BarberId || serviceIds.length === 0) {
+      alert("Unable to reschedule: missing appointment details.");
+      return;
+    }
+
+    dispatch(selectTenant(appointment.TenantId));
+    dispatch(setSelectedServices(serviceIds));
+    dispatch(selectBarber(appointment.BarberId));
+    dispatch(startReschedule({
+      appointmentId: appointment.Id,
+      tenantId: appointment.TenantId,
+      barberId: appointment.BarberId,
+      serviceIds,
+      startTime: appointment.StartTime
+    }));
+
+    navigate("/customer/slots");
+  };
+
   return (
     <div>
       {/* Header */}
       <div className="mb-10">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">📅 Appointments</h1>
-        <p className="text-gray-600">Manage and track all salon appointments</p>
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">📅 My Appointments</h1>
+        <p className="text-gray-600">View, manage, and reschedule your bookings</p>
       </div>
 
       {/* Stats Cards / Filters */}
@@ -114,12 +135,6 @@ export default function Appointments() {
       {error && (
         <div className="bg-red-50 border-2 border-red-200 text-red-700 px-6 py-4 rounded-xl mb-8 flex items-center justify-between">
           <span>⚠️ {error}</span>
-          <button 
-            onClick={() => dispatch(clearAppointmentsError())}
-            className="text-red-500 hover:text-red-700 font-bold"
-          >
-            ✕
-          </button>
         </div>
       )}
 
@@ -130,7 +145,7 @@ export default function Appointments() {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <p className="text-gray-600 text-lg mt-4">Loading appointments...</p>
+          <p className="text-gray-600 text-lg mt-4">Loading your appointments...</p>
         </div>
       )}
 
@@ -144,7 +159,7 @@ export default function Appointments() {
         </div>
       )}
 
-      {/* Appointments List (List to Card on Hover) */}
+      {/* Appointments List */}
       {!loading && filteredItems.length > 0 && (
         <div className="space-y-4">
           {filteredItems.map(appointment => {
@@ -154,69 +169,40 @@ export default function Appointments() {
             return (
               <div
                 key={appointment.Id}
-                className="group relative bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-2xl hover:scale-[1.02] hover:z-10 transition-all duration-300 cursor-default overflow-hidden"
+                className="group relative bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-2xl hover:scale-[1.01] hover:z-10 transition-all duration-300 cursor-default overflow-hidden"
               >
-                {/* Decoration for hover */}
                 <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-600 transform scale-y-0 group-hover:scale-y-100 transition-transform origin-top duration-300" />
                 
                 <div className="p-4 md:p-6 flex flex-col md:flex-row md:items-center gap-6">
-                  {/* Date & Time Column */}
+                  {/* Time Column */}
                   <div className="min-w-[140px]">
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Schedule</p>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Time</p>
                     <p className="text-sm font-bold text-gray-900">{date}</p>
                     <p className="text-indigo-600 font-black text-lg">⏰ {time}</p>
                   </div>
 
-                  {/* Customer Column */}
+                  {/* Details Column */}
                   <div className="flex-1">
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Customer</p>
-                    <button 
-                      onClick={() => handleOpenCustomer(appointment.CustomerId)}
-                      className="text-lg font-bold text-gray-900 hover:text-blue-600 transition-colors pointer-events-auto text-left block"
-                    >
-                      {appointment.CustomerName}
-                    </button>
-                    <p className="text-sm text-gray-600 truncate max-w-xs">{appointment.Services}</p>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Services at {appointment.BarberName}</p>
+                    <p className="text-lg font-bold text-gray-900">{appointment.Services}</p>
                   </div>
 
-                  {/* Barber Column */}
-                  <div className="hidden lg:block min-w-[150px]">
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Barber</p>
-                    <p className="text-sm font-bold text-gray-900">{appointment.BarberName}</p>
-                  </div>
-
-                  {/* Status Badge */}
+                  {/* Status */}
                   <div className="flex items-center">
                     <div className={`px-4 py-1.5 rounded-full font-bold text-xs flex items-center gap-2 ${statusBadge.bg} border ${statusBadge.border} ${statusBadge.text}`}>
                       <span className="text-sm">{statusBadge.icon}</span> {appointment.Status}
                     </div>
                   </div>
 
-                  {/* Actions (Only visible/expanded on hover or always if Scheduled) */}
+                  {/* Actions */}
                   <div className="flex gap-2">
                     {appointment.Status === "SCHEDULED" && (
                       <>
                         <button
-                          onClick={() => {
-                            if (window.confirm("Mark as completed?")) {
-                              dispatch(completeAppointment(appointment.Id));
-                            }
-                          }}
-                          className="bg-green-50 hover:bg-green-600 hover:text-white text-green-600 p-2 rounded-lg transition-all border border-green-100"
-                          title="Complete"
+                          onClick={() => handleReschedule(appointment)}
+                          className="bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-indigo-100 uppercase"
                         >
-                          ✅
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (window.confirm("Mark as no-show?")) {
-                              dispatch(markNoShow(appointment.Id));
-                            }
-                          }}
-                          className="bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-600 p-2 rounded-lg transition-all border border-amber-100"
-                          title="No Show"
-                        >
-                          ⚠️
+                          Reschedule
                         </button>
                         <button
                           onClick={() => {
@@ -224,10 +210,9 @@ export default function Appointments() {
                               dispatch(cancelAppointment(appointment.Id));
                             }
                           }}
-                          className="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 p-2 rounded-lg transition-all border border-red-100"
-                          title="Cancel"
+                          className="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-red-100 uppercase"
                         >
-                          ❌
+                          Cancel
                         </button>
                       </>
                     )}
@@ -238,15 +223,6 @@ export default function Appointments() {
           })}
         </div>
       )}
-
-      {/* Customer Detail Modal */}
-      <CustomerModal 
-        isOpen={isModalOpen} 
-        onClose={() => {
-          setIsModalOpen(false);
-          dispatch(clearSelectedCustomer());
-        }} 
-      />
     </div>
   );
 }

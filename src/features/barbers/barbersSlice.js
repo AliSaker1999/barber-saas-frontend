@@ -4,18 +4,26 @@ import api from "../../services/api";
 /* Fetch barbers */
 export const fetchBarbers = createAsyncThunk(
   "barbers/fetch",
-  async () => {
-    const res = await api.get("/barbers");
-    return res.data.data;
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.get("/barbers");
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to fetch barbers");
+    }
   }
 );
 
 /* Create barber profile */
 export const createBarber = createAsyncThunk(
   "barbers/create",
-  async (data) => {
-    const res = await api.post("/barbers", data);
-    return res.data.data;
+  async (data, { rejectWithValue }) => {
+    try {
+      const res = await api.post("/barbers", data);
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to create barber");
+    }
   }
 );
 
@@ -23,27 +31,39 @@ export const createBarber = createAsyncThunk(
 /* Assign service */
 export const assignService = createAsyncThunk(
   "barbers/assignService",
-  async ({ barberId, serviceId }) => {
-    await api.post(`/barbers/${barberId}/services`, { serviceId });
-    return { barberId, serviceId };
+  async ({ barberId, serviceId }, { rejectWithValue }) => {
+    try {
+      await api.post(`/barbers/${barberId}/services`, { serviceId });
+      return { barberId, serviceId };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to assign service");
+    }
   }
 );
 
 export const toggleBarberService = createAsyncThunk(
   "barbers/toggleService",
-  async ({ barberId, serviceId }) => {
-    await api.post(`/barbers/${barberId}/services`, { serviceId });
-    return { barberId, serviceId };
+  async ({ barberId, serviceId }, { rejectWithValue }) => {
+    try {
+      await api.post(`/barbers/${barberId}/services`, { serviceId });
+      return { barberId, serviceId };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to toggle service");
+    }
   }
 );
 
 export const toggleAvailability = createAsyncThunk(
   "barbers/toggleAvailability",
-  async ({ barberId, isAvailable }) => {
-    await api.patch(`/barbers/${barberId}/availability`, {
-      isAvailable
-    });
-    return { barberId, isAvailable };
+  async ({ barberId, isAvailable }, { rejectWithValue }) => {
+    try {
+      await api.patch(`/barbers/${barberId}/availability`, {
+        isAvailable
+      });
+      return { barberId, isAvailable };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to update availability");
+    }
   }
 );
 

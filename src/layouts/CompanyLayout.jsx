@@ -8,6 +8,7 @@ const navItems = [
   { to: "appointments", label: "Appointments", icon: "📅", roles: ["ADMIN", "BARBER"] },
   { to: "services", label: "Services", icon: "✂️", roles: ["ADMIN"] },
   { to: "barbers", label: "Team", icon: "👥", roles: ["ADMIN"] },
+  { to: "profile", label: "Shop Profile", icon: "🏢", roles: ["ADMIN"] },
 ];
 
 export default function CompanyLayout() {

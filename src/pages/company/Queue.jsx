@@ -1,11 +1,19 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { fetchQueue, moveNext } from "../../features/queue/queueSlice";
+import { fetchQueue, moveNext, markQueueNoShow } from "../../features/queue/queueSlice";
+import { fetchCustomerDetails, clearSelectedCustomer } from "../../features/customers/customersSlice";
 import { getSocket } from "../../services/socket";
+import CustomerModal from "../../components/CustomerModal";
 
 export default function Queue() {
   const dispatch = useAppDispatch();
   const { items, loading } = useAppSelector(state => state.queue);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleOpenCustomer = (customerId) => {
+    dispatch(fetchCustomerDetails({ customerId }));
+    setIsModalOpen(true);
+  };
 
   useEffect(() => {
     dispatch(fetchQueue());
@@ -20,135 +28,145 @@ export default function Queue() {
     return () => socket?.off("queue:update");
   }, [dispatch]);
 
+  const queues = useMemo(() => {
+     const map = {};
+     items.forEach(item => {
+         if (!map[item.barberId]) {
+             map[item.barberId] = {
+                 barberName: item.barberName,
+                 barberId: item.barberId,
+                 items: []
+             };
+         }
+         map[item.barberId].items.push(item);
+     });
+     return Object.values(map);
+  }, [items]);
+
+  const handleNext = async (barberId) => {
+      try {
+          await dispatch(moveNext(barberId)).unwrap();
+      } catch (err) {
+          alert("Action failed: " + err);
+      }
+  };
+
+  const handleNoShow = async (queueId) => {
+    if (!window.confirm("Mark this customer as No Show?")) return;
+    try {
+        await dispatch(markQueueNoShow(queueId)).unwrap();
+    } catch (err) {
+        alert("Action failed: " + err);
+    }
+  };
+
+  const formatJoinedTime = (dateStr) => {
+      const d = new Date(dateStr);
+      // Fixed: Adjusting for 2 hour offset as requested
+      d.setHours(d.getHours() - 2);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div>
-      {/* Header */}
       <div className="mb-10">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">🚀 Customer Queue</h1>
-        <p className="text-gray-600">Real-time queue management and customer tracking</p>
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">🚀 Queue Management</h1>
+        <p className="text-gray-600">Manage customer flow</p>
       </div>
 
-      {/* Loading State */}
-      {loading && (
-        <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-          <svg className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <p className="text-gray-600 text-lg mt-4">Loading queue...</p>
-        </div>
+      {loading && items.length === 0 && (
+         <div className="text-center py-10">
+            <p>Loading queue data...</p>
+         </div>
       )}
-
-      {/* Empty State */}
+      
       {!loading && items.length === 0 && (
         <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-          <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <p className="text-gray-500 text-lg font-semibold">Queue is empty</p>
-          <p className="text-gray-400 mt-2">No customers waiting. Great job!</p>
+            <p className="text-gray-500 text-lg font-semibold">Queue is empty</p>
+            <p className="text-gray-400 mt-2">No customers waiting.</p>
         </div>
       )}
 
-      {/* Queue List */}
-      {!loading && items.length > 0 && (
-        <>
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border-2 border-blue-200 p-6">
-              <p className="text-sm font-semibold text-gray-700">In Queue</p>
-              <p className="text-4xl font-bold text-blue-600 mt-2">{items.length}</p>
-              <p className="text-xs text-gray-600 mt-2">customers waiting</p>
-            </div>
-            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border-2 border-green-200 p-6">
-              <p className="text-sm font-semibold text-gray-700">Now Serving</p>
-              <p className="text-xl font-bold text-green-600 mt-2 truncate">{items[0]?.CustomerName || "—"}</p>
-              <p className="text-xs text-gray-600 mt-2">
-                <span className="w-2 h-2 bg-green-500 rounded-full inline-block animate-pulse mr-1"></span>
-                Live
-              </p>
-            </div>
-            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-200 p-6">
-              <p className="text-sm font-semibold text-gray-700">Avg Wait Time</p>
-              <p className="text-4xl font-bold text-amber-600 mt-2">~{Math.max(15, items.length * 15)}m</p>
-              <p className="text-xs text-gray-600 mt-2">estimated</p>
-            </div>
+      <div className="space-y-12">
+      {queues.map(group => (
+          <div key={group.barberId} className="bg-gray-50 rounded-3xl p-6 border border-gray-200">
+               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                   <h2 className="text-2xl font-bold text-indigo-900">{group.barberName}'s Queue</h2>
+                   
+                   <button 
+                        onClick={() => handleNext(group.barberId)}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-xl font-bold transition shadow-lg flex items-center gap-2"
+                    >
+                        Call Next Customer
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                    </button>
+               </div>
+               
+               <div className="space-y-3">
+                   {group.items.map((item, index) => {
+                       const isServing = item.status === "IN_PROGRESS" || item.status === "In Progress" || item.position === 0;
+                       
+                       return (
+                           <div key={item.id} className={`p-4 rounded-xl flex items-center justify-between transition-all duration-200 ${
+                               isServing 
+                               ? "bg-white border-l-8 border-indigo-600 shadow-md scale-[1.01]" 
+                               : "bg-white border border-gray-100 opacity-90"
+                           }`}>
+                               <div className="flex items-center gap-4">
+                                   <div className={`text-xl font-black w-12 text-center ${isServing ? "text-indigo-600" : "text-gray-400"}`}>
+                                       {isServing ? "NOW" : `#${index}`} 
+                                   </div>
+                                   <div>
+                                       <button 
+                                         onClick={() => handleOpenCustomer(item.customerId)}
+                                         className="font-bold text-lg text-gray-800 hover:text-blue-600 transition-colors pointer-events-auto text-left block"
+                                       >
+                                         {item.customerName}
+                                       </button>
+                                       <p className="text-xs text-gray-500">Joined {formatJoinedTime(item.joinedAt)}</p>
+                                   </div>
+                               </div>
+                               
+                               <div className="flex items-center gap-3">
+                                   {isServing ? (
+                                       <>
+                                           <button 
+                                               onClick={() => handleNoShow(item.id)}
+                                               className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white px-4 py-2 rounded-xl font-bold text-xs uppercase transition-all border border-red-100"
+                                           >
+                                               No Show
+                                           </button>
+                                           <span className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide shadow-md">
+                                               In Chair
+                                           </span>
+                                       </>
+                                   ) : (
+                                       index === 0 && (
+                                           <button 
+                                               onClick={() => handleNoShow(item.id)}
+                                               className="text-gray-400 hover:text-red-500 font-bold text-xs uppercase transition-colors"
+                                           >
+                                               No Show
+                                           </button>
+                                       )
+                                   )}
+                               </div>
+                           </div>
+                       );
+                   })}
+               </div>
           </div>
+      ))}
+      </div>
 
-          {/* Queue Items */}
-          <div className="space-y-4 mb-8">
-            {items.map((q, index) => (
-              <div
-                key={q.Id}
-                className={`rounded-2xl shadow-lg overflow-hidden transition-all duration-300 ${
-                  index === 0
-                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white scale-100 shadow-xl ring-2 ring-blue-400 ring-offset-2"
-                    : "bg-white hover:shadow-xl hover:scale-105"
-                }`}
-              >
-                <div className="p-6 flex items-center justify-between">
-                  <div className="flex items-center gap-6 flex-1">
-                    {/* Position Badge */}
-                    <div className={`text-4xl font-black ${
-                      index === 0 ? "text-blue-100" : "text-indigo-600"
-                    }`}>
-                      #{index + 1}
-                    </div>
-
-                    {/* Customer Info */}
-                    <div className="flex-1">
-                      <h3 className={`text-2xl font-bold ${
-                        index === 0 ? "text-white" : "text-gray-900"
-                      }`}>
-                        {q.CustomerName}
-                      </h3>
-                      {index === 0 && (
-                        <p className="text-blue-100 text-sm mt-2 flex items-center gap-2">
-                          <span className="w-2 h-2 bg-blue-200 rounded-full animate-pulse"></span>
-                          Currently Being Served
-                        </p>
-                      )}
-                      {index > 0 && (
-                        <p className={`text-sm mt-2 ${
-                          index === 1 ? "text-gray-600 font-semibold" : "text-gray-500"
-                        }`}>
-                          {index === 1 ? "Next in line" : `Wait time: ~${(index * 15)} minutes`}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Status Badge */}
-                  {index === 0 && (
-                    <div className="bg-white bg-opacity-20 backdrop-blur-sm px-5 py-2 rounded-full">
-                      <span className="text-white font-bold text-sm flex items-center gap-2">
-                        <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-                        NOW SERVING
-                      </span>
-                    </div>
-                  )}
-                  {index === 1 && (
-                    <div className="bg-blue-50 px-5 py-2 rounded-full border-2 border-blue-200">
-                      <span className="text-blue-700 font-bold text-sm">NEXT</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Call Next Button */}
-          <button
-            onClick={() => dispatch(moveNext())}
-            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-2xl transition-all shadow-xl hover:shadow-2xl text-lg flex items-center justify-center gap-3 group"
-          >
-            <svg className="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
-            Call Next Customer
-          </button>
-        </>
-      )}
+     <CustomerModal 
+        isOpen={isModalOpen} 
+        onClose={() => {
+          setIsModalOpen(false);
+          dispatch(clearSelectedCustomer());
+        }} 
+      />
     </div>
   );
 }
+
