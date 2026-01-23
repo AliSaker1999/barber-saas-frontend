@@ -7,12 +7,12 @@ import appointmentsReducer from "../features/appointments/appointmentsSlice";
 import servicesReducer from "../features/services/servicesSlice";
 import barbersReducer from "../features/barbers/barbersSlice";
 import workingHoursReducer from "../features/workingHours/workingHoursSlice";
-import  toggleAvailability  from "../features/barbers/barbersSlice";
 import platformTenantsReducer from "../features/platformTenants/platformTenantsSlice";
 import platformCustomersReducer from "../features/platformCustomers/platformCustomersSlice";
 import companyReducer from "../features/company/companySlice";
 import customerProfileReducer from "../features/auth/customerProfileSlice";
 import customersReducer from "../features/customers/customersSlice";
+import reportsReducer from "../features/reports/reportsSlice";
 
 export const store = configureStore({
   reducer: {
@@ -24,11 +24,11 @@ export const store = configureStore({
     services: servicesReducer,
     barbers: barbersReducer,
     workingHours: workingHoursReducer,
-    toggleAvailability: toggleAvailability,
     platformTenants: platformTenantsReducer,
     platformCustomers: platformCustomersReducer,
     company: companyReducer,
     customerProfile: customerProfileReducer,
-    customers: customersReducer
+    customers: customersReducer,
+    reports: reportsReducer
   }
 });

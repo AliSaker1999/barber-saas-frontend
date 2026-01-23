@@ -5,35 +5,56 @@ import {
   cancelAppointment,
   markNoShow,
   completeAppointment,
+  acceptAppointment,
+  declineAppointment,
+  arriveForAppointment,
   clearAppointmentsError
 } from "../../features/appointments/appointmentsSlice";
 import { fetchCustomerDetails, clearSelectedCustomer } from "../../features/customers/customersSlice";
 import { getSocket } from "../../services/socket";
 import CustomerModal from "../../components/CustomerModal";
+import Modal from "../../components/Modal";
 
 export default function Appointments() {
   const dispatch = useAppDispatch();
   const { items, loading, error } = useAppSelector(s => s.appointments);
   const [filter, setFilter] = useState("SCHEDULED");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [declineModal, setDeclineModal] = useState({ isOpen: false, appointmentId: null, reason: "" });
+
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    action: null,
+    btnText: "",
+    btnColor: ""
+  });
 
   const handleOpenCustomer = (customerId) => {
     dispatch(fetchCustomerDetails({ customerId }));
     setIsModalOpen(true);
   };
 
+  const tenantId = useAppSelector(state => state.auth.user?.tenantId);
+
   useEffect(() => {
     dispatch(fetchAppointments());
 
     const socket = getSocket();
-    if (socket) {
+    if (socket && tenantId) {
+      socket.emit("join-tenant", tenantId);
       socket.on("appointments:update", () => {
         dispatch(fetchAppointments());
       });
     }
 
-    return () => socket?.off("appointments:update");
-  }, [dispatch]);
+    return () => {
+        if (socket) {
+            socket.off("appointments:update");
+        }
+    };
+  }, [dispatch, tenantId]);
 
   const filteredItems = filter === "TOTAL" 
     ? items 
@@ -41,9 +62,11 @@ export default function Appointments() {
 
   const getStatusBadge = (status) => {
     const badges = {
+      PENDING: { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700", icon: "⏳" },
       SCHEDULED: { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", icon: "📅" },
       COMPLETED: { bg: "bg-green-50", border: "border-green-200", text: "text-green-700", icon: "✅" },
       CANCELLED: { bg: "bg-red-50", border: "border-red-200", text: "text-red-700", icon: "❌" },
+      DECLINED: { bg: "bg-gray-50", border: "border-gray-200", text: "text-gray-700", icon: "🚫" },
       NO_SHOW: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", icon: "⚠️" }
     };
     return badges[status] || badges.SCHEDULED;
@@ -74,6 +97,14 @@ export default function Appointments() {
           >
             <p className={`text-sm font-semibold ${filter === "TOTAL" ? "text-blue-100" : "text-gray-500"}`}>Total</p>
             <p className="text-4xl font-bold mt-2">{items.length}</p>
+          </button>
+
+          <button 
+            onClick={() => setFilter("PENDING")}
+            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "PENDING" ? "bg-purple-600 border-purple-600 text-white shadow-lg scale-105" : "bg-white border-purple-100 text-gray-700 hover:border-purple-300 shadow-sm"}`}
+          >
+            <p className={`text-sm font-semibold ${filter === "PENDING" ? "text-purple-100" : "text-gray-500"}`}>Pending</p>
+            <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'PENDING').length}</p>
           </button>
           
           <button 
@@ -106,6 +137,14 @@ export default function Appointments() {
           >
             <p className={`text-sm font-semibold ${filter === "NO_SHOW" ? "text-amber-100" : "text-gray-500"}`}>No Show</p>
             <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'NO_SHOW').length}</p>
+          </button>
+
+          <button 
+            onClick={() => setFilter("DECLINED")}
+            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "DECLINED" ? "bg-gray-600 border-gray-600 text-white shadow-lg scale-105" : "bg-white border-gray-100 text-gray-700 hover:border-gray-300 shadow-sm"}`}
+          >
+            <p className={`text-sm font-semibold ${filter === "DECLINED" ? "text-gray-100" : "text-gray-500"}`}>Declined</p>
+            <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'DECLINED').length}</p>
           </button>
         </div>
       )}
@@ -194,36 +233,88 @@ export default function Appointments() {
 
                   {/* Actions (Only visible/expanded on hover or always if Scheduled) */}
                   <div className="flex gap-2">
+                    {appointment.Status === "PENDING" && (
+                        <>
+                          <button
+                            onClick={() => setConfirmModal({
+                              isOpen: true,
+                              title: "Accept Appointment",
+                              message: `Accept appointment for ${appointment.CustomerName} at ${date} ${time}?`,
+                              action: () => dispatch(acceptAppointment(appointment.Id)),
+                              btnText: "Accept",
+                              btnColor: "bg-green-600 hover:bg-green-700"
+                            })}
+                            className="bg-green-50 hover:bg-green-600 hover:text-white text-green-600 p-2 rounded-lg transition-all border border-green-100"
+                            title="Accept"
+                          >
+                            ✅
+                          </button>
+                          <button
+                            onClick={() => setDeclineModal({
+                              isOpen: true,
+                              appointmentId: appointment.Id,
+                              reason: ""
+                            })}
+                            className="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 p-2 rounded-lg transition-all border border-red-100"
+                            title="Decline"
+                          >
+                            🚫
+                          </button>
+                        </>
+                    )}
                     {appointment.Status === "SCHEDULED" && (
                       <>
                         <button
-                          onClick={() => {
-                            if (window.confirm("Mark as completed?")) {
-                              dispatch(completeAppointment(appointment.Id));
-                            }
-                          }}
+                          onClick={() => setConfirmModal({
+                            isOpen: true,
+                            title: "Customer Arrived",
+                            message: `Mark ${appointment.CustomerName} as arrived? This will add them to the queue and update the appointment as completed.`,
+                            action: () => dispatch(arriveForAppointment(appointment.Id)),
+                            btnText: "Arrived",
+                            btnColor: "bg-indigo-600 hover:bg-indigo-700"
+                          })}
+                          className="bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-600 p-2 rounded-lg transition-all border border-indigo-100"
+                          title="Customer Arrived"
+                        >
+                          🏃
+                        </button>
+                        <button
+                          onClick={() => setConfirmModal({
+                            isOpen: true,
+                            title: "Complete Appointment",
+                            message: `Are you sure you want to mark ${appointment.CustomerName}'s appointment as completed?`,
+                            action: () => dispatch(completeAppointment(appointment.Id)),
+                            btnText: "Complete",
+                            btnColor: "bg-green-600 hover:bg-green-700"
+                          })}
                           className="bg-green-50 hover:bg-green-600 hover:text-white text-green-600 p-2 rounded-lg transition-all border border-green-100"
                           title="Complete"
                         >
                           ✅
                         </button>
                         <button
-                          onClick={() => {
-                            if (window.confirm("Mark as no-show?")) {
-                              dispatch(markNoShow(appointment.Id));
-                            }
-                          }}
+                          onClick={() => setConfirmModal({
+                            isOpen: true,
+                            title: "Mark No Show",
+                            message: `Are you sure you want to mark ${appointment.CustomerName} as a no-show? This will increment their no-show count.`,
+                            action: () => dispatch(markNoShow(appointment.Id)),
+                            btnText: "Mark No-Show",
+                            btnColor: "bg-amber-600 hover:bg-amber-700"
+                          })}
                           className="bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-600 p-2 rounded-lg transition-all border border-amber-100"
                           title="No Show"
                         >
                           ⚠️
                         </button>
                         <button
-                          onClick={() => {
-                            if (window.confirm("Cancel appointment?")) {
-                              dispatch(cancelAppointment(appointment.Id));
-                            }
-                          }}
+                          onClick={() => setConfirmModal({
+                            isOpen: true,
+                            title: "Cancel Appointment",
+                            message: `Are you sure you want to cancel the appointment for ${appointment.CustomerName}?`,
+                            action: () => dispatch(cancelAppointment(appointment.Id)),
+                            btnText: "Cancel",
+                            btnColor: "bg-red-600 hover:bg-red-700"
+                          })}
                           className="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 p-2 rounded-lg transition-all border border-red-100"
                           title="Cancel"
                         >
@@ -247,6 +338,69 @@ export default function Appointments() {
           dispatch(clearSelectedCustomer());
         }} 
       />
+
+      <Modal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        title={confirmModal.title}
+      >
+        <div className="p-6 text-center">
+            <p className="text-gray-600 mb-8">{confirmModal.message}</p>
+            <div className="flex gap-3">
+                <button 
+                    onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                    className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition"
+                >
+                    Back
+                </button>
+                <button 
+                    onClick={() => {
+                        confirmModal.action();
+                        setConfirmModal({ ...confirmModal, isOpen: false });
+                    }}
+                    className={`flex-1 px-6 py-3 text-white font-bold rounded-xl transition shadow-lg ${confirmModal.btnColor}`}
+                >
+                    {confirmModal.btnText}
+                </button>
+            </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={declineModal.isOpen}
+        onClose={() => setDeclineModal({ ...declineModal, isOpen: false })}
+        title="Decline Appointment"
+      >
+         <div className="p-6">
+            <p className="text-gray-600 mb-4">Please provide a reason for declining this appointment:</p>
+            <textarea
+                className="w-full border rounded-xl p-4 focus:ring-2 focus:ring-red-500 outline-none mb-6"
+                rows="3"
+                placeholder="Reason (e.g. Barber unavailable, conflict...)"
+                value={declineModal.reason}
+                onChange={(e) => setDeclineModal({ ...declineModal, reason: e.target.value })}
+            />
+            <div className="flex gap-3">
+                <button 
+                    onClick={() => setDeclineModal({ ...declineModal, isOpen: false })}
+                    className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition"
+                >
+                    Cancel
+                </button>
+                <button 
+                    onClick={() => {
+                        if (!declineModal.reason.trim()) return;
+                        dispatch(declineAppointment({ id: declineModal.appointmentId, reason: declineModal.reason }));
+                        setDeclineModal({ ...declineModal, isOpen: false });
+                    }}
+                    disabled={!declineModal.reason.trim()}
+                    className={`flex-1 px-6 py-3 text-white font-bold rounded-xl transition shadow-lg bg-red-600 hover:bg-red-700 ${!declineModal.reason.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                    Decline Request
+                </button>
+            </div>
+         </div>
+      </Modal>
     </div>
   );
 }

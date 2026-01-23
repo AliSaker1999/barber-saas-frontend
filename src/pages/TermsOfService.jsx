@@ -1,0 +1,65 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+
+const TermsOfService = () => {
+  return (
+    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-sm p-8 sm:p-12 border border-gray-100">
+        <div className="mb-12">
+          <Link to="/" className="text-blue-600 font-bold hover:underline mb-8 inline-block">← Back to Platform</Link>
+          <h1 className="text-4xl font-black text-gray-900 mb-4">Terms of Service</h1>
+          <p className="text-gray-500 font-medium">Last Updated: January 23, 2026</p>
+        </div>
+
+        <div className="space-y-8 text-gray-700 leading-relaxed">
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Acceptance of Terms</h2>
+            <p>
+              By accessing or using the BarberSaaS platform, you agree to be bound by these Terms of Service. 
+              Our platform facilitates management for barber shops (Tenants) and booking capabilities for end-users (Customers).
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">2. User Responsibilities</h2>
+            <ul className="list-disc pl-6 space-y-2">
+              <li><strong>Verification:</strong> Customers must verify their phone numbers to access booking and queueing features.</li>
+              <li><strong>Attendance:</strong> Repeated "No-Shows" may result in account restrictions or banning from specific shops.</li>
+              <li><strong>Accuracy:</strong> Business owners are responsible for the accuracy of their services, pricing, and availability.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">3. Platform Usage</h2>
+            <p>
+              BarberSaaS provides a real-time queueing and appointment engine. While we strive for 100% uptime, 
+              we are not liable for business interruptions caused by connectivity issues or scheduling conflicts.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">4. Cancellation & No-Show Policy</h2>
+            <p>
+              Each tenant (shop) may define their own cancellation window. Users who fail to arrive for 
+              scheduled appointments without prior cancellation affect shop efficiency and may be subject to 
+              permanent flags on their platform-wide profile.
+            </p>
+          </section>
+
+          <section className="bg-gray-50 p-6 rounded-2xl border border-gray-200">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">5. Support & Contact</h2>
+            <p>
+              For technical support or issues regarding these terms, please reach out via:
+            </p>
+            <div className="mt-4 font-bold text-gray-800">
+              Email: alisaker1999@hotmail.com<br />
+              Phone: +961 71 368 470
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default TermsOfService;

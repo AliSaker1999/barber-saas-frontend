@@ -55,14 +55,52 @@ export const toggleBarberService = createAsyncThunk(
 
 export const toggleAvailability = createAsyncThunk(
   "barbers/toggleAvailability",
-  async ({ barberId, isAvailable }, { rejectWithValue }) => {
+  async ({ barberId, isAvailable, isAcceptingAppointments }, { rejectWithValue }) => {
     try {
-      await api.patch(`/barbers/${barberId}/availability`, {
-        isAvailable
-      });
-      return { barberId, isAvailable };
+      const payload = {};
+      if (isAvailable !== undefined) payload.isAvailable = isAvailable;
+      if (isAcceptingAppointments !== undefined) payload.isAcceptingAppointments = isAcceptingAppointments;
+      
+      await api.patch(`/barbers/${barberId}/availability`, payload);
+      return { barberId, ...payload };
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || "Failed to update availability");
+    }
+  }
+);
+
+export const fetchBarberProfile = createAsyncThunk(
+  "barbers/fetchProfile",
+  async (barberId, { rejectWithValue }) => {
+    try {
+      const res = await api.get(`/barbers/${barberId}/profile`);
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed");
+    }
+  }
+);
+
+export const updateBarberProfile = createAsyncThunk(
+  "barbers/updateProfile",
+  async ({ barberId, data }, { rejectWithValue }) => {
+    try {
+      await api.patch(`/barbers/${barberId}/profile`, data);
+      return { barberId, data };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed");
+    }
+  }
+);
+
+export const rateBarber = createAsyncThunk(
+  "barbers/rate",
+  async ({ barberId, rating, comment, appointmentId, queueId }, { rejectWithValue }) => {
+    try {
+      await api.post(`/barbers/${barberId}/rate`, { rating, comment, appointmentId, queueId });
+      return { barberId };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed");
     }
   }
 );
@@ -70,13 +108,21 @@ export const toggleAvailability = createAsyncThunk(
 const barbersSlice = createSlice({
   name: "barbers",
   initialState: {
-    items: []
+    items: [],
+    selectedProfile: null,
+    loading: false
   },
   extraReducers: builder => {
     builder
       .addCase(fetchBarbers.fulfilled, (s, a) => {
         s.items = a.payload;
       })
+      .addCase(fetchBarberProfile.pending, (s) => { s.loading = true; })
+      .addCase(fetchBarberProfile.fulfilled, (s, a) => {
+        s.loading = false;
+        s.selectedProfile = a.payload;
+      })
+      .addCase(fetchBarberProfile.rejected, (s) => { s.loading = false; })
       .addCase(toggleBarberService.fulfilled, (s, a) => {
       const barber = s.items.find(b => b.Id === a.payload.barberId);
       if (!barber) return;
@@ -88,13 +134,21 @@ const barbersSlice = createSlice({
         : [...barber.ServiceIds, a.payload.serviceId];
     })
     .addCase(toggleAvailability.fulfilled, (state, action) => {
-  const barber = state.items.find(
-    b => b.Id === action.payload.barberId
-  );
-  if (barber) {
-    barber.IsAvailable = action.payload.isAvailable;
-  }
-});
+      const { barberId, isAvailable, isAcceptingAppointments } = action.payload;
+      
+      // Update in list
+      const barber = state.items.find(b => b.Id === barberId);
+      if (barber) {
+        if (isAvailable !== undefined) barber.IsAvailable = isAvailable;
+        if (isAcceptingAppointments !== undefined) barber.IsAcceptingAppointments = isAcceptingAppointments;
+      }
+
+      // Update in selected profile
+      if (state.selectedProfile && state.selectedProfile.Id === barberId) {
+        if (isAvailable !== undefined) state.selectedProfile.IsAvailable = isAvailable;
+        if (isAcceptingAppointments !== undefined) state.selectedProfile.IsAcceptingAppointments = isAcceptingAppointments;
+      }
+    });
   }
 });
 

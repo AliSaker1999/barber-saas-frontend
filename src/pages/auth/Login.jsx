@@ -154,7 +154,12 @@ export default function Login() {
 
           {/* Footer */}
           <div className="bg-gray-50 px-8 py-4 border-t border-gray-100 text-center">
-            <p className="text-xs text-gray-500">
+            <div className="flex justify-center gap-4 mb-2 text-xs font-semibold">
+              <a href="/privacy" className="text-gray-500 hover:text-blue-600 transition-colors">Privacy Policy</a>
+              <span className="text-gray-300">•</span>
+              <a href="/terms" className="text-gray-500 hover:text-blue-600 transition-colors">Terms of Service</a>
+            </div>
+            <p className="text-xs text-gray-400">
               © 2026 BarberSaaS. All rights reserved.
             </p>
           </div>

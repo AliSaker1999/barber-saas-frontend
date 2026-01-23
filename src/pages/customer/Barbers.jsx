@@ -5,6 +5,7 @@ import {
   fetchBarbersForTenant,
   selectBarber
 } from "../../features/booking/bookingSlice";
+import BarberProfileModal from "../../components/BarberProfileModal";
 
 export default function Barbers() {
   const dispatch = useAppDispatch();
@@ -21,6 +22,13 @@ export default function Barbers() {
   } = useAppSelector(state => state.booking);
 
   const [expandedBarbers, setExpandedBarbers] = useState({});
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [viewProfileId, setViewProfileId] = useState(null);
+
+  const openProfile = (id) => {
+    setViewProfileId(id);
+    setProfileModalOpen(true);
+  };
 
   useEffect(() => {
     if (!tenantId) {
@@ -133,7 +141,7 @@ export default function Barbers() {
             <p className="text-gray-500 text-lg font-medium">No barbers are linked to this tenant yet.</p>
             <p className="text-gray-400 text-sm">We could not find any barbers available for your services right now.</p>
             <button
-              onClick={() => navigate("/customer/services")}
+              onClick={() => navigate("/customer")}
               className="mt-6 inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-xl transition-colors"
             >
               Try another shop
@@ -153,16 +161,39 @@ export default function Barbers() {
                 >
                   <div className="p-6 space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-xl font-bold text-gray-900">{barber.fullName}</h3>
+                      <div className="cursor-pointer" onClick={() => openProfile(barber.barberId)}>
+                        <h3 className="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors">{barber.fullName}</h3>
+                        <div className="flex items-center text-sm mt-0.5">
+                           <span className="text-yellow-500 mr-1">★</span>
+                           <span className="font-bold mr-1">{barber.averageRating ? Number(barber.averageRating).toFixed(1) : "New"}</span>
+                           <span className="text-gray-400 text-xs">({barber.reviewsCount || 0} reviews)</span>
+                        </div>
+                      </div>
                       <span className={`text-[11px] font-semibold uppercase tracking-wide px-3 py-1 rounded-full ${supportsAll ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-700"}`}>
                         {supportsAll ? "Full match" : `${selectedCount}/${selectedServiceIds.length} services`}
                       </span>
                     </div>
 
-                    <div className="h-32 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-600 flex flex-col items-center justify-center text-white">
-                      <p className="text-sm font-semibold">{barber.isAvailable ? "Available now" : "Currently offline"}</p>
-                      <p className="text-xs text-blue-100 mt-1">Tap to see services ⬇</p>
-                    </div>
+                    <button 
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); openProfile(barber.barberId); }}
+                      className="w-full relative group h-32 rounded-2xl overflow-hidden block"
+                    >
+                      {barber.profileImage ? (
+                        <img src={barber.profileImage} alt={barber.fullName} className="w-full h-full object-cover transition duration-500 group-hover:scale-105" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-blue-400 to-indigo-600 flex flex-col items-center justify-center text-white">
+                          <p className="text-sm font-semibold">{barber.isAvailable ? "Available now" : "Currently offline"}</p>
+                          <p className="text-xs text-blue-100 mt-1">Tap to see profile</p>
+                        </div>
+                      )}
+                      
+                      {barber.profileImage && (
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <span className="text-white font-semibold text-sm border border-white px-3 py-1 rounded-full">View Profile</span>
+                        </div>
+                      )}
+                    </button>
 
                     {missingServices.length > 0 && (
                       <p className="text-sm text-red-600">
@@ -244,6 +275,12 @@ export default function Barbers() {
           </div>
         )}
       </div>
+
+       <BarberProfileModal 
+        isOpen={profileModalOpen} 
+        onClose={() => setProfileModalOpen(false)} 
+        barberId={viewProfileId} 
+      />
     </div>
   );
 }

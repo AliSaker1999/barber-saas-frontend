@@ -6,6 +6,7 @@ import {
   updateService,
   deleteService
 } from "../../features/services/servicesSlice";
+import Modal from "../../components/Modal";
 
 export default function Services() {
   const dispatch = useAppDispatch();
@@ -20,6 +21,12 @@ export default function Services() {
   const [editName, setEditName] = useState("");
   const [editPrice, setEditPrice] = useState("");
   const [editDuration, setEditDuration] = useState("");
+
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    serviceId: null,
+    serviceName: ""
+  });
 
   useEffect(() => {
     dispatch(fetchServices());
@@ -236,11 +243,11 @@ export default function Services() {
                       Edit
                     </button>
                     <button
-                      onClick={() => {
-                        if (window.confirm("Delete this service?")) {
-                          dispatch(deleteService(service.Id));
-                        }
-                      }}
+                      onClick={() => setDeleteModal({
+                        isOpen: true,
+                        serviceId: service.Id,
+                        serviceName: service.Name
+                      })}
                       className="font-semibold py-2 px-4 rounded-lg transition-all bg-red-100 hover:bg-red-200 text-red-700 border-2 border-red-300"
                     >
                       Delete
@@ -252,10 +259,13 @@ export default function Services() {
         </div>
       )}
 
-      {editModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Edit Service</h3>
+      {/* Edit Service Modal */}
+      <Modal
+        isOpen={editModalOpen}
+        onClose={closeEditModal}
+        title="Edit Service"
+      >
+        <div className="p-6">
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Name</label>
@@ -288,23 +298,55 @@ export default function Services() {
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-8 flex gap-3">
               <button
                 onClick={closeEditModal}
-                className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+                className="flex-1 py-3 rounded-xl border-2 border-gray-200 text-sm font-bold text-gray-700 hover:bg-gray-50 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={saveEdit}
-                className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-sm font-semibold text-white hover:from-blue-700 hover:to-indigo-700 transition"
+                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-sm font-bold text-white hover:from-blue-700 hover:to-indigo-700 transition shadow-lg"
               >
-                Save
+                Save Changes
               </button>
             </div>
-          </div>
         </div>
-      )}
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
+        title="Delete Service"
+      >
+        <div className="p-6 text-center">
+            <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Delete {deleteModal.serviceName}?</h3>
+            <p className="text-gray-500 mb-8">Are you sure? This action cannot be undone and may affect existing appointments.</p>
+            
+            <div className="flex gap-3">
+                <button 
+                    onClick={() => setDeleteModal({ ...deleteModal, isOpen: false })}
+                    className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition"
+                >
+                    Cancel
+                </button>
+                <button 
+                    onClick={() => {
+                        dispatch(deleteService(deleteModal.serviceId));
+                        setDeleteModal({ ...deleteModal, isOpen: false });
+                    }}
+                    className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition shadow-lg shadow-red-200"
+                >
+                    Delete Now
+                </button>
+            </div>
+        </div>
+      </Modal>
     </div>
   );
 }

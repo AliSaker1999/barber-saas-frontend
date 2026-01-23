@@ -10,6 +10,7 @@ import {
 
 import CreateTenantAdminModal from "./CreateTenantAdminModal";
 import ResetTenantAdminModal from "./ResetTenantAdminModal";
+import EditTenantModal from "./EditTenantModal";
 
 export default function PlatformTenants() {
   const dispatch = useAppDispatch();
@@ -20,8 +21,12 @@ export default function PlatformTenants() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
 
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+
   const [createAdminTenantId, setCreateAdminTenantId] = useState(null);
   const [resetAdminTenantId, setResetAdminTenantId] = useState(null);
+  const [editingTenant, setEditingTenant] = useState(null);
 
   useEffect(() => {
     dispatch(fetchPlatformTenants());
@@ -39,6 +44,15 @@ export default function PlatformTenants() {
     setName("");
     setSlug("");
   };
+
+  const filteredTenants = items.filter(t => {
+    const matchesSearch = t.Name.toLowerCase().includes(search.toLowerCase()) || 
+                          t.Slug.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === "ALL" || 
+                          (statusFilter === "ACTIVE" && t.IsActive) || 
+                          (statusFilter === "INACTIVE" && !t.IsActive);
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -87,6 +101,33 @@ export default function PlatformTenants() {
           </form>
         </div>
 
+        {/* Filters & Search */}
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="flex-1 relative">
+            <svg className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search by name or slug..."
+              className="w-full pl-10 pr-4 py-2 bg-white border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all font-medium"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="w-full md:w-48">
+            <select
+              className="w-full px-4 py-2 bg-white border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all font-bold text-gray-700"
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="ACTIVE">Active Only</option>
+              <option value="INACTIVE">Inactive Only</option>
+            </select>
+          </div>
+        </div>
+
         {/* Loading State */}
         {loading && (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
@@ -96,19 +137,15 @@ export default function PlatformTenants() {
         )}
 
         {/* Tenants Grid */}
-        {!loading && items.length === 0 && (
-          <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
-            </svg>
-            <p className="text-gray-500 text-lg">No tenants created yet</p>
-            <p className="text-gray-400 text-sm mt-2">Create your first tenant to get started</p>
+        {!loading && filteredTenants.length === 0 && (
+          <div className="bg-white rounded-lg shadow-md p-12 text-center text-gray-500">
+            {search || statusFilter !== "ALL" ? "No tenants match your filters." : "No tenants created yet."}
           </div>
         )}
 
-        {!loading && items.length > 0 && (
+        {!loading && filteredTenants.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {items.map(t => {
+            {filteredTenants.map(t => {
               const admin = admins[t.Id];
 
               return (
@@ -158,6 +195,17 @@ export default function PlatformTenants() {
 
                     {/* Actions */}
                     <div className="flex flex-wrap gap-3">
+                      <button
+                        onClick={() => setEditingTenant(t)}
+                        className="w-full inline-flex items-center justify-center px-4 py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg font-bold text-sm transition-all shadow-md shadow-indigo-100 hover:scale-[1.02] active:scale-95 mb-1"
+                      >
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Advanced Settings
+                      </button>
+
                       {t.IsActive ? (
                         <>
                           {!admin ? (
@@ -221,6 +269,12 @@ export default function PlatformTenants() {
           tenantId={resetAdminTenantId}
           open={!!resetAdminTenantId}
           onClose={() => setResetAdminTenantId(null)}
+        />
+
+        <EditTenantModal
+          tenant={editingTenant}
+          isOpen={!!editingTenant}
+          onClose={() => setEditingTenant(null)}
         />
       </div>
     </div>

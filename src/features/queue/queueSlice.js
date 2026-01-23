@@ -14,12 +14,12 @@ export const fetchQueueStats = createAsyncThunk(
   }
 );
 
-/* Join queue (with barberId) */
+/* Join queue (with barberId and serviceIds) */
 export const joinQueue = createAsyncThunk(
   "queue/join",
-  async ({ tenantId, barberId }, { rejectWithValue }) => {
+  async ({ tenantId, barberId, serviceIds }, { rejectWithValue }) => {
     try {
-      await api.post(`/queue/tenants/${tenantId}/join`, { barberId });
+      await api.post(`/queue/tenants/${tenantId}/join`, { barberId, serviceIds });
       return tenantId;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || "Failed to join queue");
@@ -90,6 +90,29 @@ export const leaveQueue = createAsyncThunk(
   }
 );
 
+export const findMyActiveQueue = createAsyncThunk(
+  "queue/findActive",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.get("/queue/me/active");
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed");
+    }
+  }
+);
+
+export const updateQueueServicesThunk = createAsyncThunk(
+  "queue/updateServices",
+  async ({ queueId, serviceIds }, { rejectWithValue }) => {
+    try {
+      await api.patch(`/queue/${queueId}/services`, { serviceIds });
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to update services");
+    }
+  }
+);
+
 const queueSlice = createSlice({
   name: "queue",
   initialState: {
@@ -97,6 +120,7 @@ const queueSlice = createSlice({
     stats: [], // Barber stats for Customer
     loading: false,
     myPosition: null, // { inQueue, position, barberName }
+    activeQueue: null, // Cross-tenant active queue if any
     error: null
   },
   extraReducers: builder => {
@@ -152,10 +176,14 @@ const queueSlice = createSlice({
       })
       .addCase(leaveQueue.fulfilled, s => {
         s.myPosition = null;
+        s.activeQueue = null;
         s.error = null;
       })
       .addCase(leaveQueue.rejected, (s, a) => {
         s.error = a.payload;
+      })
+      .addCase(findMyActiveQueue.fulfilled, (s, a) => {
+        s.activeQueue = a.payload;
       });
   }
 });

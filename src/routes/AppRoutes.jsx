@@ -13,6 +13,7 @@ import Signup from "../pages/auth/Signup";
 /* Platform */
 import PlatformTenants from "../pages/platform/Tenants";
 import PlatformCustomers from "../pages/platform/Customers";
+import Reports from "../pages/platform/Reports";
 
 /* Company */
 import Queue from "../pages/company/Queue";
@@ -21,6 +22,8 @@ import Services from "../pages/company/Services";
 // import Staff from "../pages/company/Staff";
 import Barbers from "../pages/company/Barbers";
 import CompanyProfile from "../pages/company/CompanyProfile";
+import BarberMyProfile from "../pages/company/BarberMyProfile";
+import AdminReports from "../pages/company/AdminReports";
 
 /* Customer */
 import Tenants from "../pages/customer/Tenants";
@@ -30,6 +33,9 @@ import Slots from "../pages/customer/Slots";
 import QueueStatus from "../pages/customer/QueueStatus";
 import CustomerAppointments from "../pages/customer/Appointments";
 import CustomerProfile from "../pages/customer/Profile";
+import CustomerReports from "../pages/customer/CustomerReports";
+import PrivacyPolicy from "../pages/PrivacyPolicy";
+import TermsOfService from "../pages/TermsOfService";
 
 export default function AppRoutes() {
   const user = useAppSelector(state => state.auth.user);
@@ -40,6 +46,8 @@ export default function AppRoutes() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     );
@@ -68,6 +76,7 @@ export default function AppRoutes() {
         <Route path="/platform" element={<PlatformLayout />}>
           <Route path="tenants" element={<PlatformTenants />} />
           <Route path="customers" element={<PlatformCustomers />} />
+          <Route path="reports" element={<Reports />} />
           <Route index element={<Navigate to="tenants" />} />
         </Route>
       )}
@@ -80,6 +89,8 @@ export default function AppRoutes() {
           <Route path="appointments" element={<Appointments />} />
           <Route path="services" element={<Services />} />
           <Route path="barbers" element={<Barbers />} />
+          <Route path="my-profile" element={<BarberMyProfile />} />
+          <Route path="reports" element={<AdminReports />} />
      
           <Route path="settings" element={<p>Settings page</p>} />
           <Route index element={<Navigate to="queue" />} />
@@ -96,8 +107,13 @@ export default function AppRoutes() {
           <Route path="queue" element={<QueueStatus />} />
           <Route path="appointments" element={<CustomerAppointments />} />
           <Route path="profile" element={<CustomerProfile />} />
+          <Route path="reports" element={<CustomerReports />} />
         </Route>
       )}
+
+      {/* Publicly accessible legal pages for logged-in users */}
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<TermsOfService />} />
 
       {/* ---------- FALLBACK ---------- */}
       <Route

@@ -12,12 +12,24 @@ import {
   startReschedule
 } from "../../features/booking/bookingSlice";
 import { getSocket } from "../../services/socket";
+import RateBarberModal from "../../components/RateBarberModal";
+import BarberProfileModal from "../../components/BarberProfileModal";
+import Modal from "../../components/Modal";
 
 export default function Appointments() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { items, loading, error } = useAppSelector(s => s.appointments);
   const [filter, setFilter] = useState("SCHEDULED");
+  
+  const [rateModalOpen, setRateModalOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [selectedBarberId, setSelectedBarberId] = useState(null);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
+
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [rescheduleErrorModalOpen, setRescheduleErrorModalOpen] = useState(false);
+  const [actionError, setActionError] = useState(null);
 
   useEffect(() => {
     dispatch(fetchCustomerAppointments());
@@ -39,11 +51,13 @@ export default function Appointments() {
   const getStatusBadge = (status) => {
     const badges = {
       SCHEDULED: { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", icon: "📅" },
+      PENDING: { bg: "bg-indigo-50", border: "border-indigo-200", text: "text-indigo-700", icon: "⏳" },
       COMPLETED: { bg: "bg-green-50", border: "border-green-200", text: "text-green-700", icon: "✅" },
       CANCELLED: { bg: "bg-red-50", border: "border-red-200", text: "text-red-700", icon: "❌" },
+      DECLINED: { bg: "bg-gray-50", border: "border-gray-200", text: "text-gray-700", icon: "🚫" },
       NO_SHOW: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", icon: "⚠️" }
     };
-    return badges[status] || badges.SCHEDULED;
+    return badges[status] || { bg: "bg-gray-50", border: "border-gray-200", text: "text-gray-700", icon: "❓" };
   };
 
   const formatDate = (dateString) => {
@@ -60,7 +74,7 @@ export default function Appointments() {
       : [];
 
     if (!appointment.TenantId || !appointment.BarberId || serviceIds.length === 0) {
-      alert("Unable to reschedule: missing appointment details.");
+      setRescheduleErrorModalOpen(true);
       return;
     }
 
@@ -78,6 +92,26 @@ export default function Appointments() {
     navigate("/customer/slots");
   };
 
+  const openRateModal = (appt) => {
+    setSelectedBarberId(appt.BarberId);
+    setSelectedAppointmentId(appt.Id);
+    setRateModalOpen(true);
+  };
+
+  const openProfile = (barberId) => {
+    setSelectedBarberId(barberId);
+    setProfileModalOpen(true);
+  };
+
+  const confirmCancel = async () => {
+    try {
+        await dispatch(cancelAppointment(selectedAppointmentId)).unwrap();
+        setCancelModalOpen(false);
+    } catch (err) {
+        setActionError(err);
+    }
+  };
+
   return (
     <div>
       {/* Header */}
@@ -88,7 +122,7 @@ export default function Appointments() {
 
       {/* Stats Cards / Filters */}
       {!loading && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10">
+        <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 mb-10">
           <button 
             onClick={() => setFilter("TOTAL")}
             className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "TOTAL" ? "bg-blue-600 border-blue-600 text-white shadow-lg scale-105" : "bg-white border-blue-100 text-gray-700 hover:border-blue-300 shadow-sm"}`}
@@ -99,17 +133,25 @@ export default function Appointments() {
           
           <button 
             onClick={() => setFilter("SCHEDULED")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "SCHEDULED" ? "bg-green-600 border-green-600 text-white shadow-lg scale-105" : "bg-white border-green-100 text-gray-700 hover:border-green-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "SCHEDULED" ? "bg-blue-500 border-blue-500 text-white shadow-lg scale-105" : "bg-white border-blue-100 text-gray-700 hover:border-blue-300 shadow-sm"}`}
           >
-            <p className={`text-sm font-semibold ${filter === "SCHEDULED" ? "text-green-100" : "text-gray-500"}`}>Scheduled</p>
+            <p className={`text-sm font-semibold ${filter === "SCHEDULED" ? "text-blue-100" : "text-gray-500"}`}>Scheduled</p>
             <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'SCHEDULED').length}</p>
           </button>
 
           <button 
-            onClick={() => setFilter("COMPLETED")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "COMPLETED" ? "bg-emerald-600 border-emerald-600 text-white shadow-lg scale-105" : "bg-white border-emerald-100 text-gray-700 hover:border-emerald-300 shadow-sm"}`}
+            onClick={() => setFilter("PENDING")}
+            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "PENDING" ? "bg-indigo-600 border-indigo-600 text-white shadow-lg scale-105" : "bg-white border-indigo-100 text-gray-700 hover:border-indigo-300 shadow-sm"}`}
           >
-            <p className={`text-sm font-semibold ${filter === "COMPLETED" ? "text-emerald-100" : "text-gray-500"}`}>Completed</p>
+            <p className={`text-sm font-semibold ${filter === "PENDING" ? "text-indigo-100" : "text-gray-500"}`}>Pending</p>
+            <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'PENDING').length}</p>
+          </button>
+
+          <button 
+            onClick={() => setFilter("COMPLETED")}
+            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "COMPLETED" ? "bg-green-600 border-green-600 text-white shadow-lg scale-105" : "bg-white border-green-100 text-gray-700 hover:border-green-300 shadow-sm"}`}
+          >
+            <p className={`text-sm font-semibold ${filter === "COMPLETED" ? "text-green-100" : "text-gray-500"}`}>Completed</p>
             <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'COMPLETED').length}</p>
           </button>
 
@@ -119,6 +161,14 @@ export default function Appointments() {
           >
             <p className={`text-sm font-semibold ${filter === "CANCELLED" ? "text-red-100" : "text-gray-500"}`}>Cancelled</p>
             <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'CANCELLED').length}</p>
+          </button>
+
+          <button 
+            onClick={() => setFilter("DECLINED")}
+            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "DECLINED" ? "bg-gray-600 border-gray-600 text-white shadow-lg scale-105" : "bg-white border-gray-100 text-gray-700 hover:border-gray-300 shadow-sm"}`}
+          >
+            <p className={`text-sm font-semibold ${filter === "DECLINED" ? "text-gray-100" : "text-gray-500"}`}>Declined</p>
+            <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'DECLINED').length}</p>
           </button>
 
           <button 
@@ -183,8 +233,16 @@ export default function Appointments() {
 
                   {/* Details Column */}
                   <div className="flex-1">
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Services at {appointment.BarberName}</p>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">
+                       Services at <button onClick={() => openProfile(appointment.BarberId)} className="hover:underline hover:text-indigo-600 font-bold text-gray-500 uppercase">{appointment.BarberName}</button>
+                    </p>
                     <p className="text-lg font-bold text-gray-900">{appointment.Services}</p>
+                    {appointment.Status === "DECLINED" && appointment.DeclineReason && (
+                        <p className="mt-2 text-sm text-red-600 font-medium italic border-l-2 border-red-200 pl-3">
+                            <span className="font-bold uppercase text-[10px] block not-italic mb-0.5">Reason for decline:</span>
+                            "{appointment.DeclineReason}"
+                        </p>
+                    )}
                   </div>
 
                   {/* Status */}
@@ -196,7 +254,15 @@ export default function Appointments() {
 
                   {/* Actions */}
                   <div className="flex gap-2">
-                    {appointment.Status === "SCHEDULED" && (
+                    {appointment.Status === "COMPLETED" && (
+                        <button
+                            onClick={() => openRateModal(appointment)}
+                            className="bg-yellow-50 hover:bg-yellow-600 hover:text-white text-yellow-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-yellow-100 uppercase"
+                        >
+                            Rate ★
+                        </button>
+                    )}
+                    {(appointment.Status === "SCHEDULED" || appointment.Status === "PENDING") && (
                       <>
                         <button
                           onClick={() => handleReschedule(appointment)}
@@ -206,9 +272,9 @@ export default function Appointments() {
                         </button>
                         <button
                           onClick={() => {
-                            if (window.confirm("Cancel appointment?")) {
-                              dispatch(cancelAppointment(appointment.Id));
-                            }
+                            setSelectedAppointmentId(appointment.Id);
+                            setCancelModalOpen(true);
+                            setActionError(null);
                           }}
                           className="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-red-100 uppercase"
                         >
@@ -223,6 +289,76 @@ export default function Appointments() {
           })}
         </div>
       )}
+
+      <RateBarberModal 
+        isOpen={rateModalOpen} 
+        onClose={() => setRateModalOpen(false)}
+        barberId={selectedBarberId}
+        appointmentId={selectedAppointmentId}
+        onSuccess={() => {/* Toast or something? */}}
+      />
+      <BarberProfileModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        barberId={selectedBarberId}
+      />
+
+      {/* Cancel Confirmation Modal */}
+      <Modal
+        isOpen={cancelModalOpen}
+        onClose={() => setCancelModalOpen(false)}
+        title="Cancel Appointment"
+      >
+        <div className="p-6 text-center">
+            <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Are you sure?</h3>
+            <p className="text-gray-500 mb-6">This action cannot be undone. You will lose this time slot.</p>
+
+            {actionError && (
+                <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm font-bold">
+                    {actionError}
+                </div>
+            )}
+
+            <div className="flex gap-3">
+                <button 
+                    onClick={() => setCancelModalOpen(false)}
+                    className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition"
+                >
+                    Keep It
+                </button>
+                <button 
+                    onClick={confirmCancel}
+                    className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition shadow-lg shadow-red-200"
+                >
+                    Cancel it
+                </button>
+            </div>
+        </div>
+      </Modal>
+
+      {/* Reschedule Error Modal */}
+      <Modal
+        isOpen={rescheduleErrorModalOpen}
+        onClose={() => setRescheduleErrorModalOpen(false)}
+        title="Reschedule Issue"
+      >
+        <div className="p-6 text-center">
+            <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Details Missing</h3>
+            <p className="text-gray-500 mb-6">We couldn't load the necessary details to reschedule this appointment automatically. Please contact the barbershop.</p>
+            <button 
+                onClick={() => setRescheduleErrorModalOpen(false)}
+                className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-200"
+            >
+                Understood
+            </button>
+        </div>
+      </Modal>
     </div>
   );
 }

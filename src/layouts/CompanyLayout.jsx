@@ -8,6 +8,8 @@ const navItems = [
   { to: "appointments", label: "Appointments", icon: "📅", roles: ["ADMIN", "BARBER"] },
   { to: "services", label: "Services", icon: "✂️", roles: ["ADMIN"] },
   { to: "barbers", label: "Team", icon: "👥", roles: ["ADMIN"] },
+  { to: "reports", label: "Reports", icon: "📊", roles: ["ADMIN", "BARBER"] },
+  { to: "my-profile", label: "My Profile", icon: "👤", roles: ["BARBER"] },
   { to: "profile", label: "Shop Profile", icon: "🏢", roles: ["ADMIN"] },
 ];
 
@@ -72,7 +74,9 @@ export default function CompanyLayout() {
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-gray-50">
           <div className="mb-3">
             <p className="text-xs text-gray-600 font-semibold">Logged in as</p>
-            <p className="text-sm font-semibold text-gray-900 truncate">{user.email}</p>
+            <p className="text-sm font-semibold text-gray-900 truncate">
+              {user.fullName || user.email}
+            </p>
           </div>
           <button
             onClick={handleLogout}
@@ -109,7 +113,7 @@ export default function CompanyLayout() {
             {/* User Avatar */}
             <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
               <span className="text-white font-bold text-sm">
-                {user.email?.charAt(0).toUpperCase()}
+                {(user.fullName || user.email)?.charAt(0).toUpperCase()}
               </span>
             </div>
           </div>

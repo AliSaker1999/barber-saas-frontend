@@ -42,6 +42,12 @@ const authSlice = createSlice({
       localStorage.removeItem("user");
       disconnectSocket();
     },
+    updateUserVerification(state) {
+      if (state.user) {
+        state.user.isPhoneVerified = true;
+        localStorage.setItem("user", JSON.stringify(state.user));
+      }
+    },
     clearAuthError(state) {
       state.error = null;
     }
@@ -66,5 +72,5 @@ const authSlice = createSlice({
   }
 });
 
-export const { logout, clearAuthError } = authSlice.actions;
+export const { logout, clearAuthError, updateUserVerification } = authSlice.actions;
 export default authSlice.reducer;

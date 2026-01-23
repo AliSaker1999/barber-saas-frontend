@@ -73,59 +73,61 @@ useEffect(() => {
           return (
             <div
               key={dayIndex}
-              className="grid grid-cols-12 gap-2 items-center p-3 border-b last:border-b-0"
+              className="flex flex-col sm:grid sm:grid-cols-12 gap-2 sm:gap-4 items-start sm:items-center p-4 border-b last:border-b-0 hover:bg-white transition-colors"
             >
               {/* DAY NAME */}
-              <div className="col-span-3 font-medium text-sm">
+              <div className="sm:col-span-3 font-bold text-gray-700 text-sm sm:text-base mb-1 sm:mb-0">
                 {dayName}
               </div>
 
               {/* TIME INPUTS */}
               {day.active ? (
                 <>
-                  <input
-                    type="time"
-                    value={day.start || ""}
-                    onChange={e =>
-                      setDraft(prev => ({
-                        ...prev,
-                        [dayIndex]: {
-                          ...prev[dayIndex],
-                          start: e.target.value,
-                          active: true
+                  <div className="sm:col-span-6 flex items-center gap-2 w-full">
+                    <input
+                        type="time"
+                        value={day.start || ""}
+                        onChange={e =>
+                        setDraft(prev => ({
+                            ...prev,
+                            [dayIndex]: {
+                            ...prev[dayIndex],
+                            start: e.target.value,
+                            active: true
+                            }
+                        }))
                         }
-                      }))
-                    }
-                    className="col-span-3 border rounded px-2 py-1 text-sm"
-                  />
-
-                  <input
-                    type="time"
-                    value={day.end || ""}
-                    onChange={e =>
-                      setDraft(prev => ({
-                        ...prev,
-                        [dayIndex]: {
-                          ...prev[dayIndex],
-                          end: e.target.value,
-                          active: true
+                        className="flex-1 border-2 border-gray-100 rounded-xl px-3 py-2 text-sm focus:border-blue-500 focus:outline-none transition-all"
+                    />
+                    <span className="text-gray-400 font-bold">to</span>
+                    <input
+                        type="time"
+                        value={day.end || ""}
+                        onChange={e =>
+                        setDraft(prev => ({
+                            ...prev,
+                            [dayIndex]: {
+                            ...prev[dayIndex],
+                            end: e.target.value,
+                            active: true
+                            }
+                        }))
                         }
-                      }))
-                    }
-                    className="col-span-3 border rounded px-2 py-1 text-sm"
-                  />
+                        className="flex-1 border-2 border-gray-100 rounded-xl px-3 py-2 text-sm focus:border-blue-500 focus:outline-none transition-all"
+                    />
+                  </div>
 
                   <button
                     onClick={() => saveDay(dayIndex)}
-                    className="col-span-3 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                    className="sm:col-span-3 w-full sm:w-auto px-6 py-2 text-sm font-black bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-md shadow-blue-100 transition-all hover:scale-105 active:scale-95"
                   >
-                    Save
+                    Save Changes
                   </button>
                 </>
               ) : (
                 <>
-                  <div className="col-span-6 text-sm text-gray-500">
-                    Off
+                  <div className="sm:col-span-6 text-sm text-gray-400 font-bold italic py-2">
+                    Not working this day
                   </div>
                   <button
                     onClick={() =>
@@ -134,9 +136,9 @@ useEffect(() => {
                         [dayIndex]: { active: true }
                       }))
                     }
-                    className="col-span-3 px-3 py-1 text-sm border rounded hover:bg-gray-100"
+                    className="sm:col-span-3 w-full sm:w-auto px-6 py-2 text-sm font-bold border-2 border-dashed border-gray-200 text-gray-500 rounded-xl hover:bg-white hover:border-blue-400 hover:text-blue-600 transition-all"
                   >
-                    Enable
+                    Enable Day
                   </button>
                 </>
               )}

@@ -11,6 +11,7 @@ export default function ResetCustomerPasswordModal({
   const dispatch = useAppDispatch();
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const submit = async e => {
     e.preventDefault();
@@ -18,6 +19,7 @@ export default function ResetCustomerPasswordModal({
 
     try {
       setLoading(true);
+      setError(null);
       await dispatch(
         resetCustomerPassword({
           id: customerId,
@@ -27,8 +29,8 @@ export default function ResetCustomerPasswordModal({
 
       setPassword("");
       onClose();
-    } catch {
-      alert("Failed to reset password");
+    } catch (err) {
+      setError(err || "Failed to reset password");
     } finally {
       setLoading(false);
     }
@@ -40,6 +42,12 @@ export default function ResetCustomerPasswordModal({
         <h3 className="text-xl font-semibold mb-4">
           Reset Customer Password
         </h3>
+
+        {error && (
+            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded text-sm font-semibold">
+                {error}
+            </div>
+        )}
 
         <form onSubmit={submit} className="space-y-4">
           <input

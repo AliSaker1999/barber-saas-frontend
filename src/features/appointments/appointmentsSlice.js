@@ -26,6 +26,19 @@ export const fetchCustomerAppointments = createAsyncThunk(
   }
 );
 
+/* Arrive */
+export const arriveForAppointment = createAsyncThunk(
+  "appointments/arrive",
+  async (id, { rejectWithValue }) => {
+    try {
+      await api.patch(`/appointments/${id}/arrive`);
+      return id;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to mark as arrived");
+    }
+  }
+);
+
 /* Cancel */
 export const cancelAppointment = createAsyncThunk(
   "appointments/cancel",
@@ -77,6 +90,30 @@ export const rescheduleAppointment = createAsyncThunk(
   }
 );
 
+export const acceptAppointment = createAsyncThunk(
+  "appointments/accept",
+  async (id, { rejectWithValue }) => {
+    try {
+      await api.patch(`/appointments/${id}/accept`);
+      return id;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to accept appointment");
+    }
+  }
+);
+
+export const declineAppointment = createAsyncThunk(
+  "appointments/decline",
+  async ({ id, reason }, { rejectWithValue }) => {
+    try {
+      await api.patch(`/appointments/${id}/decline`, { reason });
+      return id;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to decline appointment");
+    }
+  }
+);
+
 const appointmentsSlice = createSlice({
   name: "appointments",
   initialState: {
@@ -114,6 +151,22 @@ const appointmentsSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchCustomerAppointments.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || action.error?.message;
+      })
+      .addCase(arriveForAppointment.pending, state => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(arriveForAppointment.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.items.findIndex(i => i.Id === action.payload);
+        if (index !== -1) {
+          state.items[index].Status = "COMPLETED";
+          state.items[index].StatusId = 2;
+        }
+      })
+      .addCase(arriveForAppointment.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || action.error?.message;
       })

@@ -37,8 +37,7 @@ export default function CustomerProfile() {
 
   useEffect(() => {
     if (updateSuccess) {
-      alert("Profile updated successfully!");
-      dispatch(resetProfileStatus());
+      setTimeout(() => dispatch(resetProfileStatus()), 5000);
     }
   }, [updateSuccess, dispatch]);
 
@@ -71,8 +70,23 @@ export default function CustomerProfile() {
 
         <form onSubmit={handleSubmit} className="p-8 space-y-10">
           {error && (
-            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl">
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl animate-shake">
               <p className="text-red-700 text-sm font-medium">{error}</p>
+            </div>
+          )}
+
+          {updateSuccess && (
+            <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-xl animate-fade-in-down flex items-center justify-between">
+              <div className="flex items-center">
+                <svg className="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                <p className="text-green-700 text-sm font-bold uppercase tracking-tight">Profile updated successfully!</p>
+              </div>
+              <button 
+                onClick={() => dispatch(resetProfileStatus())}
+                className="text-green-500 hover:text-green-700"
+              >
+                ✕
+              </button>
             </div>
           )}
 

@@ -56,7 +56,7 @@ export default function CustomerModal({ isOpen, onClose }) {
               <h2 className="text-3xl font-bold">{selectedCustomer.FullName}</h2>
               <p className="text-gray-300 mt-1 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-green-400"></span>
-                Member since {new Date(selectedCustomer.CreatedAt).toLocaleDateString()}
+                Member since {selectedCustomer.CreatedAt ? new Date(selectedCustomer.CreatedAt).toLocaleDateString() : "Recently"}
               </p>
             </div>
           </div>

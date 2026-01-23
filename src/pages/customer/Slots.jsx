@@ -6,9 +6,12 @@ import {
   bookAppointment,
   fetchWorkingHours,
   clearReschedule,
-  fetchServices
+  fetchServices,
+  fetchBarbersForTenant
 } from "../../features/booking/bookingSlice";
 import { rescheduleAppointment } from "../../features/appointments/appointmentsSlice";
+import BarberProfileModal from "../../components/BarberProfileModal";
+import PhoneVerificationModal from "../../components/PhoneVerificationModal";
 
 const getPeriodLabel = (hour) => {
   if (hour < 12) return "Morning";
@@ -81,6 +84,8 @@ export default function Slots() {
   const [date, setDate] = useState(() => toLocalDateInput(reschedule?.startTime));
   const [error, setError] = useState(null);
   const [confirmation, setConfirmation] = useState(null);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const openProfile = () => setProfileModalOpen(true);
   
   const [prevRescheduleTime, setPrevRescheduleTime] = useState(null);
   if (reschedule?.startTime && reschedule.startTime !== prevRescheduleTime) {
@@ -89,10 +94,16 @@ export default function Slots() {
   }
 
   useEffect(() => {
-    if (reschedule?.tenantId && services.length === 0) {
-      dispatch(fetchServices(reschedule.tenantId));
+    const tid = reschedule?.tenantId || tenantId;
+    if (tid) {
+      if (services.length === 0) {
+        dispatch(fetchServices(tid));
+      }
+      if (barbers.length === 0) {
+        dispatch(fetchBarbersForTenant({ tenantId: tid }));
+      }
     }
-  }, [reschedule?.tenantId, services.length, dispatch]);
+  }, [reschedule?.tenantId, tenantId, services.length, barbers.length, dispatch]);
 
   const selectedDayIndex = useMemo(() => {
     const parsed = parseLocalDateString(date);
@@ -118,6 +129,9 @@ export default function Slots() {
     () => barbers.find(b => b.barberId === selectedBarberId),
     [barbers, selectedBarberId]
   );
+  
+  const user = useAppSelector(state => state.auth.user);
+  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
 
   /* 🚨 Guards */
   useEffect(() => {
@@ -196,6 +210,14 @@ export default function Slots() {
   }, [sortedSlots]);
 
   const handleBook = async (time) => {
+    if (!user?.isPhoneVerified) {
+        setVerificationModalOpen(true);
+        return;
+    }
+    if (selectedServiceIds.length > 0 && selectedServices.length === 0) {
+      setError("Loading service details... Please try again in a second.");
+      return;
+    }
     setError(null);
 
     const bookedServices = selectedServices.map(service => ({
@@ -248,10 +270,13 @@ export default function Slots() {
       setConfirmation(null);
       console.error("slot booking error", err);
       
-      // Since we use .unwrap(), err is the value from rejectWithValue (the message string)
-      // or the standard error object if not caught by thunk
       const serverMessage = typeof err === 'string' ? err : (err?.response?.data?.message || err?.message);
       
+      if (serverMessage?.includes("Phone verification required")) {
+        setVerificationModalOpen(true);
+        return;
+      }
+
       if (serverMessage) {
         setError(serverMessage);
       } else {
@@ -299,9 +324,11 @@ export default function Slots() {
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             <div className="space-y-2 rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm">
               <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Barber</p>
-              <p className="text-lg font-semibold text-slate-900">
-                {selectedBarber?.fullName ?? "Fetching barber"}
-              </p>
+              <div className="text-lg font-semibold text-slate-900">
+                <button onClick={openProfile} className="hover:underline hover:text-blue-600">
+                  {selectedBarber?.fullName ?? "Fetching barber"}
+                </button>
+              </div>
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
                 {selectedBarber?.isAvailable ? "Available now" : "Currently offline"}
               </p>
@@ -506,6 +533,17 @@ export default function Slots() {
           </div>
         )}
       </div>
+
+       <BarberProfileModal 
+        isOpen={profileModalOpen} 
+        onClose={() => setProfileModalOpen(false)} 
+        barberId={selectedBarberId} 
+      />
+
+      <PhoneVerificationModal
+        isOpen={verificationModalOpen}
+        onClose={() => setVerificationModalOpen(false)}
+      />
     </div>
   );
 }

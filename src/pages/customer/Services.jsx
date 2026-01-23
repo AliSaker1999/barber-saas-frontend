@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import {
   fetchServices,
-  toggleService
+  toggleService,
+  fetchBarbersForTenant
 } from "../../features/booking/bookingSlice";
 
 export default function Services() {
@@ -14,6 +15,8 @@ export default function Services() {
     tenantId,
     services,
     selectedServiceIds,
+    selectedBarberId,
+    barbers,
     loading,
     error
   } = useAppSelector(state => state.booking);
@@ -26,7 +29,17 @@ export default function Services() {
     }
 
     dispatch(fetchServices(tenantId));
-  }, [tenantId, dispatch, navigate]);
+    if (selectedBarberId && barbers.length === 0) {
+      dispatch(fetchBarbersForTenant({ tenantId }));
+    }
+  }, [tenantId, dispatch, navigate, selectedBarberId, barbers.length]);
+
+  const filteredServices = selectedBarberId
+    ? services.filter(s => {
+        const selectedBarber = barbers.find(b => b.barberId === selectedBarberId);
+        return selectedBarber?.serviceIds?.includes(s.Id);
+      })
+    : services;
 
   return (
     <div>
@@ -41,7 +54,17 @@ export default function Services() {
           </svg>
           Back to Barbershops
         </button>
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">Select Services</h1>
+        <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+            {selectedBarberId ? `Services for ${barbers.find(b => b.barberId === selectedBarberId)?.fullName || "Barber"}` : "Select Services"}
+            {selectedBarberId && (
+                <button 
+                  onClick={() => dispatch(selectBarber(null))}
+                  className="text-xs bg-gray-100 text-gray-500 hover:bg-gray-200 px-3 py-1.5 rounded-full font-medium transition-colors"
+                >
+                  Show all barbers
+                </button>
+            )}
+        </h1>
         <p className="text-gray-600">Choose the services you'd like</p>
       </div>
 
@@ -83,10 +106,10 @@ export default function Services() {
       )}
 
       {/* Services Grid */}
-      {!loading && !error && services.length > 0 && (
+      {!loading && !error && filteredServices.length > 0 && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            {services.map(service => (
+            {filteredServices.map(service => (
               <div
                 key={service.Id}
                 onClick={() => dispatch(toggleService(service.Id))}

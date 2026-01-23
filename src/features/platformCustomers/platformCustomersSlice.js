@@ -32,6 +32,14 @@ export const resetCustomerPassword = createAsyncThunk(
   }
 );
 
+export const updateCustomerPlatform = createAsyncThunk(
+  "platformCustomers/update",
+  async ({ id, data }) => {
+    await api.patch(`/customers/${id}`, data);
+    return { id, data };
+  }
+);
+
 const slice = createSlice({
   name: "platformCustomers",
   initialState: {
@@ -57,6 +65,12 @@ const slice = createSlice({
       .addCase(reactivateCustomer.fulfilled, (s, a) => {
         const c = s.items.find(x => x.Id === a.payload);
         if (c) c.IsActive = true;
+      })
+      .addCase(updateCustomerPlatform.fulfilled, (s, a) => {
+        const index = s.items.findIndex(x => x.Id === a.payload.id);
+        if (index !== -1) {
+          s.items[index] = { ...s.items[index], ...a.payload.data };
+        }
       });
   }
 });

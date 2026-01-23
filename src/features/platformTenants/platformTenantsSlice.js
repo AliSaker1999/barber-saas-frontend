@@ -58,6 +58,13 @@ export const resetTenantAdminPassword = createAsyncThunk(
   }
 );
 
+export const updateTenantPlatform = createAsyncThunk(
+  "platformTenants/update",
+  async ({ tenantId, data }) => {
+    await api.patch(`/tenants/${tenantId}`, data);
+    return { tenantId, data };
+  }
+);
 
 
 const platformTenantsSlice = createSlice({
@@ -89,6 +96,12 @@ const platformTenantsSlice = createSlice({
       .addCase(reactivateTenant.fulfilled, (s, a) => {
         const t = s.items.find(x => x.Id === a.payload);
         if (t) t.IsActive = true;
+      })
+      .addCase(updateTenantPlatform.fulfilled, (s, a) => {
+        const index = s.items.findIndex(x => x.Id === a.payload.tenantId);
+        if (index !== -1) {
+          s.items[index] = { ...s.items[index], ...a.payload.data };
+        }
       })
       .addCase(fetchTenantAdmin.fulfilled, (s, a) => {
         s.admins[a.payload.tenantId] = a.payload.admin;
