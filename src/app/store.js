@@ -13,6 +13,7 @@ import companyReducer from "../features/company/companySlice";
 import customerProfileReducer from "../features/auth/customerProfileSlice";
 import customersReducer from "../features/customers/customersSlice";
 import reportsReducer from "../features/reports/reportsSlice";
+import notificationsReducer from "../features/notifications/notificationsSlice";
 
 export const store = configureStore({
   reducer: {
@@ -29,6 +30,8 @@ export const store = configureStore({
     company: companyReducer,
     customerProfile: customerProfileReducer,
     customers: customersReducer,
-    reports: reportsReducer
+    reports: reportsReducer,
+    notifications: notificationsReducer
   }
 });
+

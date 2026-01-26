@@ -1,16 +1,21 @@
-import { Outlet, useNavigate, useLocation, Link, NavLink } from "react-router-dom";
+import { Outlet, useNavigate, Link, NavLink } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "../app/hooks";
 import { logout } from "../features/auth/authSlice";
 import { useState } from "react";
 import PhoneVerificationModal from "../components/PhoneVerificationModal";
+import PrivacyPolicyModal from "../components/PrivacyPolicyModal";
+import TermsOfServiceModal from "../components/TermsOfServiceModal";
+import NotificationsMenu from "../components/NotificationsMenu";
 
 export default function CustomerLayout() {
+
   const navigate = useNavigate();
-  const location = useLocation();
   const dispatch = useAppDispatch();
   const user = useAppSelector(state => state.auth.user);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -71,7 +76,10 @@ export default function CustomerLayout() {
 
             {/* User Menu */}
             <div className="flex items-center gap-2 sm:gap-4">
+              <NotificationsMenu />
+              
               <Link to="/customer/profile" className="hidden sm:flex flex-col items-end mr-2">
+
                 <span className="text-xs font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Customer</span>
                 <span className="text-sm font-black text-gray-900 leading-none truncate max-w-[120px]">{user?.fullName?.split(" ")[0] || "User"}</span>
               </Link>
@@ -90,32 +98,48 @@ export default function CustomerLayout() {
           </div>
         </div>
 
-        {/* Mobile menu drawer */}
-        <div className={`lg:hidden overflow-hidden transition-all duration-300 ease-in-out border-t bg-gray-50 ${mobileMenuOpen ? "max-h-80 opacity-100 py-4" : "max-h-0 opacity-0"}`}>
-          <div className="px-4 space-y-2">
-            <MobileNavLink to="/customer" label="🏪 Discover Shops" onClick={() => setMobileMenuOpen(false)} end />
-            <MobileNavLink to="/customer/appointments" label="📅 My Appointments" onClick={() => setMobileMenuOpen(false)} />
-            <MobileNavLink to="/customer/queue" label="⏱️ Live Queue" onClick={() => setMobileMenuOpen(false)} />
-            <MobileNavLink to="/customer/reports" label="📊 Grooming Insights" onClick={() => setMobileMenuOpen(false)} />
-            <MobileNavLink to="/customer/profile" label="👤 My Profile" onClick={() => setMobileMenuOpen(false)} />
-          </div>
+      {/* Mobile menu drawer - Simplified for App-like feel (Only secondary actions) */}
+      <div className={`lg:hidden overflow-hidden transition-all duration-300 ease-in-out border-t bg-gray-50 ${mobileMenuOpen ? "max-h-screen opacity-100 py-4" : "max-h-0 opacity-0"}`}>
+        <div className="px-4 space-y-2">
+            {/* Primary Nav Items are in Bottom Bar, showing secondary here */}
+            
+            <div className="py-2">
+              <p className="px-4 text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Account</p>
+              <MobileNavLink to="/customer/profile" label="👤 My Profile" onClick={() => setMobileMenuOpen(false)} />
+              <MobileNavLink to="/customer/notifications" label="🔔 Notifications" onClick={() => setMobileMenuOpen(false)} />
+            </div>
+
+            <div className="py-2 border-t border-gray-100">
+               <p className="px-4 text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Support & Legal</p>
+               <button onClick={() => { setIsPrivacyOpen(true); setMobileMenuOpen(false); }} className="w-full text-left px-4 py-3 rounded-xl text-base font-bold bg-white text-gray-700 border border-gray-100 hover:bg-gray-50">🔒 Privacy Policy</button>
+               <button onClick={() => { setIsTermsOpen(true); setMobileMenuOpen(false); }} className="w-full text-left px-4 py-3 rounded-xl text-base font-bold bg-white text-gray-700 border border-gray-100 hover:bg-gray-50">📄 Terms of Service</button>
+            </div>
+            
+            <div className="py-2 border-t border-gray-100">
+              <button 
+                onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
+                className="w-full text-left px-4 py-3 rounded-xl text-base font-bold bg-red-50 text-red-600 border border-red-100 hover:bg-red-100"
+              >
+                🚪 Sign Out
+              </button>
+            </div>
         </div>
+      </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+      {/* Main Content - Add padding bottom for mobile tab bar */}
+      <main className="flex-1 pb-24 lg:pb-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-10">
           <Outlet />
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation (Tab Bar) */}
-      <div className="lg:hidden sticky bottom-0 bg-white/95 backdrop-blur-md border-t px-4 py-3 flex justify-around items-center z-50">
-          <BottomTab to="/customer" icon="🏠" end title="Shops" />
+      {/* Mobile Bottom Navigation (Tab Bar) with Safe Area support */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t px-2 pb-[env(safe-area-inset-bottom)] pt-2 flex justify-around items-center z-[60] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+          <BottomTab to="/customer" icon="🏪" end title="Shops" />
           <BottomTab to="/customer/appointments" icon="📅" title="Bookings" />
           <BottomTab to="/customer/queue" icon="⏱️" title="Queue" />
           <BottomTab to="/customer/reports" icon="📊" title="Stats" />
-          <BottomTab to="/customer/profile" icon="👤" title="Me" />
       </div>
 
       {/* Footer (Desktop only) */}
@@ -129,8 +153,8 @@ export default function CustomerLayout() {
                 <span className="font-bold text-gray-400">BarberSaaS © 2026</span>
             </div>
             <div className="flex gap-6 text-sm font-bold text-gray-400">
-               <Link to="/privacy" className="hover:text-blue-600 transition-colors">Privacy Policy</Link>
-               <Link to="/terms" className="hover:text-blue-600 transition-colors">Terms of Service</Link>
+               <button onClick={() => setIsPrivacyOpen(true)} className="hover:text-blue-600 transition-colors">Privacy Policy</button>
+               <button onClick={() => setIsTermsOpen(true)} className="hover:text-blue-600 transition-colors">Terms of Service</button>
                <a href="mailto:alisaker1999@hotmail.com" className="hover:text-blue-600 transition-colors">Support</a>
             </div>
           </div>
@@ -141,6 +165,8 @@ export default function CustomerLayout() {
         isOpen={isVerificationModalOpen} 
         onClose={() => setIsVerificationModalOpen(false)} 
       />
+      <PrivacyPolicyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />
+      <TermsOfServiceModal isOpen={isTermsOpen} onClose={() => setIsTermsOpen(false)} />
     </div>
   );
 }

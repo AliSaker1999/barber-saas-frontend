@@ -48,7 +48,20 @@ export const moveNext = createAsyncThunk(
     try {
       await api.post("/queue/next", { barberId }); 
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || "Failed to move queue");
+      return rejectWithValue(err.response?.data?.message || "Failed to move next");
+    }
+  }
+);
+
+/* Notify Customer */
+export const notifyCustomer = createAsyncThunk(
+  "queue/notify",
+  async (id, { rejectWithValue }) => {
+    try {
+      await api.post(`/queue/${id}/notify`);
+      return id;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to notify customer");
     }
   }
 );

@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "../app/hooks";
 import { logout } from "../features/auth/authSlice";
 import { useState } from "react";
+import NotificationsMenu from "../components/NotificationsMenu";
 
 const navItems = [
   { to: "queue", label: "Queue", icon: "🚀", roles: ["ADMIN", "BARBER"] },
@@ -11,6 +12,7 @@ const navItems = [
   { to: "reports", label: "Reports", icon: "📊", roles: ["ADMIN", "BARBER"] },
   { to: "my-profile", label: "My Profile", icon: "👤", roles: ["BARBER"] },
   { to: "profile", label: "Shop Profile", icon: "🏢", roles: ["ADMIN"] },
+  { to: "notifications", label: "Notifications", icon: "🔔", roles: ["ADMIN", "BARBER"] }, // Added for easy access
 ];
 
 export default function CompanyLayout() {
@@ -29,109 +31,138 @@ export default function CompanyLayout() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
-      {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 shadow-lg transition-transform duration-300 lg:translate-x-0 ${
+    <div className="min-h-screen bg-gray-50 flex flex-col lg:block relative">
+      {/* Sidebar (Desktop) / Drawer (Mobile) */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-gray-100 shadow-2xl lg:shadow-none transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
         mobileOpen ? "translate-x-0" : "-translate-x-full"
       }`}>
         {/* Logo */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg">
-              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10.5 1.5H5.75A2.75 2.75 0 003 4.25v11.5A2.75 2.75 0 005.75 18.5h8.5A2.75 2.75 0 0017 15.75V4.25A2.75 2.75 0 0014.25 1.5h-3.75v2h3.75a.75.75 0 01.75.75v11.5a.75.75 0 01-.75.75h-8.5a.75.75 0 01-.75-.75V4.25a.75.75 0 01.75-.75h3.75v-2z" />
-              </svg>
-            </div>
-            <div>
-              <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">BarberSaaS</h1>
-              <p className="text-xs text-gray-600">{user.roles?.includes("ADMIN") ? "Admin" : "Barber"} Panel</p>
-            </div>
-          </div>
+        <div className="h-20 flex items-center px-6 border-b border-gray-100">
+           <div className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200 mr-3">
+              <span className="text-xl">✂️</span>
+           </div>
+           <div>
+              <h1 className="text-xl font-black text-gray-900 tracking-tight">BarberSaaS</h1>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{user.roles?.includes("ADMIN") ? "Admin" : "Barber"}</p>
+           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-2">
+        <nav className="p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-140px)] section-scrollbar">
+          <p className="px-4 text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 mt-2">Menu</p>
           {visibleNavItems.map(item => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={() => setMobileOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-                  isActive
-                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`
-              }
-            >
-              <span className="text-lg">{item.icon}</span>
-              <span>{item.label}</span>
-            </NavLink>
+            <SidebarLink 
+              key={item.to} 
+              to={item.to} 
+              icon={item.icon} 
+              label={item.label} 
+              onClick={() => setMobileOpen(false)} 
+            />
           ))}
-        </nav>
 
-        {/* User Info Section */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-gray-50">
-          <div className="mb-3">
-            <p className="text-xs text-gray-600 font-semibold">Logged in as</p>
-            <p className="text-sm font-semibold text-gray-900 truncate">
-              {user.fullName || user.email}
-            </p>
+          <div className="pt-4 mt-4 border-t border-gray-100">
+            <p className="px-4 text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">System</p>
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-red-600 hover:bg-red-50 transition-colors group"
+            >
+               <span className="text-xl transition-transform group-hover:-translate-x-1">🚪</span>
+               <span>Sign Out</span>
+            </button>
           </div>
-          <button
-            onClick={handleLogout}
-            className="w-full bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 font-semibold py-2 px-3 rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            Sign Out
-          </button>
-        </div>
+        </nav>
       </aside>
 
-      {/* Main Content */}
-      <div className="lg:ml-64">
+      {/* Main Content Wrapper */}
+      <div className="lg:ml-72 min-h-screen flex flex-col">
         {/* Header */}
-        <header className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="lg:hidden inline-flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={mobileOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
-              </svg>
-            </button>
-
-            {/* Header Title */}
-            <h2 className="text-xl font-bold text-gray-900">
-              {user.roles?.includes("ADMIN") ? "📊 Admin Dashboard" : "✂️ Barber Dashboard"}
-            </h2>
-
-            {/* User Avatar */}
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-sm">
-                {(user.fullName || user.email)?.charAt(0).toUpperCase()}
-              </span>
+        <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 sm:px-8 h-16 sm:h-20 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+               <button
+                  onClick={() => setMobileOpen(!mobileOpen)}
+                  className="lg:hidden p-2 -ml-2 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+               </button>
+               <h2 className="text-lg sm:text-2xl font-black text-gray-900 truncate">
+                  {user.roles?.includes("ADMIN") ? "Dashboard" : "My Workstation"}
+               </h2>
             </div>
-          </div>
+
+            <div className="flex items-center gap-3 sm:gap-4">
+                <NotificationsMenu />
+                <div className="hidden sm:flex flex-col items-end">
+                    <span className="text-sm font-bold text-gray-900">{user.fullName?.split(' ')[0]}</span>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{user.roles?.includes("ADMIN") ? "Owner" : "Staff"}</span>
+                </div>
+                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gray-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                    <span className="text-sm font-bold text-gray-600">{user.fullName?.charAt(0)}</span>
+                </div>
+            </div>
         </header>
 
         {/* Page Content */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-24 lg:pb-10 overflow-x-hidden">
           <Outlet />
         </main>
       </div>
-
+      
       {/* Mobile Overlay */}
       {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
-          onClick={() => setMobileOpen(false)}
-        ></div>
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden" onClick={() => setMobileOpen(false)} />
       )}
+
+      {/* Mobile Bottom Tab Bar */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 px-4 pb-[env(safe-area-inset-bottom)] pt-2 flex justify-between items-center z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+         <BottomTab to="queue" icon="🚀" label="Queue" />
+         <BottomTab to="appointments" icon="📅" label="Bookings" />
+         <BottomTab to="reports" icon="📊" label="Stats" />
+         <BottomTab to="notifications" icon="🔔" label="Alerts" />
+         <button 
+           onClick={() => setMobileOpen(true)}
+           className="flex flex-col items-center gap-1 p-2 text-gray-400 opacity-60 hover:opacity-100"
+         >
+            <span className="text-xl">🍔</span>
+            <span className="text-[10px] font-black uppercase tracking-tighter">Menu</span>
+         </button>
+      </div>
+
     </div>
+  );
+}
+
+function SidebarLink({ to, icon, label, onClick }) {
+  return (
+    <NavLink
+      to={to}
+      onClick={onClick}
+      className={({ isActive }) =>
+        `flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition-all duration-200 group ${
+          isActive
+            ? "bg-blue-50 text-blue-600 shadow-sm"
+            : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+        }`
+      }
+    >
+      <span className="text-xl group-hover:scale-110 transition-transform">{icon}</span>
+      <span>{label}</span>
+      <span className="ml-auto opacity-0 group-hover:opacity-100 text-gray-300">→</span>
+    </NavLink>
+  );
+}
+
+function BottomTab({ to, icon, label }) {
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `flex flex-col items-center gap-1 p-2 transition-all duration-300 ${
+          isActive ? "text-blue-600 scale-110" : "text-gray-400 opacity-60"
+        }`
+      }
+    >
+      <span className="text-xl mb-0.5">{icon}</span>
+      <span className="text-[10px] font-black uppercase tracking-tighter">{label}</span>
+    </NavLink>
   );
 }

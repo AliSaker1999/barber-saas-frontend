@@ -208,10 +208,43 @@ export default function Barbers() {
                               : "bg-gray-100 text-gray-700 hover:bg-gray-200 border-2 border-gray-300"
                           }`}
                         >
-                          {barber.IsAvailable ? "✓ Available" : "○ Unavailable"}
+                          {barber.IsAvailable ? "✓ Working" : "○ Off-Duty"}
                         </button>
                       </div>
-                      <p className="text-gray-600">{barber.Email}</p>
+                      
+                      <div className="flex flex-col md:flex-row gap-4 mb-4">
+                        <div className="flex items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-100 flex-1">
+                          <span className="text-sm font-bold text-gray-700">Online Appointments</span>
+                          <button
+                            onClick={() => dispatch(toggleAvailability({
+                              barberId: barber.Id,
+                              isAcceptingAppointments: !barber.IsAcceptingAppointments
+                            }))}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-tight transition-all ${
+                              barber.IsAcceptingAppointments ? "bg-green-500 text-white" : "bg-gray-300 text-gray-600"
+                            }`}
+                          >
+                            {barber.IsAcceptingAppointments ? "Active" : "Disabled"}
+                          </button>
+                        </div>
+                        
+                        <div className="flex items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-100 flex-1">
+                          <span className="text-sm font-bold text-gray-700">Auto-Accept Policy</span>
+                          <button
+                            onClick={() => dispatch(toggleAvailability({
+                              barberId: barber.Id,
+                              autoAcceptAppointments: !barber.AutoAcceptAppointments
+                            }))}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-tight transition-all ${
+                              barber.AutoAcceptAppointments ? "bg-blue-600 text-white shadow-lg shadow-blue-200" : "bg-orange-100 text-orange-700 border border-orange-200"
+                            }`}
+                          >
+                            {barber.AutoAcceptAppointments ? "Auto" : "Manual"}
+                          </button>
+                        </div>
+                      </div>
+
+                      <p className="text-gray-500 text-sm font-medium">{barber.Email}</p>
                     </div>
 
                     {/* Services */}

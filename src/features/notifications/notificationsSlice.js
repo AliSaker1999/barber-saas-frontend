@@ -1,0 +1,82 @@
+
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import api from "../../services/api";
+
+export const fetchNotifications = createAsyncThunk(
+  "notifications/fetch",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.get("/notifications");
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to fetch notifications");
+    }
+  }
+);
+
+export const markAsRead = createAsyncThunk(
+  "notifications/markRead",
+  async (id, { rejectWithValue }) => {
+    try {
+      await api.patch(`/notifications/${id}/read`);
+      return id;
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
+export const markAllAsRead = createAsyncThunk(
+  "notifications/markAllRead",
+  async (_, { rejectWithValue }) => {
+    try {
+      await api.patch(`/notifications/all/read`);
+      return 'all';
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
+const notificationsSlice = createSlice({
+  name: "notifications",
+  initialState: {
+    items: [],
+    loading: false,
+    unreadCount: 0
+  },
+  reducers: {
+    addNotification: (state, action) => {
+      // Avoid duplicates if possible (check last 5)
+      const exists = state.items.slice(0, 5).some(n => n.Id === action.payload.Id && action.payload.Id);
+      if (exists) return;
+
+      state.items.unshift({
+        IsRead: false,
+        CreatedAt: new Date().toISOString(),
+        ...action.payload
+      });
+      state.unreadCount += 1;
+    }
+  },
+  extraReducers: (builder) => {
+    builder.addCase(fetchNotifications.fulfilled, (state, action) => {
+      state.items = action.payload;
+      state.unreadCount = action.payload.filter(n => !n.IsRead).length;
+    });
+    builder.addCase(markAsRead.fulfilled, (state, action) => {
+      const item = state.items.find(n => n.Id === action.payload);
+      if (item && !item.IsRead) {
+        item.IsRead = true;
+        state.unreadCount = Math.max(0, state.unreadCount - 1);
+      }
+    });
+    builder.addCase(markAllAsRead.fulfilled, (state) => {
+      state.items.forEach(i => i.IsRead = true);
+      state.unreadCount = 0;
+    });
+  }
+});
+
+export const { addNotification } = notificationsSlice.actions;
+export default notificationsSlice.reducer;

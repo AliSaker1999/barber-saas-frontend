@@ -55,11 +55,12 @@ export const toggleBarberService = createAsyncThunk(
 
 export const toggleAvailability = createAsyncThunk(
   "barbers/toggleAvailability",
-  async ({ barberId, isAvailable, isAcceptingAppointments }, { rejectWithValue }) => {
+  async ({ barberId, isAvailable, isAcceptingAppointments, autoAcceptAppointments }, { rejectWithValue }) => {
     try {
       const payload = {};
       if (isAvailable !== undefined) payload.isAvailable = isAvailable;
       if (isAcceptingAppointments !== undefined) payload.isAcceptingAppointments = isAcceptingAppointments;
+      if (autoAcceptAppointments !== undefined) payload.autoAcceptAppointments = autoAcceptAppointments;
       
       await api.patch(`/barbers/${barberId}/availability`, payload);
       return { barberId, ...payload };
@@ -134,19 +135,21 @@ const barbersSlice = createSlice({
         : [...barber.ServiceIds, a.payload.serviceId];
     })
     .addCase(toggleAvailability.fulfilled, (state, action) => {
-      const { barberId, isAvailable, isAcceptingAppointments } = action.payload;
+      const { barberId, isAvailable, isAcceptingAppointments, autoAcceptAppointments } = action.payload;
       
       // Update in list
       const barber = state.items.find(b => b.Id === barberId);
       if (barber) {
         if (isAvailable !== undefined) barber.IsAvailable = isAvailable;
         if (isAcceptingAppointments !== undefined) barber.IsAcceptingAppointments = isAcceptingAppointments;
+        if (autoAcceptAppointments !== undefined) barber.AutoAcceptAppointments = autoAcceptAppointments;
       }
 
       // Update in selected profile
       if (state.selectedProfile && state.selectedProfile.Id === barberId) {
         if (isAvailable !== undefined) state.selectedProfile.IsAvailable = isAvailable;
         if (isAcceptingAppointments !== undefined) state.selectedProfile.IsAcceptingAppointments = isAcceptingAppointments;
+        if (autoAcceptAppointments !== undefined) state.selectedProfile.AutoAcceptAppointments = autoAcceptAppointments;
       }
     });
   }

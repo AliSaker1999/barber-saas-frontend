@@ -52,6 +52,19 @@ export const cancelAppointment = createAsyncThunk(
   }
 );
 
+/* Notify Customer */
+export const notifyCustomer = createAsyncThunk(
+  "appointments/notify",
+  async (id, { rejectWithValue }) => {
+    try {
+      await api.post(`/appointments/${id}/notify`);
+      return id;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to notify customer");
+    }
+  }
+);
+
 /* No-show */
 export const markNoShow = createAsyncThunk(
   "appointments/noShow",

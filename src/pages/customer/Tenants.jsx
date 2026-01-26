@@ -6,6 +6,30 @@ import { selectTenant } from "../../features/booking/bookingSlice";
 import { findMyActiveQueue } from "../../features/queue/queueSlice";
 
 /* Enhanced Dropdown Component */
+const TenantLogo = ({ tenant }) => {
+  const [error, setError] = useState(false);
+
+  if (tenant.LogoUrl && !error) {
+    return (
+      <img
+        src={tenant.LogoUrl}
+        alt="Logo"
+        className="w-full h-full object-contain rounded-xl"
+        onError={(e) => {
+          e.target.onerror = null; 
+          setError(true);
+        }}
+      />
+    );
+  }
+
+  return (
+    <div className="w-full h-full bg-gray-100 flex items-center justify-center font-bold text-2xl text-blue-600">
+      {tenant.Name ? tenant.Name[0] : "?"}
+    </div>
+  );
+};
+
 const Dropdown = ({ value, onChange, options, icon, placeholder }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -160,17 +184,17 @@ export default function Tenants() {
       )}
 
       {/* Hero Section with Search */}
-      <div className="relative mb-12 text-center">
-        <h1 className="text-5xl md:text-6xl font-black text-gray-900 tracking-tighter mb-6">
+      <div className="relative mb-8 sm:mb-12 text-center px-2">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-gray-900 tracking-tighter mb-4 sm:mb-6 leading-tight">
           The Best Barbers,<br/><span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Your Style.</span>
         </h1>
-        <p className="text-xl text-gray-500 max-w-2xl mx-auto mb-10 leading-relaxed">
+        <p className="text-base sm:text-xl text-gray-500 max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-4">
           Discover top-rated barbershops in your area and book your next cut in seconds.
         </p>
 
         {/* Search & Filter Bar - Enhanced Design */}
-        <div className="bg-white p-3 rounded-3xl shadow-2xl shadow-blue-900/5 border border-gray-100 max-w-6xl mx-auto">
-          <div className="flex flex-col lg:flex-row gap-3">
+        <div className="bg-white p-2 sm:p-3 rounded-2xl sm:rounded-3xl shadow-xl shadow-blue-900/5 border border-gray-100 max-w-6xl mx-auto">
+          <div className="flex flex-col lg:flex-row gap-2 sm:gap-3">
             {/* Search Input */}
             <div className="flex-1 relative group">
               <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
@@ -247,7 +271,7 @@ export default function Tenants() {
       )}
 
       {/* Tenants Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
         {processedTenants.map((tenant) => (
           <div
             key={tenant.Id}
@@ -267,13 +291,7 @@ export default function Tenants() {
               
               {/* Logo Overlay */}
               <div className="absolute -bottom-6 left-6 w-20 h-20 bg-white rounded-2xl shadow-lg p-1 border-4 border-white overflow-hidden">
-                {tenant.LogoUrl ? (
-                  <img src={tenant.LogoUrl} alt="Logo" className="w-full h-full object-contain rounded-xl" />
-                ) : (
-                  <div className="w-full h-full bg-gray-100 flex items-center justify-center font-bold text-2xl text-blue-600">
-                    {tenant.Name[0]}
-                  </div>
-                )}
+                <TenantLogo tenant={tenant} />
               </div>
 
               {/* Badges */}

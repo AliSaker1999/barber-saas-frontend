@@ -20,6 +20,7 @@ export default function PlatformTenants() {
 
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -40,9 +41,10 @@ export default function PlatformTenants() {
 
   const submitTenant = e => {
     e.preventDefault();
-    dispatch(createTenant({ name, slug }));
+    dispatch(createTenant({ name, slug, phoneNumber }));
     setName("");
     setSlug("");
+    setPhoneNumber("");
   };
 
   const filteredTenants = items.filter(t => {
@@ -87,6 +89,16 @@ export default function PlatformTenants() {
                 placeholder="e.g., downtown-barber"
                 value={slug}
                 onChange={e => setSlug(e.target.value)}
+                required
+              />
+            </div>
+             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+              <input
+                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+                placeholder="e.g., +961..."
+                value={phoneNumber}
+                onChange={e => setPhoneNumber(e.target.value)}
                 required
               />
             </div>

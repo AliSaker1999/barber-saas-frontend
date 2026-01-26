@@ -15,7 +15,26 @@ export default function AdminReports() {
 
   const { summary, barbers, services, dailyRevenue, topCustomers } = tenantDashboard;
 
-  const maxRevenue = Math.max(...dailyRevenue.map(d => d.Revenue), 1);
+  // Fill in the last 30 days to ensure a consistent chart even if some days have no revenue
+  const last30Days = [...Array(30)].map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (29 - i));
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
+
+  const chartData = last30Days.map(date => {
+    const dStr = date.toLocaleDateString('en-CA');
+    const existing = dailyRevenue.find(d => {
+      return new Date(d.Date).toLocaleDateString('en-CA') === dStr;
+    });
+    return {
+      Date: date,
+      Revenue: existing ? Number(existing.Revenue) : 0
+    };
+  });
+
+  const maxRevenue = Math.max(...chartData.map(d => d.Revenue), 1);
 
   return (
     <div className="space-y-8 pb-12">
@@ -60,8 +79,8 @@ export default function AdminReports() {
           Revenue Trend (Last 30 Days)
         </h3>
         <div className="h-48 flex items-end gap-1 px-4">
-          {dailyRevenue.map((d, i) => (
-            <div key={i} className="flex-1 group relative">
+              {chartData.map((d, i) => (
+            <div key={i} className="flex-1 group relative h-full flex flex-col justify-end">
               <div 
                 className="bg-blue-100 group-hover:bg-blue-600 transition-all rounded-t-sm" 
                 style={{ height: `${(d.Revenue / maxRevenue) * 100}%` }}
@@ -73,7 +92,7 @@ export default function AdminReports() {
           ))}
         </div>
         <div className="flex justify-between mt-4 text-[10px] font-black text-gray-400 uppercase tracking-widest px-4">
-           <span>{new Date(dailyRevenue[0]?.Date).toLocaleDateString()}</span>
+            <span>{chartData[0].Date.toLocaleDateString()}</span>
            <span>Today</span>
         </div>
       </div>

@@ -63,7 +63,7 @@ const authSlice = createSlice({
         state.user = action.payload.user;
         state.token = action.payload.token;
         state.error = null;
-        connectSocket(action.payload.token);
+        connectSocket(action.payload.token, action.payload.user.id);
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;
