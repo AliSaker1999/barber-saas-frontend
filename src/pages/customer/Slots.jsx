@@ -9,9 +9,15 @@ import {
   fetchServices,
   fetchBarbersForTenant
 } from "../../features/booking/bookingSlice";
-import { rescheduleAppointment } from "../../features/appointments/appointmentsSlice";
+import { 
+  rescheduleAppointment, 
+  reportAppointmentPaymentThunk,
+  fetchCustomerAppointments 
+} from "../../features/appointments/appointmentsSlice";
+import { getSocket } from "../../services/socket";
 import BarberProfileModal from "../../components/BarberProfileModal";
 import PhoneVerificationModal from "../../components/PhoneVerificationModal";
+import Modal from "../../components/Modal";
 
 const getPeriodLabel = (hour) => {
   if (hour < 12) return "Morning";
@@ -81,11 +87,18 @@ export default function Slots() {
     reschedule
   } = useAppSelector(state => state.booking);
 
+  const appointments = useAppSelector(state => state.appointments.items);
+
   const [date, setDate] = useState(() => toLocalDateInput(reschedule?.startTime));
   const [error, setError] = useState(null);
   const [confirmation, setConfirmation] = useState(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const openProfile = () => setProfileModalOpen(true);
+
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentReference, setPaymentReference] = useState("");
+  const [paymentError, setPaymentError] = useState("");
+  const [isPendingVerification, setIsPendingVerification] = useState(false);
   
   const [prevRescheduleTime, setPrevRescheduleTime] = useState(null);
   if (reschedule?.startTime && reschedule.startTime !== prevRescheduleTime) {
@@ -132,6 +145,36 @@ export default function Slots() {
   
   const user = useAppSelector(state => state.auth.user);
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
+
+  // 1. Sync local list with socket
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleUpdate = () => {
+      dispatch(fetchCustomerAppointments());
+    };
+
+    socket.on("appointments:update", handleUpdate);
+    return () => {
+      socket.off("appointments:update", handleUpdate);
+    };
+  }, [dispatch]);
+
+  // 2. Watch appointments list for status change
+  useEffect(() => {
+    if (!confirmation?.appointmentId || !isPendingVerification) return;
+
+    // Find our current appointment in the global list
+    const current = appointments.find(a => a.Id === confirmation.appointmentId);
+    
+    // If it's now SCHEDULED (1) or any status that isn't AWAITING_PAYMENT (7)
+    if (current && current.StatusId !== 7) {
+      setIsPendingVerification(false);
+      // Optional: Update confirmation state locally to reflect the new status in UI
+      setConfirmation(prev => ({ ...prev, statusId: current.StatusId }));
+    }
+  }, [appointments, confirmation?.appointmentId, isPendingVerification]);
 
   /* 🚨 Guards */
   useEffect(() => {
@@ -260,7 +303,9 @@ export default function Slots() {
         totalServiceDuration,
         barberName: selectedBarber?.fullName ?? "",
         date,
-        isReschedule: Boolean(reschedule?.appointmentId)
+        isReschedule: Boolean(reschedule?.appointmentId),
+        statusId: payload.statusId,
+        whishPhoneNumber: payload.whishPhoneNumber
       });
 
       if (reschedule?.appointmentId) {
@@ -289,6 +334,24 @@ export default function Slots() {
   const goToDashboard = () => {
     setConfirmation(null);
     navigate(confirmation?.isReschedule ? "/customer/appointments" : "/customer");
+  };
+
+  const handleReportPayment = async () => {
+      if (!paymentReference.trim()) return;
+      if (!confirmation?.appointmentId) return;
+
+      try {
+          await dispatch(reportAppointmentPaymentThunk({
+              id: confirmation.appointmentId,
+              reference: paymentReference
+          })).unwrap();
+          
+          setPaymentModalOpen(false);
+          setIsPendingVerification(true);
+      } catch (err) {
+          const errMsg = typeof err === "string" ? err : err?.message || "Failed to report payment.";
+          setPaymentError(errMsg);
+      }
   };
 
   const confirmationTiming = confirmation?.appointmentId
@@ -455,6 +518,56 @@ export default function Slots() {
         </div>
         {confirmation?.appointmentId && (
           <div className="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-10">
+            {confirmation.statusId === 7 ? (
+               <div className="w-full max-w-lg rounded-3xl bg-white p-8 shadow-[0_25px_80px_rgba(15,23,42,0.35)] md:p-10 text-center border-4 border-amber-100">
+                  <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                      <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                  </div>
+                  <h2 className="text-2xl font-bold text-amber-900 mb-2">Payment Required</h2>
+                  <p className="text-amber-800 mb-6 leading-relaxed">
+                      Due to your history of No-Shows, this appointment is pending payment. 
+                      You must pay in advance via Whish to confirm it.
+                  </p>
+                  
+                   <div className="bg-amber-50 rounded-xl p-4 mb-8 text-left border border-amber-100">
+                      <div className="flex justify-between items-center mb-1">
+                          <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Amount Due</span>
+                          <span className="text-lg font-bold text-amber-900">{formatCurrency(confirmation.totalPrice)}</span>
+                      </div>
+                      <p className="text-xs text-amber-700">Please transfer to Whish # <b>{confirmation.whishPhoneNumber || "Contact Support"}</b></p>
+                   </div>
+
+                  {!isPendingVerification ? (
+                    <button
+                      onClick={() => setPaymentModalOpen(true)}
+                      className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl transition shadow-lg mb-3"
+                    >
+                      I have paid via Whish
+                    </button>
+                  ) : (
+                    <div className="flex items-center justify-center gap-2 text-amber-700 font-bold bg-amber-100 py-3 rounded-xl mb-3">
+                        <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        Verifying...
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => {
+                        setConfirmation(null);
+                        navigate("/customer/appointments");
+                    }}
+                    className="w-full rounded-2xl bg-white border border-slate-200 px-6 py-4 text-base font-bold text-slate-600 transition hover:bg-slate-50"
+                  >
+                    Go to Payments & Appointments
+                  </button>
+                   <button
+                    onClick={closeConfirmation}
+                    className="mt-4 text-sm font-semibold text-slate-400 hover:text-slate-600"
+                  >
+                    Close
+                  </button>
+               </div>
+            ) : (
             <div className="w-full max-w-3xl rounded-3xl bg-white p-8 shadow-[0_25px_80px_rgba(15,23,42,0.35)]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -530,6 +643,7 @@ export default function Slots() {
                 </button>
               </div>
             </div>
+            )}
           </div>
         )}
       </div>
@@ -544,6 +658,40 @@ export default function Slots() {
         isOpen={verificationModalOpen}
         onClose={() => setVerificationModalOpen(false)}
       />
+
+      <Modal
+        isOpen={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        title="Report Payment"
+      >
+        <div className="space-y-4">
+            <p className="text-slate-600 text-sm">
+                Please enter the <strong>Transaction Reference ID</strong> provided by Whish after your transfer.
+            </p>
+            <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">
+                    Reference ID
+                </label>
+                <input
+                    type="text"
+                    value={paymentReference}
+                    onChange={e => setPaymentReference(e.target.value)}
+                    placeholder="e.g. 12345678"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+                />
+            </div>
+            {paymentError && (
+                <p className="text-xs font-bold text-rose-500 bg-rose-50 p-2 rounded-lg">{paymentError}</p>
+            )}
+            <button
+                onClick={handleReportPayment}
+                className="w-full rounded-xl bg-blue-600 py-3 text-sm font-bold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!paymentReference.trim()}
+            >
+                Submit Payment
+            </button>
+        </div>
+      </Modal>
     </div>
   );
 }

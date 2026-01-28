@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { fetchQueue, moveNext, markQueueNoShow, updateQueueServicesThunk, notifyCustomer } from "../../features/queue/queueSlice";
+import { fetchQueue, moveNext, markQueueNoShow, updateQueueServicesThunk, notifyCustomer, verifyQueuePaymentThunk } from "../../features/queue/queueSlice";
 import { fetchCustomerDetails, clearSelectedCustomer } from "../../features/customers/customersSlice";
 import { fetchBarbersForTenant } from "../../features/booking/bookingSlice";
 import { getSocket } from "../../services/socket";
@@ -21,6 +21,7 @@ export default function Queue() {
   const [isNoShowModalOpen, setIsNoShowModalOpen] = useState(false);
   const [isNextModalOpen, setIsNextModalOpen] = useState(false);
   const [isNotifyModalOpen, setIsNotifyModalOpen] = useState(false);
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false); // New state
   const [actionTargetId, setActionTargetId] = useState(null);
   const [actionError, setActionError] = useState(null);
 
@@ -73,9 +74,16 @@ export default function Queue() {
     };
   }, [dispatch, tenantId]);
 
-  const queues = useMemo(() => {
+  const { activeQueues, awaitingPaymentItems } = useMemo(() => {
      const map = {};
+     const awaiting = [];
+
      items.forEach(item => {
+         if (item.statusId === 6) {
+             awaiting.push(item);
+             return;
+         }
+
          if (!map[item.barberId]) {
              map[item.barberId] = {
                  barberName: item.barberName,
@@ -85,7 +93,10 @@ export default function Queue() {
          }
          map[item.barberId].items.push(item);
      });
-     return Object.values(map);
+     return { 
+       activeQueues: Object.values(map),
+       awaitingPaymentItems: awaiting
+     };
   }, [items]);
 
   const handleNext = (barberId) => {
@@ -135,6 +146,22 @@ export default function Queue() {
     }
   };
 
+  const handleVerifyPayment = (queueId) => {
+      setActionTargetId(queueId);
+      setIsVerifyModalOpen(true);
+      setActionError(null);
+  };
+
+  const confirmVerifyPayment = async () => {
+      try {
+          await dispatch(verifyQueuePaymentThunk(actionTargetId)).unwrap();
+          dispatch(fetchQueue()); // Refresh to move item to active queue
+          setIsVerifyModalOpen(false);
+      } catch (err) {
+          setActionError(err);
+      }
+  };
+
   const formatJoinedTime = (dateStr) => {
       const d = new Date(dateStr);
       // Fixed: Adjusting for 2 hour offset as requested
@@ -163,7 +190,67 @@ export default function Queue() {
       )}
 
       <div className="space-y-12">
-      {queues.map(group => (
+      
+      {/* ⚠️ Awaiting Payment Section */}
+      {awaitingPaymentItems.length > 0 && (
+          <div className="bg-amber-50 rounded-3xl p-6 border-2 border-amber-200 shadow-xl mb-12">
+               <div className="flex items-center gap-3 mb-6">
+                   <div className="bg-amber-500 text-white p-2 rounded-lg">
+                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                   </div>
+                   <h2 className="text-2xl font-bold text-amber-900">Payment Verification Required</h2>
+               </div>
+               
+               <div className="space-y-3">
+                   {awaitingPaymentItems.map((item) => (
+                       <div key={item.id} className="p-4 rounded-xl flex items-center justify-between bg-white border border-amber-100 shadow-sm">
+                           <div className="flex items-center gap-4">
+                               <div className="text-xl font-black w-12 text-center text-amber-400">
+                                   ⏳
+                               </div>
+                               <div>
+                                   <div className="flex items-center gap-2">
+                                       <button 
+                                         onClick={() => handleOpenCustomer(item.customerId)}
+                                         className="font-bold text-lg text-gray-800 hover:text-blue-600 transition-colors"
+                                       >
+                                         {item.customerName} 
+                                       </button>
+                                       <span className="text-sm text-gray-400">waiting for {item.barberName}</span>
+                                   </div>
+                                   
+                                   <div className="flex flex-col mt-1">
+                                       <p className="text-xs text-gray-500">Joined {formatJoinedTime(item.joinedAt)}</p>
+                                       {item.paymentReference && (
+                                           <p className="text-xs font-bold text-green-600 mt-1">Ref: {item.paymentReference}</p>
+                                       )}
+                                   </div>
+                               </div>
+                           </div>
+                           
+                           <div className="flex items-center gap-3">
+                                <button 
+                                   onClick={() => handleVerifyPayment(item.id)}
+                                   className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-bold transition shadow-md flex items-center gap-2"
+                                >
+                                    Verify Payment
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                </button>
+                                <button 
+                                   onClick={() => handleNoShow(item.id)}
+                                   className="text-gray-400 hover:text-red-500 p-2 transition-colors"
+                                   title="Remove"
+                                >
+                                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                           </div>
+                       </div>
+                   ))}
+               </div>
+          </div>
+      )}
+
+      {activeQueues.map(group => (
           <div key={group.barberId} className="bg-gray-50 rounded-3xl p-6 border border-gray-200">
                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                    <h2 className="text-2xl font-bold text-indigo-900">{group.barberName}'s Queue</h2>
@@ -452,6 +539,42 @@ export default function Queue() {
                     className="flex-1 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-lg"
                 >
                     Send Notification
+                </button>
+            </div>
+        </div>
+      </Modal>
+
+      {/* Verify Payment Confirmation Modal */}
+      <Modal
+        isOpen={isVerifyModalOpen}
+        onClose={() => setIsVerifyModalOpen(false)}
+        title="Verify Payment"
+      >
+        <div className="p-6 text-center">
+            <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Confirm Payment Verification?</h3>
+            <p className="text-gray-500 mb-6">This will accept the payment and move the customer into the active queue.</p>
+            
+            {actionError && (
+                <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm font-bold">
+                    {actionError}
+                </div>
+            )}
+
+            <div className="flex gap-3">
+                <button 
+                    onClick={() => setIsVerifyModalOpen(false)}
+                    className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition"
+                >
+                    Cancel
+                </button>
+                <button 
+                    onClick={confirmVerifyPayment}
+                    className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition shadow-lg"
+                >
+                    Confirm & Move
                 </button>
             </div>
         </div>

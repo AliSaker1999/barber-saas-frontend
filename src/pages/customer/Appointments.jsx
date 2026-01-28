@@ -15,6 +15,7 @@ import { getSocket } from "../../services/socket";
 import RateBarberModal from "../../components/RateBarberModal";
 import BarberProfileModal from "../../components/BarberProfileModal";
 import Modal from "../../components/Modal";
+import api from "../../services/api";
 
 export default function Appointments() {
   const dispatch = useAppDispatch();
@@ -30,6 +31,11 @@ export default function Appointments() {
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [rescheduleErrorModalOpen, setRescheduleErrorModalOpen] = useState(false);
   const [actionError, setActionError] = useState(null);
+  
+  const [payModalOpen, setPayModalOpen] = useState(false);
+  const [payDetails, setPayDetails] = useState(null);
+  const [transactionId, setTransactionId] = useState("");
+  const [payLoading, setPayLoading] = useState(false);
 
   useEffect(() => {
     dispatch(fetchCustomerAppointments());
@@ -55,7 +61,8 @@ export default function Appointments() {
       COMPLETED: { bg: "bg-green-50", border: "border-green-200", text: "text-green-700", icon: "✅" },
       CANCELLED: { bg: "bg-red-50", border: "border-red-200", text: "text-red-700", icon: "❌" },
       DECLINED: { bg: "bg-gray-50", border: "border-gray-200", text: "text-gray-700", icon: "🚫" },
-      NO_SHOW: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", icon: "⚠️" }
+      NO_SHOW: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", icon: "⚠️" },
+      AWAITING_PAYMENT: { bg: "bg-amber-100", border: "border-amber-300", text: "text-amber-800", icon: "💲" }
     };
     return badges[status] || { bg: "bg-gray-50", border: "border-gray-200", text: "text-gray-700", icon: "❓" };
   };
@@ -109,6 +116,38 @@ export default function Appointments() {
         setCancelModalOpen(false);
     } catch (err) {
         setActionError(err);
+    }
+  };
+
+  const openPayModal = (appt) => {
+    if (!appt.WhishPhoneNumber) {
+      alert("This shop does not support Whish payments yet.");
+      return;
+    }
+    const amount = appt.services?.reduce((sum, s) => sum + s.price, 0) || 0;
+    setPayDetails({
+      id: appt.Id,
+      amount,
+      phone: appt.WhishPhoneNumber
+    });
+    setPayModalOpen(true);
+  };
+
+  const handleReportPayment = async () => {
+    if (!transactionId.trim()) {
+      alert("Please enter transaction ID");
+      return;
+    }
+    setPayLoading(true);
+    try {
+      await api.post(`/appointments/${payDetails.id}/pay/report`, { reference: transactionId });
+      setPayModalOpen(false);
+      setTransactionId("");
+      dispatch(fetchCustomerAppointments());
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to report payment");
+    } finally {
+      setPayLoading(false);
     }
   };
 
@@ -178,6 +217,14 @@ export default function Appointments() {
             <p className={`text-sm font-semibold ${filter === "NO_SHOW" ? "text-amber-100" : "text-gray-500"}`}>No Show</p>
             <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'NO_SHOW').length}</p>
           </button>
+
+          <button 
+            onClick={() => setFilter("AWAITING_PAYMENT")}
+            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "AWAITING_PAYMENT" ? "bg-amber-500 border-amber-500 text-white shadow-lg scale-105" : "bg-white border-amber-100 text-gray-700 hover:border-amber-300 shadow-sm"}`}
+          >
+            <p className={`text-sm font-semibold ${filter === "AWAITING_PAYMENT" ? "text-white" : "text-gray-500"}`}>To Pay</p>
+            <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'AWAITING_PAYMENT').length}</p>
+          </button>
         </div>
       )}
 
@@ -246,7 +293,13 @@ export default function Appointments() {
                   </div>
 
                   {/* Status */}
-                  <div className="flex items-center">
+                  <div className="flex items-center gap-2">
+                    {appointment.PaymentStatus === 'PAID' && (
+                        <div className="px-3 py-1 bg-green-500 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">Paid</div>
+                    )}
+                    {appointment.PaymentStatus === 'PENDING' && (
+                        <div className="px-3 py-1 bg-amber-500 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">Verifying</div>
+                    )}
                     <div className={`px-4 py-1.5 rounded-full font-bold text-xs flex items-center gap-2 ${statusBadge.bg} border ${statusBadge.border} ${statusBadge.text}`}>
                       <span className="text-sm">{statusBadge.icon}</span> {appointment.Status}
                     </div>
@@ -262,14 +315,24 @@ export default function Appointments() {
                             Rate ★
                         </button>
                     )}
-                    {(appointment.Status === "SCHEDULED" || appointment.Status === "PENDING") && (
+                    {(appointment.Status === "SCHEDULED" || appointment.Status === "PENDING" || appointment.Status === "AWAITING_PAYMENT") && (
                       <>
-                        <button
-                          onClick={() => handleReschedule(appointment)}
-                          className="bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-indigo-100 uppercase"
-                        >
-                          Reschedule
-                        </button>
+                        {appointment.PaymentStatus === 'UNPAID' && appointment.WhishPhoneNumber && (
+                          <button
+                            onClick={() => openPayModal(appointment)}
+                            className="bg-green-50 hover:bg-green-600 hover:text-white text-green-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-green-100 uppercase flex items-center gap-1"
+                          >
+                            <span>💸</span> Pay
+                          </button>
+                        )}
+                        {appointment.Status !== "AWAITING_PAYMENT" && (
+                            <button
+                              onClick={() => handleReschedule(appointment)}
+                              className="bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-indigo-100 uppercase"
+                            >
+                              Reschedule
+                            </button>
+                        )}
                         <button
                           onClick={() => {
                             setSelectedAppointmentId(appointment.Id);
@@ -297,6 +360,49 @@ export default function Appointments() {
         appointmentId={selectedAppointmentId}
         onSuccess={() => {/* Toast or something? */}}
       />
+      
+      <Modal
+        isOpen={payModalOpen}
+        onClose={() => setPayModalOpen(false)}
+        title="Pay with Whish"
+      >
+        <div className="space-y-6">
+          <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl">
+            <p className="text-indigo-900 font-medium text-sm mb-1">Send Payment To:</p>
+            <p className="text-2xl font-black text-indigo-600 tracking-tight select-all">{payDetails?.phone}</p>
+          </div>
+          
+          <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+             <div className="flex justify-between items-center mb-2">
+                <span className="text-gray-500 font-bold text-xs uppercase">Amount Due</span>
+                <span className="text-gray-900 font-black text-xl">${payDetails?.amount}</span>
+             </div>
+             <p className="text-xs text-gray-400 leading-relaxed">
+               Open your Whish app, select "Transfer", enter the number above, and send the exact amount.
+             </p>
+          </div>
+
+          <div>
+             <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Transaction ID / Reference</label>
+             <input 
+                type="text" 
+                value={transactionId}
+                onChange={e => setTransactionId(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-50 border-2 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 font-bold text-gray-900"
+                placeholder="Enter the transaction ID from Whish"
+             />
+          </div>
+
+          <button
+            onClick={handleReportPayment}
+            disabled={payLoading}
+            className="w-full bg-indigo-600 text-white rounded-xl py-3 font-bold hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-indigo-200"
+          >
+            {payLoading ? "Verifying..." : "Confirm Transfer"}
+          </button>
+        </div>
+      </Modal>
+
       <BarberProfileModal
         isOpen={profileModalOpen}
         onClose={() => setProfileModalOpen(false)}

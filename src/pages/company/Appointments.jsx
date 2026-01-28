@@ -9,6 +9,7 @@ import {
   declineAppointment,
   notifyCustomer,
   arriveForAppointment,
+  verifyPayment,
   clearAppointmentsError
 } from "../../features/appointments/appointmentsSlice";
 import { fetchCustomerDetails, clearSelectedCustomer } from "../../features/customers/customersSlice";
@@ -57,9 +58,11 @@ export default function Appointments() {
     };
   }, [dispatch, tenantId]);
 
-  const filteredItems = filter === "TOTAL" 
-    ? items 
-    : items.filter(a => a.Status === filter);
+  const filteredItems = (() => {
+    if (filter === "TOTAL") return items;
+    if (filter === "PAYMENT_PENDING") return items.filter(a => a.PaymentStatus === 'PENDING');
+    return items.filter(a => a.Status === filter);
+  })();
 
   const getStatusBadge = (status) => {
     const badges = {
@@ -100,12 +103,34 @@ export default function Appointments() {
             <p className="text-4xl font-bold mt-2">{items.length}</p>
           </button>
 
+          {/* Payment Verification Filter */}
+          <button 
+            onClick={() => setFilter("PAYMENT_PENDING")}
+            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "PAYMENT_PENDING" ? "bg-amber-600 border-amber-600 text-white shadow-lg scale-105" : "bg-white border-amber-100 text-gray-700 hover:border-amber-300 shadow-sm"}`}
+          >
+            <div className="flex items-center justify-between">
+                <p className={`text-sm font-semibold ${filter === "PAYMENT_PENDING" ? "text-amber-100" : "text-amber-600"}`}>Verify Payment</p>
+                {items.filter(a => a.PaymentStatus === 'PENDING').length > 0 && (
+                    <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">Action Required</span>
+                )}
+            </div>
+            <p className="text-4xl font-bold mt-2">{items.filter(a => a.PaymentStatus === 'PENDING').length}</p>
+          </button>
+
           <button 
             onClick={() => setFilter("PENDING")}
             className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "PENDING" ? "bg-purple-600 border-purple-600 text-white shadow-lg scale-105" : "bg-white border-purple-100 text-gray-700 hover:border-purple-300 shadow-sm"}`}
           >
             <p className={`text-sm font-semibold ${filter === "PENDING" ? "text-purple-100" : "text-gray-500"}`}>Pending</p>
             <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'PENDING').length}</p>
+          </button>
+
+          <button 
+            onClick={() => setFilter("AWAITING_PAYMENT")}
+            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "AWAITING_PAYMENT" ? "bg-amber-700 border-amber-700 text-white shadow-lg scale-105" : "bg-white border-amber-100 text-gray-700 hover:border-amber-300 shadow-sm"}`}
+          >
+            <p className={`text-sm font-semibold ${filter === "AWAITING_PAYMENT" ? "text-amber-100" : "text-gray-500"}`}>Restricted</p>
+            <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'AWAITING_PAYMENT').length}</p>
           </button>
           
           <button 
@@ -225,15 +250,53 @@ export default function Appointments() {
                     <p className="text-sm font-bold text-gray-900">{appointment.BarberName}</p>
                   </div>
 
-                  {/* Status Badge */}
-                  <div className="flex items-center">
+                  {/* Status & Payment Badge */}
+                  <div className="flex flex-col items-end gap-2">
                     <div className={`px-4 py-1.5 rounded-full font-bold text-xs flex items-center gap-2 ${statusBadge.bg} border ${statusBadge.border} ${statusBadge.text}`}>
                       <span className="text-sm">{statusBadge.icon}</span> {appointment.Status}
                     </div>
+                    
+                    {appointment.PaymentStatus && appointment.PaymentStatus !== 'UNPAID' && (
+                        <div className={`px-3 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider flex items-center gap-1 ${
+                            appointment.PaymentStatus === 'PAID' 
+                            ? 'bg-emerald-100 text-emerald-700 border-emerald-200' 
+                            : 'bg-amber-100 text-amber-700 border-amber-200'
+                        }`}>
+                            {appointment.PaymentStatus === 'PENDING' ? '⏳ Verifying' : '💰 Paid'}
+                        </div>
+                    )}
+                    {appointment.PaymentReference && (
+                       <p className="text-[10px] font-mono text-gray-400 mt-1">Ref: {appointment.PaymentReference}</p>
+                    )}
                   </div>
 
                   {/* Actions (Only visible/expanded on hover or always if Scheduled) */}
                   <div className="flex gap-2">
+                    {/* Verify Payment Button (High Priority) */}
+                    {appointment.PaymentStatus === 'PENDING' && (
+                         <button
+                            onClick={() => setConfirmModal({
+                                isOpen: true,
+                                title: "Verify Payment",
+                                message: (
+                                  <div>
+                                    <p className="mb-2">Confirm receipt of payment?</p>
+                                    <div className="bg-gray-100 p-3 rounded-lg font-mono text-sm text-center">
+                                      Ref: <strong>{appointment.PaymentReference || "N/A"}</strong>
+                                    </div>
+                                  </div>
+                                ),
+                                action: () => dispatch(verifyPayment(appointment.Id)),
+                                btnText: "Verify & Mark Paid",
+                                btnColor: "bg-green-600 hover:bg-green-700"
+                            })}
+                            className="bg-amber-100 hover:bg-amber-200 text-amber-800 px-3 py-2 rounded-lg transition-all border border-amber-300 font-bold flex items-center gap-2 text-sm shadow-sm animate-pulse"
+                            title={`Verify Reference: ${appointment.PaymentReference}`}
+                         >
+                            💰 Verify
+                         </button>
+                    )}
+
                     {/* Communication Buttons */}
                     {(appointment.Status === "SCHEDULED" || appointment.Status === "PENDING") && (
                       <>

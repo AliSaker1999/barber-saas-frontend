@@ -13,10 +13,23 @@ export default function NotificationsMenu() {
 
   const notifications = items.slice(0, 5); // Show last 5
 
-  const handleMarkAsRead = (id) => {
-    dispatch(markAsRead(id));
-    const basePath = user?.roles?.includes("CUSTOMER") ? "/customer" : "/company";
-    navigate(`${basePath}/notifications`);
+  const handleMarkAsRead = (item) => {
+    dispatch(markAsRead(item.Id));
+    
+    // Smart Redirect
+    if (item.Type === "PAYMENT_REPORT" && item.Data) {
+        if (item.Data.appointmentId) {
+            navigate(`/company/appointments`);
+        } else if (item.Data.queueId) {
+            navigate(`/company/queue`);
+        } else {
+             const basePath = user?.roles?.includes("CUSTOMER") ? "/customer" : "/company";
+             navigate(`${basePath}/notifications`);
+        }
+    } else {
+        const basePath = user?.roles?.includes("CUSTOMER") ? "/customer" : "/company";
+        navigate(`${basePath}/notifications`);
+    }
   };
   
   const handleMarkAll = () => {
@@ -76,7 +89,7 @@ export default function NotificationsMenu() {
                            className={`w-full text-left px-4 py-3 flex gap-3 transition-colors ${active ? 'bg-gray-50' : 'bg-white'} ${!item.IsRead ? 'bg-blue-50/50' : ''}`}
                            onClick={(e) => {
                              e.preventDefault();
-                             handleMarkAsRead(item.Id);
+                             handleMarkAsRead(item);
                            }}
                         >
                             <div className={`mt-1.5 h-2 w-2 rounded-full flex-shrink-0 ${!item.IsRead ? 'bg-blue-500' : 'bg-transparent'}`}></div>

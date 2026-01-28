@@ -27,6 +27,7 @@ export default function CompanyProfile() {
     maxAdvanceBookingDays: 30,
     allowSameDayBooking: true,
     cancellationPolicyHours: 24,
+    whishPhoneNumber: "",
   });
 
   const [prevId, setPrevId] = useState(null);
@@ -108,6 +109,7 @@ export default function CompanyProfile() {
         maxAdvanceBookingDays: profile.MaxAdvanceBookingDays || 30,
         allowSameDayBooking: !!profile.AllowSameDayBooking,
         cancellationPolicyHours: profile.CancellationPolicyHours || 24,
+        whishPhoneNumber: profile.WhishPhoneNumber || "",
       });
     }
     setIsEditing(false);
@@ -295,6 +297,30 @@ export default function CompanyProfile() {
                 <div className="grid grid-cols-1 gap-y-8">
                   {renderFormField({ label: "Logo Image URL", name: "logoUrl", value: formData.logoUrl, type: "url" })}
                   {renderFormField({ label: "Cover Image URL", name: "coverImageUrl", value: formData.coverImageUrl, type: "url" })}
+                </div>
+              </div>
+
+              {/* Payment Integration */}
+              <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+                <div className="flex items-center gap-3 mb-8 pb-4 border-b border-gray-50">
+                   <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                   </div>
+                   <h2 className="text-xl font-bold text-gray-900">Whish Payments</h2>
+                </div>
+                <div className="space-y-4 mb-6">
+                  <p className="text-sm text-gray-500">
+                    Enable customers to pay directly to your Whish wallet. They will transfer funds to the number below, then you verify the transaction.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                  {renderFormField({ 
+                    label: "Whish Phone Number for Receiving Payments", 
+                    name: "whishPhoneNumber", 
+                    value: formData.whishPhoneNumber,
+                    placeholder: "e.g. +961 70 123456",
+                    type: "tel"
+                  })}
                 </div>
               </div>
 

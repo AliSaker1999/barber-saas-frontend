@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { fetchMyQueuePosition, leaveQueue, fetchQueueStats, joinQueue, findMyActiveQueue, updateQueueServicesThunk } from "../../features/queue/queueSlice";
+import { fetchMyQueuePosition, leaveQueue, fetchQueueStats, joinQueue, findMyActiveQueue, updateQueueServicesThunk, reportQueuePaymentThunk } from "../../features/queue/queueSlice";
 import { selectTenant, fetchBarbersForTenant, selectBarber } from "../../features/booking/bookingSlice";
 import { getSocket } from "../../services/socket";
 import BarberProfileModal from "../../components/BarberProfileModal";
@@ -26,11 +26,13 @@ export default function QueueStatus() {
 
   const [serviceModalOpen, setServiceModalOpen] = useState(false);
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const [lastFinishedQueue, setLastFinishedQueue] = useState(null);
 
   const [selectedBarberForJoin, setSelectedBarberForJoin] = useState(null);
   const [selectedServiceIds, setSelectedServiceIds] = useState([]);
+  const [paymentReference, setPaymentReference] = useState("");
   const [isEditMode, setIsEditMode] = useState(false);
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
   const [serviceError, setServiceError] = useState("");
@@ -206,6 +208,24 @@ export default function QueueStatus() {
     }
   };
 
+  const confirmReportPayment = async () => {
+    try {
+        if (!paymentReference.trim()) return;
+        if (!myPosition?.queueId) return;
+
+        await dispatch(reportQueuePaymentThunk({
+            queueId: myPosition.queueId,
+            reference: paymentReference
+        })).unwrap();
+        
+        dispatch(fetchMyQueuePosition(tenantId));
+        setPaymentModalOpen(false);
+    } catch (err) {
+        const errMsg = typeof err === "string" ? err : err?.message || "Failed to report payment.";
+        setServiceError(errMsg);
+    }
+  };
+
   const formatTime = (timeStr) => {
     if (!timeStr) return "";
     const [h, m] = timeStr.split(':');
@@ -237,6 +257,60 @@ export default function QueueStatus() {
   const renderQueueContent = () => {
     // Case: User is IN Queue
     if (myPosition?.inQueue) {
+      // ⚠️ Check for Restricted Status (AWAITING_PAYMENT)
+      if (myPosition.statusId === 6) {
+          const isPendingVerification = !!myPosition.paymentReference;
+          
+          return (
+            <div className="max-w-md mx-auto p-4 pb-20">
+              <div className="bg-amber-50 rounded-3xl shadow-xl p-8 text-center border-2 border-amber-200">
+                  <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                  </div>
+                  
+                  <h2 className="text-2xl font-bold text-amber-900 mb-2">
+                       {isPendingVerification ? "Verification Pending" : "Payment Required"}
+                  </h2>
+                  <p className="text-amber-800 mb-6">
+                      {isPendingVerification 
+                        ? "We have received your payment reference. Please wait while the admin verifies it." 
+                        : "Due to your history of No-Shows, you must pay in advance via Whish to join the queue."
+                      }
+                  </p>
+
+                  <div className="bg-white p-4 rounded-xl border border-amber-100 mb-6 text-left">
+                      <p className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-1">Whish Transfer Info</p>
+                      <p className="font-mono text-lg font-bold text-gray-900 mb-2">{myPosition.whishPhoneNumber || "Contact Support"}</p>
+                      <p className="text-xs text-amber-600">*Transfer exactly the service amount</p>
+                  </div>
+
+                  {!isPendingVerification && (
+                      <button
+                        onClick={() => setPaymentModalOpen(true)}
+                        className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl transition shadow-lg mb-3"
+                      >
+                         I have paid via Whish
+                      </button>
+                  )}
+                  
+                  {isPendingVerification && (
+                      <div className="flex items-center justify-center gap-2 text-amber-700 font-bold bg-amber-100 py-2 rounded-xl mb-3">
+                          <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                          Verifying...
+                      </div>
+                  )}
+
+                  <button
+                    onClick={handleLeaveQueue}
+                    className="w-full bg-white border border-gray-200 text-gray-500 font-bold py-3 rounded-xl hover:bg-gray-50 transition"
+                  >
+                     Cancel Request
+                  </button>
+              </div>
+            </div>
+          );
+      }
+
       const { position, barberName, barberId, services, totalDuration } = myPosition;
       const peopleAhead = position > 0 ? position - 1 : 0;
       
@@ -550,8 +624,46 @@ export default function QueueStatus() {
             </div>
         </Modal>
 
+        {/* Report Payment Modal */}
+        <Modal
+            isOpen={paymentModalOpen}
+            onClose={() => setPaymentModalOpen(false)}
+            title="Confirm Payment"
+        >
+            <div className="p-6">
+                <p className="text-gray-600 mb-4 text-sm">
+                    Please enter the <strong>Transaction Reference Number</strong> from your Whish receipt.
+                </p>
+
+                <label className="block text-sm font-bold text-gray-700 mb-1">Reference Number</label>
+                <input
+                    type="text"
+                    value={paymentReference}
+                    onChange={(e) => setPaymentReference(e.target.value)}
+                    placeholder="e.g. 12345678"
+                    className="w-full border-2 border-gray-200 rounded-xl p-3 focus:border-indigo-600 focus:outline-none transition mb-6 font-mono text-lg"
+                />
+
+                <div className="flex gap-3">
+                    <button 
+                        onClick={() => setPaymentModalOpen(false)}
+                        className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        onClick={confirmReportPayment}
+                        disabled={!paymentReference.trim()}
+                        className="flex-1 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-lg disabled:opacity-50"
+                    >
+                        Submit
+                    </button>
+                </div>
+            </div>
+        </Modal>
+
         {/* Queue Conflict Modal */}
-        <Modal 
+        <Modal  
             isOpen={conflictModalOpen} 
             onClose={() => setConflictModalOpen(false)}
             title="Active Queue Found"

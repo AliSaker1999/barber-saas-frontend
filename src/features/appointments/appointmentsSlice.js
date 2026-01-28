@@ -115,6 +115,19 @@ export const acceptAppointment = createAsyncThunk(
   }
 );
 
+/* Verify Payment */
+export const verifyPayment = createAsyncThunk(
+  "appointments/verifyPayment",
+  async (id, { rejectWithValue }) => {
+    try {
+      await api.patch(`/appointments/${id}/pay/verify`);
+      return id;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to verify payment");
+    }
+  }
+);
+
 export const declineAppointment = createAsyncThunk(
   "appointments/decline",
   async ({ id, reason }, { rejectWithValue }) => {
@@ -123,6 +136,30 @@ export const declineAppointment = createAsyncThunk(
       return id;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || "Failed to decline appointment");
+    }
+  }
+);
+
+export const reportAppointmentPaymentThunk = createAsyncThunk(
+  "appointments/reportPayment",
+  async ({ id, reference }, { rejectWithValue }) => {
+    try {
+      await api.post(`/appointments/${id}/pay/report`, { reference });
+      return { id, reference };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to report payment");
+    }
+  }
+);
+
+export const verifyAppointmentPaymentThunk = createAsyncThunk(
+  "appointments/verifyPayment",
+  async (id, { rejectWithValue }) => {
+    try {
+      await api.patch(`/appointments/${id}/pay/verify`);
+      return id;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to verify payment");
     }
   }
 );
@@ -241,6 +278,12 @@ const appointmentsSlice = createSlice({
       .addCase(rescheduleAppointment.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || action.error?.message || "Failed to reschedule appointment";
+      })
+      .addCase(verifyPayment.fulfilled, (state, action) => {
+        const index = state.items.findIndex(i => i.Id === action.payload);
+        if (index !== -1) {
+            state.items[index].PaymentStatus = "PAID";
+        }
       });
   }
 });

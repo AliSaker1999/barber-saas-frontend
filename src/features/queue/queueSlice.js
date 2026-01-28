@@ -126,6 +126,28 @@ export const updateQueueServicesThunk = createAsyncThunk(
   }
 );
 
+export const verifyQueuePaymentThunk = createAsyncThunk(
+  "queue/verifyPayment",
+  async (queueId, { rejectWithValue }) => {
+    try {
+      await api.patch(`/queue/${queueId}/pay/verify`);
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to verify queue payment");
+    }
+  }
+);
+
+export const reportQueuePaymentThunk = createAsyncThunk(
+  "queue/reportPayment",
+  async ({ queueId, reference }, { rejectWithValue }) => {
+    try {
+      await api.post(`/queue/${queueId}/pay/report`, { reference });
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to report payment");
+    }
+  }
+);
+
 const queueSlice = createSlice({
   name: "queue",
   initialState: {
