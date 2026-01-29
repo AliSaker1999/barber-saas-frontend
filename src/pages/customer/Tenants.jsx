@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { fetchTenants } from "../../features/tenants/tenantsSlice";
 import { selectTenant } from "../../features/booking/bookingSlice";
 import { findMyActiveQueue } from "../../features/queue/queueSlice";
+import TenantDetailsModal from "../../components/TenantDetailsModal";
 
 /* Enhanced Dropdown Component */
 const TenantLogo = ({ tenant }) => {
@@ -108,11 +109,22 @@ export default function Tenants() {
   const [selectedCity, setSelectedCity] = useState("All");
   const [minRating, setMinRating] = useState(0);
   const [sortBy, setSortBy] = useState("newest");
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedTenant, setSelectedTenant] = useState(null);
 
   useEffect(() => {
     dispatch(fetchTenants());
     dispatch(findMyActiveQueue());
   }, [dispatch]);
+
+  const openDetails = (tenant) => {
+    setSelectedTenant(tenant);
+    setDetailsOpen(true);
+  };
+
+  const closeDetails = () => {
+    setDetailsOpen(false);
+  };
 
   const goToActiveQueue = () => {
     if (activeQueue) {
@@ -278,7 +290,17 @@ export default function Tenants() {
             className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-gray-100 flex flex-col h-full"
           >
             {/* Header / Cover Image */}
-            <div className="relative h-48 overflow-hidden bg-gray-200">
+            <div
+              className="relative h-48 overflow-hidden bg-gray-200 cursor-pointer"
+              role="button"
+              tabIndex={0}
+              onClick={() => openDetails(tenant)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  openDetails(tenant);
+                }
+              }}
+            >
               {tenant.CoverImageUrl ? (
                 <img
                   src={tenant.CoverImageUrl}
@@ -370,6 +392,16 @@ export default function Tenants() {
               {/* Actions */}
               <div className="mt-auto space-y-3">
                 <button
+                  onClick={() => openDetails(tenant)}
+                  className="w-full bg-white text-blue-600 font-bold py-3 rounded-2xl hover:bg-blue-50 transition-all border-2 border-blue-100 flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  View Details
+                </button>
+                <button
                   onClick={() => {
                     dispatch(selectTenant(tenant.Id));
                     navigate("/customer/services");
@@ -399,6 +431,24 @@ export default function Tenants() {
           </div>
         ))}
       </div>
+
+      <TenantDetailsModal
+        isOpen={detailsOpen}
+        onClose={closeDetails}
+        tenant={selectedTenant}
+        onBook={() => {
+          if (!selectedTenant) return;
+          dispatch(selectTenant(selectedTenant.Id));
+          navigate("/customer/services");
+          closeDetails();
+        }}
+        onQueue={() => {
+          if (!selectedTenant) return;
+          dispatch(selectTenant(selectedTenant.Id));
+          navigate("/customer/queue");
+          closeDetails();
+        }}
+      />
     </div>
   );
 }

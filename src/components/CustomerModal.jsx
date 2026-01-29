@@ -49,8 +49,16 @@ export default function CustomerModal({ isOpen, onClose }) {
           </button>
           
           <div className="flex items-center gap-6">
-            <div className="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center text-3xl border border-white/20">
-              👤
+            <div className="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center text-3xl border border-white/20 overflow-hidden">
+              {selectedCustomer.ProfileImage ? (
+                <img 
+                  src={selectedCustomer.ProfileImage} 
+                  alt={selectedCustomer.FullName} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                "👤"
+              )}
             </div>
             <div>
               <h2 className="text-3xl font-bold">{selectedCustomer.FullName}</h2>

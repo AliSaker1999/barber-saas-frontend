@@ -170,9 +170,12 @@ export default function Slots() {
     
     // If it's now SCHEDULED (1) or any status that isn't AWAITING_PAYMENT (7)
     if (current && current.StatusId !== 7) {
-      setIsPendingVerification(false);
-      // Optional: Update confirmation state locally to reflect the new status in UI
-      setConfirmation(prev => ({ ...prev, statusId: current.StatusId }));
+      const timer = setTimeout(() => {
+        setIsPendingVerification(false);
+        // Optional: Update confirmation state locally to reflect the new status in UI
+        setConfirmation(prev => ({ ...prev, statusId: current.StatusId }));
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [appointments, confirmation?.appointmentId, isPendingVerification]);
 
@@ -518,7 +521,8 @@ export default function Slots() {
         </div>
         {confirmation?.appointmentId && (
           <div className="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-10">
-            {confirmation.statusId === 7 ? (
+            {(confirmation.status === "AWAITING_PAYMENT" || confirmation.statusId === 7) ? (
+               /* PAYMENT REQUIRED MODAL */
                <div className="w-full max-w-lg rounded-3xl bg-white p-8 shadow-[0_25px_80px_rgba(15,23,42,0.35)] md:p-10 text-center border-4 border-amber-100">
                   <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-amber-100 text-amber-600">
                       <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
@@ -559,6 +563,34 @@ export default function Slots() {
                     className="w-full rounded-2xl bg-white border border-slate-200 px-6 py-4 text-base font-bold text-slate-600 transition hover:bg-slate-50"
                   >
                     Go to Payments & Appointments
+                  </button>
+                   <button
+                    onClick={closeConfirmation}
+                    className="mt-4 text-sm font-semibold text-slate-400 hover:text-slate-600"
+                  >
+                    Close
+                  </button>
+               </div>
+            ) : (confirmation.status === "PENDING" || confirmation.statusId === 5) ? (
+              /* PENDING APPROVAL MODAL */
+              <div className="w-full max-w-lg rounded-3xl bg-white p-8 shadow-[0_25px_80px_rgba(15,23,42,0.35)] md:p-10 text-center border-4 border-yellow-100">
+                  <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-yellow-100 text-yellow-600">
+                      <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </div>
+                  <h2 className="text-2xl font-bold text-yellow-900 mb-2">Request Pending</h2>
+                  <p className="text-yellow-800 mb-8 leading-relaxed">
+                      Your appointment request has been sent successfully! <br/>
+                      The barber will review and approve it shortly.
+                  </p>
+                  
+                  <button
+                    onClick={() => {
+                        setConfirmation(null);
+                        navigate("/customer/appointments");
+                    }}
+                    className="w-full rounded-2xl bg-yellow-500 hover:bg-yellow-600 text-white font-bold px-6 py-4 transition shadow-lg shadow-yellow-200"
+                  >
+                    View My Appointments
                   </button>
                    <button
                     onClick={closeConfirmation}

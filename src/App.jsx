@@ -5,6 +5,7 @@ import AppRoutes from "./routes/AppRoutes";
 import { fetchNotifications, addNotification, markAsRead } from "./features/notifications/notificationsSlice";
 import { useAppDispatch, useAppSelector } from "./app/hooks";
 import { getSocket, connectSocket } from "./services/socket";
+import ChatWidget from "./components/Chat/ChatWidget";
 
 export default function App() {
   const { user, token } = useAppSelector((state) => state.auth);
@@ -112,6 +113,7 @@ export default function App() {
     <>
       <Toaster position="top-right" reverseOrder={false} />
       <AppRoutes />
+      <ChatWidget />
     </>
   );
 }

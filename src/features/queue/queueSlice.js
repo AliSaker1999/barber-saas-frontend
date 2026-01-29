@@ -148,6 +148,30 @@ export const reportQueuePaymentThunk = createAsyncThunk(
   }
 );
 
+export const approveQueueItemThunk = createAsyncThunk(
+  "queue/approve",
+  async (queueId, { rejectWithValue }) => {
+    try {
+      await api.patch(`/queue/${queueId}/approve`);
+      return queueId;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to approve queue item");
+    }
+  }
+);
+
+export const declineQueueItemThunk = createAsyncThunk(
+  "queue/decline",
+  async (queueId, { rejectWithValue }) => {
+    try {
+      await api.patch(`/queue/${queueId}/decline`);
+      return queueId;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to decline queue item");
+    }
+  }
+);
+
 const queueSlice = createSlice({
   name: "queue",
   initialState: {

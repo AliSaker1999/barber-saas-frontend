@@ -14,6 +14,7 @@ import customerProfileReducer from "../features/auth/customerProfileSlice";
 import customersReducer from "../features/customers/customersSlice";
 import reportsReducer from "../features/reports/reportsSlice";
 import notificationsReducer from "../features/notifications/notificationsSlice";
+import chatReducer from "../features/chat/chatSlice";
 
 export const store = configureStore({
   reducer: {
@@ -31,7 +32,8 @@ export const store = configureStore({
     customerProfile: customerProfileReducer,
     customers: customersReducer,
     reports: reportsReducer,
-    notifications: notificationsReducer
+    notifications: notificationsReducer,
+    chat: chatReducer
   }
 });
 

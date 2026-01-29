@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { fetchMyQueuePosition, leaveQueue, fetchQueueStats, joinQueue, findMyActiveQueue, updateQueueServicesThunk, reportQueuePaymentThunk } from "../../features/queue/queueSlice";
+import { openChatWindow } from "../../features/chat/chatSlice";
 import { selectTenant, fetchBarbersForTenant, selectBarber } from "../../features/booking/bookingSlice";
 import { getSocket } from "../../services/socket";
 import BarberProfileModal from "../../components/BarberProfileModal";
@@ -271,44 +272,70 @@ export default function QueueStatus() {
                   <h2 className="text-2xl font-bold text-amber-900 mb-2">
                        {isPendingVerification ? "Verification Pending" : "Payment Required"}
                   </h2>
-                  <p className="text-amber-800 mb-6">
+                  <p className="text-amber-800 mb-6 font-medium leading-relaxed">
                       {isPendingVerification 
                         ? "We have received your payment reference. Please wait while the admin verifies it." 
                         : "Due to your history of No-Shows, you must pay in advance via Whish to join the queue."
                       }
                   </p>
 
-                  <div className="bg-white p-4 rounded-xl border border-amber-100 mb-6 text-left">
-                      <p className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-1">Whish Transfer Info</p>
-                      <p className="font-mono text-lg font-bold text-gray-900 mb-2">{myPosition.whishPhoneNumber || "Contact Support"}</p>
-                      <p className="text-xs text-amber-600">*Transfer exactly the service amount</p>
+                  <div className="bg-white p-6 rounded-2xl border border-amber-100 mb-8 text-left shadow-sm">
+                      <p className="text-xs font-black text-amber-500 uppercase tracking-widest mb-2">Whish Transfer Info</p>
+                      <p className="text-2xl font-black text-gray-900 mb-1">{myPosition.whishPhoneNumber || "Contact Support"}</p>
+                      <p className="text-xs text-amber-600 font-bold">*Transfer exactly the service amount</p>
                   </div>
 
                   {!isPendingVerification && (
                       <button
                         onClick={() => setPaymentModalOpen(true)}
-                        className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl transition shadow-lg mb-3"
+                        className="w-full bg-amber-600 hover:bg-amber-700 text-white font-black py-4 rounded-2xl transition shadow-lg shadow-amber-200 mb-4"
                       >
-                         I have paid via Whish
+                         I HAVE PAID VIA WHISH
                       </button>
                   )}
                   
                   {isPendingVerification && (
-                      <div className="flex items-center justify-center gap-2 text-amber-700 font-bold bg-amber-100 py-2 rounded-xl mb-3">
+                      <div className="flex items-center justify-center gap-2 text-amber-700 font-black bg-amber-100 py-4 rounded-2xl mb-4">
                           <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                          Verifying...
+                          VERIFYING...
                       </div>
                   )}
 
                   <button
                     onClick={handleLeaveQueue}
-                    className="w-full bg-white border border-gray-200 text-gray-500 font-bold py-3 rounded-xl hover:bg-gray-50 transition"
+                    className="w-full bg-white border-2 border-amber-100 text-amber-600 font-black py-4 rounded-2xl hover:bg-amber-50 transition"
                   >
-                     Cancel Request
+                     CANCEL REQUEST
                   </button>
               </div>
             </div>
           );
+      }
+
+      // ⚠️ Check for Pending Approval Status (7)
+      if (myPosition.statusId === 7) {
+        return (
+          <div className="max-w-md mx-auto p-4 pb-20">
+            <div className="bg-yellow-50 rounded-3xl shadow-xl p-8 text-center border-2 border-yellow-200">
+                <div className="w-20 h-20 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                
+                <h2 className="text-2xl font-bold text-yellow-900 mb-2">Approval Pending</h2>
+                <p className="text-yellow-800 mb-8 font-medium leading-relaxed">
+                    Your request to join the queue is pending approval by the barber. <br/>
+                    Please wait for them to accept your request.
+                </p>
+
+                <button
+                  onClick={handleLeaveQueue}
+                  className="w-full bg-white border-2 border-yellow-100 text-yellow-600 font-black py-4 rounded-2xl hover:bg-yellow-50 transition"
+                >
+                    CANCEL REQUEST
+                </button>
+            </div>
+          </div>
+        );
       }
 
       const { position, barberName, barberId, services, totalDuration } = myPosition;
@@ -394,9 +421,16 @@ export default function QueueStatus() {
             <div className="mt-8 text-center bg-gray-50 border-2 border-gray-100 p-6 rounded-3xl relative">
                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-indigo-600 text-white text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-tighter">Support</div>
                  <p className="text-gray-500 text-sm font-bold">Need to talk to {barberName}?</p>
-                 <button className="mt-2 text-indigo-600 font-black hover:text-indigo-700 transition-colors flex items-center justify-center gap-2 mx-auto">
+                 <button 
+                  onClick={() => dispatch(openChatWindow({
+                    barberId,
+                    customerId: user.id,
+                    peerName: barberName
+                  }))}
+                  className="mt-2 text-indigo-600 font-black hover:text-indigo-700 transition-colors flex items-center justify-center gap-2 mx-auto"
+                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                    Start Chat (Coming Soon)
+                    Chat with Barber
                  </button>
             </div>
         </div>

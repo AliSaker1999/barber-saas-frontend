@@ -12,6 +12,7 @@ import {
   verifyPayment,
   clearAppointmentsError
 } from "../../features/appointments/appointmentsSlice";
+import { openChatWindow } from "../../features/chat/chatSlice";
 import { fetchCustomerDetails, clearSelectedCustomer } from "../../features/customers/customersSlice";
 import { getSocket } from "../../services/socket";
 import CustomerModal from "../../components/CustomerModal";
@@ -71,7 +72,8 @@ export default function Appointments() {
       COMPLETED: { bg: "bg-green-50", border: "border-green-200", text: "text-green-700", icon: "✅" },
       CANCELLED: { bg: "bg-red-50", border: "border-red-200", text: "text-red-700", icon: "❌" },
       DECLINED: { bg: "bg-gray-50", border: "border-gray-200", text: "text-gray-700", icon: "🚫" },
-      NO_SHOW: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", icon: "⚠️" }
+      NO_SHOW: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", icon: "⚠️" },
+      AWAITING_PAYMENT: { bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-700", icon: "💳" }
     };
     return badges[status] || badges.SCHEDULED;
   };
@@ -300,6 +302,17 @@ export default function Appointments() {
                     {/* Communication Buttons */}
                     {(appointment.Status === "SCHEDULED" || appointment.Status === "PENDING") && (
                       <>
+                        <button
+                          onClick={() => dispatch(openChatWindow({
+                            barberId: appointment.BarberId,
+                            customerId: appointment.CustomerId,
+                            peerName: appointment.CustomerName
+                          }))}
+                          className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-all shadow-sm flex items-center justify-center mr-2"
+                          title="Internal Chat"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                        </button>
                         {appointment.CustomerPhone && (
                            <a
                              href={`https://wa.me/${appointment.CustomerPhone.replace(/\D/g, '')}`}

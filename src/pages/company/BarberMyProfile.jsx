@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchBarberProfile, updateBarberProfile, toggleAvailability } from '../../features/barbers/barbersSlice';
+import { uploadImage } from "../../services/media";
 
 export default function BarberMyProfile() {
   const dispatch = useDispatch();
@@ -16,6 +17,12 @@ export default function BarberMyProfile() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
   const [prevProfile, setPrevProfile] = useState(null);
+  const [uploading, setUploading] = useState({ profile: false, cover: false });
+  const [uploadError, setUploadError] = useState(null);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [photoTarget, setPhotoTarget] = useState("profile");
+  const profileInputRef = useRef(null);
+  const coverInputRef = useRef(null);
 
   useEffect(() => {
     dispatch(fetchBarberProfile('me'));
@@ -39,6 +46,43 @@ export default function BarberMyProfile() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleUpload = async (file, kind) => {
+    if (!file) return;
+    try {
+      setUploadError(null);
+      setUploading(prev => ({ ...prev, [kind]: true }));
+      const { url } = await uploadImage(file, "barber");
+      
+      const field = kind === "profile" ? "profileImage" : "coverImage";
+      setFormData(prev => ({
+        ...prev,
+        [field]: url
+      }));
+
+      // Immediate update for barber images
+      dispatch(updateBarberProfile({ 
+        barberId: 'me', 
+        data: { [field]: url } 
+      }));
+    } catch {
+      setUploadError("Failed to upload image. Please try again.");
+    } finally {
+      setUploading(prev => ({ ...prev, [kind]: false }));
+    }
+  };
+
+  const openPhotoModal = (kind) => {
+    setPhotoTarget(kind);
+    setIsPhotoModalOpen(true);
+  };
+
+  const triggerFilePicker = (kind) => {
+    const ref = kind === "cover" ? coverInputRef : profileInputRef;
+    if (ref.current) {
+      ref.current.click();
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSuccess(false);
@@ -54,7 +98,8 @@ export default function BarberMyProfile() {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError(err);
+      const message = typeof err === 'string' ? err : (err?.message || "Failed to update profile");
+      setError(message);
     }
   };
 
@@ -78,23 +123,34 @@ export default function BarberMyProfile() {
             </div>
           )}
           <div className="absolute top-4 right-4">
-             <input 
-               type="text" 
-               name="coverImage"
-               value={formData.coverImage}
-               onChange={handleChange}
-               placeholder="Cover Image URL"
-               className="bg-white/90 backdrop-blur px-3 py-1 rounded-lg text-xs border-0 focus:ring-2 focus:ring-blue-500 shadow-sm"
-             />
+             <button
+               type="button"
+               onClick={() => openPhotoModal("cover")}
+               className="bg-white/90 backdrop-blur px-3 py-1 rounded-lg text-xs border-0 shadow-sm hover:bg-white"
+             >
+               Change Cover
+             </button>
+             {uploading.cover && <p className="text-[10px] text-blue-600 font-bold mt-1">Uploading...</p>}
           </div>
           
           {/* Profile Image */}
-          <div className="absolute -bottom-12 left-8 w-24 h-24 rounded-full border-4 border-white bg-white shadow-md overflow-hidden">
+          <button
+            type="button"
+            onClick={() => openPhotoModal("profile")}
+            className="absolute -bottom-12 left-8 w-24 h-24 rounded-full border-4 border-white bg-white shadow-md overflow-hidden group"
+            aria-label="Change profile photo"
+          >
              {formData.profileImage ? (
                <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
              ) : (
                <div className="w-full h-full flex items-center justify-center text-3xl bg-gray-50">👤</div>
              )}
+            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <span className="text-white text-xs font-bold">Change</span>
+            </div>
+          </button>
+          <div className="absolute -bottom-16 left-36">
+            {uploading.profile && <p className="text-[10px] text-blue-600 font-bold mt-1">Uploading...</p>}
           </div>
         </div>
 
@@ -110,6 +166,13 @@ export default function BarberMyProfile() {
             <div className="bg-red-50 text-red-700 p-4 font-bold rounded-xl flex items-center justify-center animate-pulse">
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               Failed to update profile: {error}
+            </div>
+          )}
+
+          {uploadError && (
+            <div className="bg-red-50 text-red-700 p-4 font-bold rounded-xl flex items-center justify-center animate-pulse">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              {uploadError}
             </div>
           )}
 
@@ -182,18 +245,6 @@ export default function BarberMyProfile() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Profile Image URL</label>
-              <input
-                type="text"
-                name="profileImage"
-                value={formData.profileImage}
-                onChange={handleChange}
-                placeholder="https://..."
-                className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-              />
-            </div>
-
-            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Gender / Specialty</label>
               <select
                 name="gender"
@@ -253,6 +304,56 @@ export default function BarberMyProfile() {
           </div>
         </div>
       </form>
+
+      {isPhotoModalOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <h3 className="text-lg font-bold text-gray-900">Update Photo</h3>
+            <p className="text-sm text-gray-500 mt-1">Choose a new photo to upload.</p>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  triggerFilePicker(photoTarget);
+                  setIsPhotoModalOpen(false);
+                }}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl font-bold transition"
+              >
+                Upload Photo
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsPhotoModalOpen(false)}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-xl font-bold transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <input
+        ref={profileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          handleUpload(e.target.files?.[0], "profile");
+          e.target.value = "";
+        }}
+        className="hidden"
+      />
+      <input
+        ref={coverInputRef}
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          handleUpload(e.target.files?.[0], "cover");
+          e.target.value = "";
+        }}
+        className="hidden"
+      />
 
       {/* Stats Preview */}
       <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">

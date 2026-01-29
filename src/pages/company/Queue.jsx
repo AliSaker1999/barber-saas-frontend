@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { fetchQueue, moveNext, markQueueNoShow, updateQueueServicesThunk, notifyCustomer, verifyQueuePaymentThunk } from "../../features/queue/queueSlice";
+import { fetchQueue, moveNext, markQueueNoShow, updateQueueServicesThunk, notifyCustomer, verifyQueuePaymentThunk, approveQueueItemThunk, declineQueueItemThunk } from "../../features/queue/queueSlice";
+import { openChatWindow } from "../../features/chat/chatSlice";
 import { fetchCustomerDetails, clearSelectedCustomer } from "../../features/customers/customersSlice";
 import { fetchBarbersForTenant } from "../../features/booking/bookingSlice";
 import { getSocket } from "../../services/socket";
@@ -21,7 +22,9 @@ export default function Queue() {
   const [isNoShowModalOpen, setIsNoShowModalOpen] = useState(false);
   const [isNextModalOpen, setIsNextModalOpen] = useState(false);
   const [isNotifyModalOpen, setIsNotifyModalOpen] = useState(false);
-  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false); // New state
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
+  const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
+  const [isDeclineModalOpen, setIsDeclineModalOpen] = useState(false);
   const [actionTargetId, setActionTargetId] = useState(null);
   const [actionError, setActionError] = useState(null);
 
@@ -74,13 +77,18 @@ export default function Queue() {
     };
   }, [dispatch, tenantId]);
 
-  const { activeQueues, awaitingPaymentItems } = useMemo(() => {
+  const { activeQueues, awaitingPaymentItems, pendingApprovalItems } = useMemo(() => {
      const map = {};
      const awaiting = [];
+     const pending = [];
 
      items.forEach(item => {
          if (item.statusId === 6) {
              awaiting.push(item);
+             return;
+         }
+         if (item.statusId === 7) {
+             pending.push(item);
              return;
          }
 
@@ -95,7 +103,8 @@ export default function Queue() {
      });
      return { 
        activeQueues: Object.values(map),
-       awaitingPaymentItems: awaiting
+       awaitingPaymentItems: awaiting,
+       pendingApprovalItems: pending
      };
   }, [items]);
 
@@ -113,6 +122,38 @@ export default function Queue() {
     } catch (err) {
         setActionError(err);
     }
+  };
+
+  const handleApprove = (queueId) => {
+      setActionTargetId(queueId);
+      setIsApproveModalOpen(true);
+      setActionError(null);
+  };
+
+  const confirmApprove = async () => {
+      try {
+          await dispatch(approveQueueItemThunk(actionTargetId)).unwrap();
+          dispatch(fetchQueue());
+          setIsApproveModalOpen(false);
+      } catch (err) {
+          setActionError(err);
+      }
+  };
+
+  const handleDecline = (queueId) => {
+      setActionTargetId(queueId);
+      setIsDeclineModalOpen(true);
+      setActionError(null);
+  };
+
+  const confirmDecline = async () => {
+      try {
+          await dispatch(declineQueueItemThunk(actionTargetId)).unwrap();
+          dispatch(fetchQueue());
+          setIsDeclineModalOpen(false);
+      } catch (err) {
+          setActionError(err);
+      }
   };
 
   const handleNoShow = (queueId) => {
@@ -191,6 +232,64 @@ export default function Queue() {
 
       <div className="space-y-12">
       
+      {/* ⏳ Pending Approval Section */}
+      {pendingApprovalItems.length > 0 && (
+          <div className="bg-yellow-50 rounded-3xl p-6 border-2 border-yellow-200 shadow-xl mb-12">
+               <div className="flex items-center gap-3 mb-6">
+                   <div className="bg-yellow-500 text-white p-2 rounded-lg">
+                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                   </div>
+                   <h2 className="text-2xl font-bold text-yellow-900">Queue Approvals Required</h2>
+               </div>
+               
+               <div className="space-y-3">
+                   {pendingApprovalItems.map((item) => (
+                       <div key={item.id} className="p-4 rounded-xl flex items-center justify-between bg-white border border-yellow-100 shadow-sm">
+                           <div className="flex items-center gap-4">
+                               <div className="text-xl font-black w-12 text-center text-yellow-500">
+                                   ⏳
+                               </div>
+                               <div>
+                                   <div className="flex items-center gap-2">
+                                       <button 
+                                         onClick={() => handleOpenCustomer(item.customerId)}
+                                         className="font-bold text-lg text-gray-800 hover:text-blue-600 transition-colors"
+                                       >
+                                         {item.customerName} 
+                                       </button>
+                                       <span className="text-sm text-gray-400 font-medium">wants to join {item.barberName}'s queue</span>
+                                   </div>
+                                   <div className="flex gap-1 mt-1">
+                                      {item.services?.map(s => (
+                                        <span key={s.id} className="text-[10px] bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded border border-yellow-100 uppercase font-black">
+                                          {s.name}
+                                        </span>
+                                      ))}
+                                   </div>
+                               </div>
+                           </div>
+                           
+                           <div className="flex items-center gap-3">
+                                <button 
+                                   onClick={() => handleApprove(item.id)}
+                                   className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-bold transition shadow-md flex items-center gap-2"
+                                >
+                                    Approve
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                </button>
+                                <button 
+                                   onClick={() => handleDecline(item.id)}
+                                   className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-xl font-bold transition border border-red-100"
+                                >
+                                    Decline
+                                </button>
+                           </div>
+                       </div>
+                   ))}
+               </div>
+          </div>
+      )}
+
       {/* ⚠️ Awaiting Payment Section */}
       {awaitingPaymentItems.length > 0 && (
           <div className="bg-amber-50 rounded-3xl p-6 border-2 border-amber-200 shadow-xl mb-12">
@@ -305,6 +404,17 @@ export default function Queue() {
                                </div>
                                
                                <div className="flex items-center gap-3">
+                                   <button
+                                       onClick={() => dispatch(openChatWindow({
+                                           barberId: item.barberId,
+                                           customerId: item.customerId,
+                                           peerName: item.customerName
+                                       }))}
+                                       className="w-8 h-8 flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm"
+                                       title="Internal Chat"
+                                   >
+                                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                                   </button>
                                    {!isServing && (
                                      <>
                                         {item.customerPhone && (
@@ -575,6 +685,78 @@ export default function Queue() {
                     className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition shadow-lg"
                 >
                     Confirm & Move
+                </button>
+            </div>
+        </div>
+      </Modal>
+
+      {/* Approve Modal */}
+      <Modal
+        isOpen={isApproveModalOpen}
+        onClose={() => setIsApproveModalOpen(false)}
+        title="Approve Queue Request"
+      >
+        <div className="p-6 text-center">
+            <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Approve this request?</h3>
+            <p className="text-gray-500 mb-6 font-medium">This will move the customer to the active queue (waiting status).</p>
+            
+            {actionError && (
+                <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm font-bold">
+                    {actionError}
+                </div>
+            )}
+
+            <div className="flex gap-3">
+                <button 
+                    onClick={() => setIsApproveModalOpen(false)}
+                    className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition"
+                >
+                    No, stay
+                </button>
+                <button 
+                    onClick={confirmApprove}
+                    className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition shadow-lg"
+                >
+                    Yes, Approve
+                </button>
+            </div>
+        </div>
+      </Modal>
+
+      {/* Decline Modal */}
+      <Modal
+        isOpen={isDeclineModalOpen}
+        onClose={() => setIsDeclineModalOpen(false)}
+        title="Decline Queue Request"
+      >
+        <div className="p-6 text-center">
+            <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Decline this request?</h3>
+            <p className="text-gray-500 mb-6 font-medium">Are you sure you want to decline this queue join request? The customer will be notified.</p>
+            
+            {actionError && (
+                <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm font-bold">
+                    {actionError}
+                </div>
+            )}
+
+            <div className="flex gap-3">
+                <button 
+                    onClick={() => setIsDeclineModalOpen(false)}
+                    className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition"
+                >
+                    Cancel
+                </button>
+                <button 
+                    onClick={confirmDecline}
+                    className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition shadow-lg"
+                >
+                    Yes, Decline
                 </button>
             </div>
         </div>

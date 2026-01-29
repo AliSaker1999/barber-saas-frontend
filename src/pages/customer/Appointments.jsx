@@ -5,6 +5,7 @@ import {
   fetchCustomerAppointments,
   cancelAppointment
 } from "../../features/appointments/appointmentsSlice";
+import { openChatWindow } from "../../features/chat/chatSlice";
 import {
   selectTenant,
   setSelectedServices,
@@ -21,6 +22,7 @@ export default function Appointments() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { items, loading, error } = useAppSelector(s => s.appointments);
+  const { user } = useAppSelector(s => s.auth);
   const [filter, setFilter] = useState("SCHEDULED");
   
   const [rateModalOpen, setRateModalOpen] = useState(false);
@@ -317,7 +319,19 @@ export default function Appointments() {
                     )}
                     {(appointment.Status === "SCHEDULED" || appointment.Status === "PENDING" || appointment.Status === "AWAITING_PAYMENT") && (
                       <>
-                        {appointment.PaymentStatus === 'UNPAID' && appointment.WhishPhoneNumber && (
+                        <button
+                          onClick={() => dispatch(openChatWindow({
+                            barberId: appointment.BarberId,
+                            customerId: user.id,
+                            peerName: appointment.BarberName
+                          }))}
+                          className="bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-blue-100 uppercase"
+                        >
+                          Chat
+                        </button>
+                        {appointment.PaymentStatus === 'UNPAID' && 
+                         (appointment.IsWhishPaymentEnabled || appointment.IsCreditCardPaymentEnabled) && 
+                         appointment.WhishPhoneNumber && (
                           <button
                             onClick={() => openPayModal(appointment)}
                             className="bg-green-50 hover:bg-green-600 hover:text-white text-green-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-green-100 uppercase flex items-center gap-1"

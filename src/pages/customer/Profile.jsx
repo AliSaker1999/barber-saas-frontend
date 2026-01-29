@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchMyProfile, updateMyProfile, resetProfileStatus } from "../../features/auth/customerProfileSlice";
+import { uploadImage } from "../../services/media";
+import api from "../../services/api";
 
 export default function CustomerProfile() {
   const dispatch = useDispatch();
@@ -9,12 +11,26 @@ export default function CustomerProfile() {
   const [formData, setFormData] = useState({
     fullName: "",
     phoneNumber: "",
+    profileImage: "",
     gender: "",
     birthdate: "",
     allowSMS: true,
     allowWhatsApp: true,
     allowEmail: true,
   });
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [passwordError, setPasswordError] = useState(null);
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   const [prevProfileId, setPrevProfileId] = useState(null);
 
@@ -22,6 +38,7 @@ export default function CustomerProfile() {
     setFormData({
       fullName: profile.FullName || "",
       phoneNumber: profile.PhoneNumber || "",
+      profileImage: profile.ProfileImage || "",
       gender: profile.Gender || "",
       birthdate: profile.Birthdate ? profile.Birthdate.split("T")[0] : "",
       allowSMS: profile.AllowSMS ?? true,
@@ -54,6 +71,61 @@ export default function CustomerProfile() {
     dispatch(updateMyProfile(formData));
   };
 
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(false);
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError("New passwords do not match");
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters long");
+      return;
+    }
+
+    try {
+      setPasswordLoading(true);
+      await api.post("/auth/change-password", {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      });
+      setPasswordSuccess(true);
+      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setTimeout(() => setPasswordSuccess(false), 5000);
+    } catch (err) {
+      const msg = err.response?.data?.message || "Failed to change password. Please check your current password.";
+      setPasswordError(msg);
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const handleUpload = async (file) => {
+    if (!file) return;
+    try {
+      setUploadError(null);
+      setUploading(true);
+      const { url } = await uploadImage(file, "customer");
+      setFormData(prev => ({ ...prev, profileImage: url }));
+
+      // Immediate update for customer profile photo
+      dispatch(updateMyProfile({ profileImage: url }));
+    } catch {
+      setUploadError("Failed to upload image. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const triggerFilePicker = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
   if (loading && !profile) return (
     <div className="flex justify-center items-center h-64">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -71,7 +143,9 @@ export default function CustomerProfile() {
         <form onSubmit={handleSubmit} className="p-8 space-y-10">
           {error && (
             <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl animate-shake">
-              <p className="text-red-700 text-sm font-medium">{error}</p>
+              <p className="text-red-700 text-sm font-medium">
+                {typeof error === 'string' ? error : (error?.message || "An error occurred")}
+              </p>
             </div>
           )}
 
@@ -90,6 +164,12 @@ export default function CustomerProfile() {
             </div>
           )}
 
+          {uploadError && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl animate-shake">
+              <p className="text-red-700 text-sm font-medium">{uploadError}</p>
+            </div>
+          )}
+
           {/* Personal Info */}
           <section>
             <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-2">
@@ -102,6 +182,40 @@ export default function CustomerProfile() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-tight">Profile Photo</label>
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsPhotoModalOpen(true)}
+                    className="relative w-20 h-20 rounded-full overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center group"
+                    aria-label="Change profile photo"
+                  >
+                    {formData.profileImage ? (
+                      <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-2xl">👤</span>
+                    )}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">Change</span>
+                    </div>
+                  </button>
+                  <div className="text-sm text-gray-500">
+                    Click the photo to update.
+                    {uploading && <p className="text-xs text-blue-600 font-bold mt-1">Uploading...</p>}
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      handleUpload(e.target.files?.[0]);
+                      e.target.value = "";
+                    }}
+                    className="hidden"
+                  />
+                </div>
+              </div>
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-tight">Full Name</label>
                 <input
@@ -222,6 +336,74 @@ export default function CustomerProfile() {
             </div>
           </section>
 
+          {/* Security / Password */}
+          <section>
+            <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-2">
+              <div className="w-8 h-8 bg-red-50 text-red-600 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-gray-800">Security</h2>
+            </div>
+            
+            <div className="space-y-6 max-w-lg">
+              {passwordSuccess && (
+                <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-xl">
+                  <p className="text-green-700 text-sm font-bold">Password changed successfully!</p>
+                </div>
+              )}
+              {passwordError && (
+                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl">
+                  <p className="text-red-700 text-sm font-medium">{passwordError}</p>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-tight">Current Password</label>
+                <input
+                  type="password"
+                  value={passwordData.currentPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                  className="w-full bg-gray-50 border-none rounded-2xl py-3 px-4 focus:ring-2 focus:ring-blue-500 transition-all font-medium text-gray-900"
+                  placeholder="••••••••"
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-tight">New Password</label>
+                  <input
+                    type="password"
+                    value={passwordData.newPassword}
+                    onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                    className="w-full bg-gray-50 border-none rounded-2xl py-3 px-4 focus:ring-2 focus:ring-blue-500 transition-all font-medium text-gray-900"
+                    placeholder="••••••••"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-tight">Confirm New Password</label>
+                  <input
+                    type="password"
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    className="w-full bg-gray-50 border-none rounded-2xl py-3 px-4 focus:ring-2 focus:ring-blue-500 transition-all font-medium text-gray-900"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handlePasswordSubmit}
+                disabled={passwordLoading || !passwordData.newPassword}
+                className="bg-gray-800 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-gray-900 transition-all active:scale-95 disabled:opacity-50"
+              >
+                {passwordLoading ? "Updating..." : "Update Password"}
+              </button>
+            </div>
+          </section>
+
           <div className="pt-6 border-t border-gray-100">
             <button
               type="submit"
@@ -232,6 +414,35 @@ export default function CustomerProfile() {
             </button>
           </div>
         </form>
+
+        {isPhotoModalOpen && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+              <h3 className="text-lg font-bold text-gray-900">Update Profile Photo</h3>
+              <p className="text-sm text-gray-500 mt-1">Choose a new photo to upload.</p>
+
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerFilePicker();
+                    setIsPhotoModalOpen(false);
+                  }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl font-bold transition"
+                >
+                  Upload Photo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsPhotoModalOpen(false)}
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-xl font-bold transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
