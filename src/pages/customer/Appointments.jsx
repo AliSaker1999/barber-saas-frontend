@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import {
   fetchCustomerAppointments,
-  cancelAppointment
+  cancelAppointment,
+  payAppointmentWithLoyaltyThunk,
+  reportAppointmentPaymentThunk,
+  setCachedAppointments
 } from "../../features/appointments/appointmentsSlice";
+import { fetchCustomerLoyalty } from "../../features/loyalty/loyaltySlice";
 import { openChatWindow } from "../../features/chat/chatSlice";
 import {
   selectTenant,
@@ -16,14 +21,15 @@ import { getSocket } from "../../services/socket";
 import RateBarberModal from "../../components/RateBarberModal";
 import BarberProfileModal from "../../components/BarberProfileModal";
 import Modal from "../../components/Modal";
-import api from "../../services/api";
+import MobileHeader from "../../components/MobileHeader";
 
 export default function Appointments() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { items, loading, error } = useAppSelector(s => s.appointments);
+  const { items, loading, error, lastFetchedAt, isStale } = useAppSelector(s => s.appointments);
   const { user } = useAppSelector(s => s.auth);
   const [filter, setFilter] = useState("SCHEDULED");
+  const location = useLocation();
   
   const [rateModalOpen, setRateModalOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -38,6 +44,12 @@ export default function Appointments() {
   const [payDetails, setPayDetails] = useState(null);
   const [transactionId, setTransactionId] = useState("");
   const [payLoading, setPayLoading] = useState(false);
+  const [selectedRewardId, setSelectedRewardId] = useState("");
+
+  const loyaltyState = useAppSelector(s => s.loyalty.customer);
+  const loyaltyInfo = loyaltyState.tenantId === payDetails?.tenantId ? loyaltyState.data : null;
+  const loyaltyLoading = loyaltyState.loading && loyaltyState.tenantId === payDetails?.tenantId;
+  const loyaltyError = loyaltyState.tenantId === payDetails?.tenantId ? loyaltyState.error : null;
 
   useEffect(() => {
     dispatch(fetchCustomerAppointments());
@@ -51,6 +63,49 @@ export default function Appointments() {
 
     return () => socket?.off("appointments:update");
   }, [dispatch]);
+
+  useEffect(() => {
+    if (!navigator.onLine) {
+      const cached = localStorage.getItem("customerAppointmentsCache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        dispatch(setCachedAppointments(parsed));
+      }
+    }
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!isStale && items) {
+      localStorage.setItem(
+        "customerAppointmentsCache",
+        JSON.stringify({ items, lastFetchedAt: lastFetchedAt || new Date().toISOString() })
+      );
+    }
+  }, [items, isStale, lastFetchedAt]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const appointmentId = params.get("appointmentId");
+    if (!appointmentId || loading) return;
+
+    // Detect if we should open rating modal automatically
+    const shouldRate = params.get("rate") === "true";
+    if (shouldRate && items.length > 0) {
+      const appt = items.find(a => a.Id === appointmentId);
+      if (appt) {
+        setSelectedAppointmentId(appointmentId);
+        setSelectedBarberId(appt.BarberId);
+        setRateModalOpen(true);
+        // Clean up URL
+        navigate(`${location.pathname}?appointmentId=${appointmentId}`, { replace: true });
+      }
+    }
+
+    const el = document.getElementById(`appointment-${appointmentId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [location.search, location.pathname, loading, items, navigate]);
 
   const filteredItems = filter === "TOTAL" 
     ? items 
@@ -116,23 +171,29 @@ export default function Appointments() {
     try {
         await dispatch(cancelAppointment(selectedAppointmentId)).unwrap();
         setCancelModalOpen(false);
+        toast.success("Appointment canceled");
     } catch (err) {
         setActionError(err);
+        toast.error("Failed to cancel appointment");
     }
   };
 
   const openPayModal = (appt) => {
-    if (!appt.WhishPhoneNumber) {
-      alert("This shop does not support Whish payments yet.");
-      return;
-    }
     const amount = appt.services?.reduce((sum, s) => sum + s.price, 0) || 0;
     setPayDetails({
       id: appt.Id,
       amount,
-      phone: appt.WhishPhoneNumber
+      phone: appt.WhishPhoneNumber,
+      tenantId: appt.TenantId,
+      services: appt.services || []
     });
+    setTransactionId("");
+    setSelectedRewardId("");
     setPayModalOpen(true);
+
+    if (appt.TenantId) {
+      dispatch(fetchCustomerLoyalty(appt.TenantId));
+    }
   };
 
   const handleReportPayment = async () => {
@@ -142,23 +203,70 @@ export default function Appointments() {
     }
     setPayLoading(true);
     try {
-      await api.post(`/appointments/${payDetails.id}/pay/report`, { reference: transactionId });
+      await dispatch(reportAppointmentPaymentThunk({
+        id: payDetails.id,
+        reference: transactionId
+      })).unwrap();
       setPayModalOpen(false);
       setTransactionId("");
       dispatch(fetchCustomerAppointments());
+      toast.success("Payment reported");
     } catch (err) {
       alert(err.response?.data?.message || "Failed to report payment");
+      toast.error("Failed to report payment");
     } finally {
       setPayLoading(false);
     }
   };
 
+  const handlePayWithLoyalty = async () => {
+    if (!selectedRewardId || !payDetails?.id) {
+      alert("Please select a reward");
+      return;
+    }
+
+    setPayLoading(true);
+    try {
+      await dispatch(payAppointmentWithLoyaltyThunk({
+        id: payDetails.id,
+        rewardId: selectedRewardId
+      })).unwrap();
+      setPayModalOpen(false);
+      setSelectedRewardId("");
+      toast.success("Paid with loyalty points");
+    } catch (err) {
+      setActionError(err);
+      toast.error("Failed to redeem loyalty points");
+    } finally {
+      setPayLoading(false);
+    }
+  };
+
+  const rewardOptions = (() => {
+    if (!loyaltyInfo?.rewards || !payDetails?.services?.length) return [];
+    const serviceIds = payDetails.services.map(s => s.id || s.ServiceId).filter(Boolean);
+    return loyaltyInfo.rewards.filter(r => serviceIds.includes(r.ServiceId));
+  })();
+
   return (
     <div>
+      <MobileHeader
+        title="My Appointments"
+        onBack={() => navigate("/customer")}
+        primaryAction={{ label: "Book", onClick: () => navigate("/customer") }}
+      />
       {/* Header */}
       <div className="mb-10">
         <h1 className="text-4xl font-bold text-gray-900 mb-2">📅 My Appointments</h1>
-        <p className="text-gray-600">View, manage, and reschedule your bookings</p>
+        <p className="text-gray-600 mb-2">View, manage, and reschedule your bookings</p>
+        {lastFetchedAt && (
+          <p className="text-xs text-gray-400 font-bold">
+            Last updated {new Date(lastFetchedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </p>
+        )}
+        {isStale && (
+          <p className="text-xs text-amber-600 font-bold mt-1">Offline: showing cached data</p>
+        )}
       </div>
 
       {/* Stats Cards / Filters */}
@@ -166,7 +274,7 @@ export default function Appointments() {
         <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 mb-10">
           <button 
             onClick={() => setFilter("TOTAL")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "TOTAL" ? "bg-blue-600 border-blue-600 text-white shadow-lg scale-105" : "bg-white border-blue-100 text-gray-700 hover:border-blue-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left tap-target ${filter === "TOTAL" ? "bg-blue-600 border-blue-600 text-white shadow-lg scale-105" : "bg-white border-blue-100 text-gray-700 hover:border-blue-300 shadow-sm"}`}
           >
             <p className={`text-sm font-semibold ${filter === "TOTAL" ? "text-blue-100" : "text-gray-500"}`}>Total</p>
             <p className="text-4xl font-bold mt-2">{items.length}</p>
@@ -174,7 +282,7 @@ export default function Appointments() {
           
           <button 
             onClick={() => setFilter("SCHEDULED")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "SCHEDULED" ? "bg-blue-500 border-blue-500 text-white shadow-lg scale-105" : "bg-white border-blue-100 text-gray-700 hover:border-blue-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left tap-target ${filter === "SCHEDULED" ? "bg-blue-500 border-blue-500 text-white shadow-lg scale-105" : "bg-white border-blue-100 text-gray-700 hover:border-blue-300 shadow-sm"}`}
           >
             <p className={`text-sm font-semibold ${filter === "SCHEDULED" ? "text-blue-100" : "text-gray-500"}`}>Scheduled</p>
             <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'SCHEDULED').length}</p>
@@ -182,7 +290,7 @@ export default function Appointments() {
 
           <button 
             onClick={() => setFilter("PENDING")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "PENDING" ? "bg-indigo-600 border-indigo-600 text-white shadow-lg scale-105" : "bg-white border-indigo-100 text-gray-700 hover:border-indigo-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left tap-target ${filter === "PENDING" ? "bg-indigo-600 border-indigo-600 text-white shadow-lg scale-105" : "bg-white border-indigo-100 text-gray-700 hover:border-indigo-300 shadow-sm"}`}
           >
             <p className={`text-sm font-semibold ${filter === "PENDING" ? "text-indigo-100" : "text-gray-500"}`}>Pending</p>
             <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'PENDING').length}</p>
@@ -190,7 +298,7 @@ export default function Appointments() {
 
           <button 
             onClick={() => setFilter("COMPLETED")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "COMPLETED" ? "bg-green-600 border-green-600 text-white shadow-lg scale-105" : "bg-white border-green-100 text-gray-700 hover:border-green-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left tap-target ${filter === "COMPLETED" ? "bg-green-600 border-green-600 text-white shadow-lg scale-105" : "bg-white border-green-100 text-gray-700 hover:border-green-300 shadow-sm"}`}
           >
             <p className={`text-sm font-semibold ${filter === "COMPLETED" ? "text-green-100" : "text-gray-500"}`}>Completed</p>
             <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'COMPLETED').length}</p>
@@ -198,7 +306,7 @@ export default function Appointments() {
 
           <button 
             onClick={() => setFilter("CANCELLED")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "CANCELLED" ? "bg-red-600 border-red-600 text-white shadow-lg scale-105" : "bg-white border-red-100 text-gray-700 hover:border-red-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left tap-target ${filter === "CANCELLED" ? "bg-red-600 border-red-600 text-white shadow-lg scale-105" : "bg-white border-red-100 text-gray-700 hover:border-red-300 shadow-sm"}`}
           >
             <p className={`text-sm font-semibold ${filter === "CANCELLED" ? "text-red-100" : "text-gray-500"}`}>Cancelled</p>
             <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'CANCELLED').length}</p>
@@ -206,7 +314,7 @@ export default function Appointments() {
 
           <button 
             onClick={() => setFilter("DECLINED")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "DECLINED" ? "bg-gray-600 border-gray-600 text-white shadow-lg scale-105" : "bg-white border-gray-100 text-gray-700 hover:border-gray-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left tap-target ${filter === "DECLINED" ? "bg-gray-600 border-gray-600 text-white shadow-lg scale-105" : "bg-white border-gray-100 text-gray-700 hover:border-gray-300 shadow-sm"}`}
           >
             <p className={`text-sm font-semibold ${filter === "DECLINED" ? "text-gray-100" : "text-gray-500"}`}>Declined</p>
             <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'DECLINED').length}</p>
@@ -214,7 +322,7 @@ export default function Appointments() {
 
           <button 
             onClick={() => setFilter("NO_SHOW")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "NO_SHOW" ? "bg-amber-600 border-amber-600 text-white shadow-lg scale-105" : "bg-white border-amber-100 text-gray-700 hover:border-amber-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left tap-target ${filter === "NO_SHOW" ? "bg-amber-600 border-amber-600 text-white shadow-lg scale-105" : "bg-white border-amber-100 text-gray-700 hover:border-amber-300 shadow-sm"}`}
           >
             <p className={`text-sm font-semibold ${filter === "NO_SHOW" ? "text-amber-100" : "text-gray-500"}`}>No Show</p>
             <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'NO_SHOW').length}</p>
@@ -222,7 +330,7 @@ export default function Appointments() {
 
           <button 
             onClick={() => setFilter("AWAITING_PAYMENT")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "AWAITING_PAYMENT" ? "bg-amber-500 border-amber-500 text-white shadow-lg scale-105" : "bg-white border-amber-100 text-gray-700 hover:border-amber-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left tap-target ${filter === "AWAITING_PAYMENT" ? "bg-amber-500 border-amber-500 text-white shadow-lg scale-105" : "bg-white border-amber-100 text-gray-700 hover:border-amber-300 shadow-sm"}`}
           >
             <p className={`text-sm font-semibold ${filter === "AWAITING_PAYMENT" ? "text-white" : "text-gray-500"}`}>To Pay</p>
             <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'AWAITING_PAYMENT').length}</p>
@@ -239,12 +347,14 @@ export default function Appointments() {
 
       {/* Loading State */}
       {loading && (
-        <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-          <svg className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <p className="text-gray-600 text-lg mt-4">Loading your appointments...</p>
+        <div className="space-y-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 animate-pulse">
+              <div className="h-4 w-24 bg-gray-200 rounded mb-2"></div>
+              <div className="h-6 w-40 bg-gray-200 rounded mb-4"></div>
+              <div className="h-4 w-64 bg-gray-200 rounded"></div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -268,6 +378,7 @@ export default function Appointments() {
             return (
               <div
                 key={appointment.Id}
+                id={`appointment-${appointment.Id}`}
                 className="group relative bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-2xl hover:scale-[1.01] hover:z-10 transition-all duration-300 cursor-default overflow-hidden"
               >
                 <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-600 transform scale-y-0 group-hover:scale-y-100 transition-transform origin-top duration-300" />
@@ -312,7 +423,7 @@ export default function Appointments() {
                     {appointment.Status === "COMPLETED" && (
                         <button
                             onClick={() => openRateModal(appointment)}
-                            className="bg-yellow-50 hover:bg-yellow-600 hover:text-white text-yellow-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-yellow-100 uppercase"
+                          className="bg-yellow-50 hover:bg-yellow-600 hover:text-white text-yellow-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-yellow-100 uppercase tap-target"
                         >
                             Rate ★
                         </button>
@@ -325,16 +436,15 @@ export default function Appointments() {
                             customerId: user.id,
                             peerName: appointment.BarberName
                           }))}
-                          className="bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-blue-100 uppercase"
+                          className="bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-blue-100 uppercase tap-target"
                         >
                           Chat
                         </button>
                         {appointment.PaymentStatus === 'UNPAID' && 
-                         (appointment.IsWhishPaymentEnabled || appointment.IsCreditCardPaymentEnabled) && 
-                         appointment.WhishPhoneNumber && (
+                         ((appointment.IsWhishPaymentEnabled && appointment.WhishPhoneNumber) || (appointment.LoyaltyEnabled && appointment.LoyaltyAllowRedemption)) && (
                           <button
                             onClick={() => openPayModal(appointment)}
-                            className="bg-green-50 hover:bg-green-600 hover:text-white text-green-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-green-100 uppercase flex items-center gap-1"
+                            className="bg-green-50 hover:bg-green-600 hover:text-white text-green-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-green-100 uppercase flex items-center gap-1 tap-target"
                           >
                             <span>💸</span> Pay
                           </button>
@@ -342,7 +452,7 @@ export default function Appointments() {
                         {appointment.Status !== "AWAITING_PAYMENT" && (
                             <button
                               onClick={() => handleReschedule(appointment)}
-                              className="bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-indigo-100 uppercase"
+                              className="bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-indigo-100 uppercase tap-target"
                             >
                               Reschedule
                             </button>
@@ -353,7 +463,7 @@ export default function Appointments() {
                             setCancelModalOpen(true);
                             setActionError(null);
                           }}
-                          className="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-red-100 uppercase"
+                          className="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-red-100 uppercase tap-target"
                         >
                           Cancel
                         </button>
@@ -372,19 +482,24 @@ export default function Appointments() {
         onClose={() => setRateModalOpen(false)}
         barberId={selectedBarberId}
         appointmentId={selectedAppointmentId}
-        onSuccess={() => {/* Toast or something? */}}
+        onSuccess={() => {
+          setRateModalOpen(false);
+          toast.success("Thank you for your rating!");
+        }}
       />
       
       <Modal
         isOpen={payModalOpen}
         onClose={() => setPayModalOpen(false)}
-        title="Pay with Whish"
+        title="Payment Options"
       >
         <div className="space-y-6">
-          <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl">
-            <p className="text-indigo-900 font-medium text-sm mb-1">Send Payment To:</p>
-            <p className="text-2xl font-black text-indigo-600 tracking-tight select-all">{payDetails?.phone}</p>
-          </div>
+          {payDetails?.phone && (
+            <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl">
+              <p className="text-indigo-900 font-medium text-sm mb-1">Send Payment To:</p>
+              <p className="text-2xl font-black text-indigo-600 tracking-tight select-all">{payDetails?.phone}</p>
+            </div>
+          )}
           
           <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
              <div className="flex justify-between items-center mb-2">
@@ -407,13 +522,55 @@ export default function Appointments() {
              />
           </div>
 
-          <button
-            onClick={handleReportPayment}
-            disabled={payLoading}
-            className="w-full bg-indigo-600 text-white rounded-xl py-3 font-bold hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-indigo-200"
-          >
-            {payLoading ? "Verifying..." : "Confirm Transfer"}
-          </button>
+          {payDetails?.phone && (
+            <button
+              onClick={handleReportPayment}
+              disabled={payLoading}
+              className="w-full bg-indigo-600 text-white rounded-xl py-3 font-bold hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-indigo-200"
+            >
+              {payLoading ? "Verifying..." : "Confirm Transfer"}
+            </button>
+          )}
+
+          {loyaltyLoading && (
+            <div className="bg-gray-50 border border-gray-100 p-4 rounded-2xl text-gray-500 font-semibold">
+              Loading loyalty rewards...
+            </div>
+          )}
+
+          {loyaltyError && (
+            <div className="bg-red-50 border border-red-200 p-4 rounded-2xl text-red-600 font-semibold">
+              {loyaltyError}
+            </div>
+          )}
+
+          {loyaltyInfo?.settings?.loyaltyEnabled && loyaltyInfo?.settings?.loyaltyAllowRedemption && (
+            <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-amber-900 font-bold">Pay with Loyalty Points</p>
+                <span className="text-amber-700 font-black">{loyaltyInfo?.points ?? 0} pts</span>
+              </div>
+              <select
+                value={selectedRewardId}
+                onChange={(e) => setSelectedRewardId(e.target.value)}
+                className="w-full px-4 py-3 bg-white border-2 border-transparent rounded-xl focus:border-amber-500 font-bold text-gray-900"
+              >
+                <option value="">Select a reward</option>
+                {rewardOptions.map(reward => (
+                  <option key={reward.Id} value={reward.Id}>
+                    {reward.PointsRequired} pts → {reward.ServiceName}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={handlePayWithLoyalty}
+                disabled={payLoading || !selectedRewardId}
+                className="w-full bg-amber-600 text-white rounded-xl py-3 font-bold hover:bg-amber-700 transition-all disabled:opacity-50"
+              >
+                {payLoading ? "Processing..." : "Redeem Points"}
+              </button>
+            </div>
+          )}
         </div>
       </Modal>
 

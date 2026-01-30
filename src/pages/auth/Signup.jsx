@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import api from "../../services/api";
+import { registerCustomer } from "../../features/auth/authSlice";
 import PrivacyPolicyModal from "../../components/PrivacyPolicyModal";
 import TermsOfServiceModal from "../../components/TermsOfServiceModal";
 
 export default function Signup() {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
@@ -91,14 +93,14 @@ export default function Signup() {
 
     setLoading(true);
     try {
-      await api.post(`/auth/register/customer`, {
+      await dispatch(registerCustomer({
         fullName: formData.fullName,
         email: formData.email,
         phoneNumber: formData.phoneNumber,
         gender: formData.gender,
         birthdate: formData.birthdate,
         password: formData.password
-      });
+      })).unwrap();
 
       // Show success message and redirect to login
       setTimeout(() => {

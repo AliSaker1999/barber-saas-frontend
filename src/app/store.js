@@ -15,6 +15,9 @@ import customersReducer from "../features/customers/customersSlice";
 import reportsReducer from "../features/reports/reportsSlice";
 import notificationsReducer from "../features/notifications/notificationsSlice";
 import chatReducer from "../features/chat/chatSlice";
+import uiReducer from "../features/ui/uiSlice";
+import loyaltyReducer from "../features/loyalty/loyaltySlice";
+import locationReducer from "../features/location/locationSlice";
 
 export const store = configureStore({
   reducer: {
@@ -33,7 +36,10 @@ export const store = configureStore({
     customers: customersReducer,
     reports: reportsReducer,
     notifications: notificationsReducer,
-    chat: chatReducer
+    chat: chatReducer,
+    ui: uiReducer,
+    loyalty: loyaltyReducer,
+    location: locationReducer
   }
 });
 

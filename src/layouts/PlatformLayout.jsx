@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAppDispatch } from "../app/hooks";
 import { logout } from "../features/auth/authSlice";
 import { useState } from "react";
+import ConnectionBadge from "../components/ConnectionBadge";
 
 export default function PlatformLayout() {
   const dispatch = useAppDispatch();
@@ -57,6 +58,7 @@ export default function PlatformLayout() {
             <h2 className="text-xl font-bold text-gray-900">
               Platform Dashboard
             </h2>
+            <ConnectionBadge className="hidden sm:flex" />
           </div>
 
           <div className="flex items-center gap-4">

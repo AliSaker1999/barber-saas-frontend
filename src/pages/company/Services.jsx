@@ -15,12 +15,14 @@ export default function Services() {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [duration, setDuration] = useState("");
+  const [loyaltyPoints, setLoyaltyPoints] = useState("");
   const [formError, setFormError] = useState("");
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editService, setEditService] = useState(null);
   const [editName, setEditName] = useState("");
   const [editPrice, setEditPrice] = useState("");
   const [editDuration, setEditDuration] = useState("");
+  const [editLoyaltyPoints, setEditLoyaltyPoints] = useState("");
 
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
@@ -44,7 +46,8 @@ export default function Services() {
     dispatch(addService({
       name,
       price: Number(price),
-      durationMinutes: Number(duration)
+      durationMinutes: Number(duration),
+      loyaltyPointsEarned: Number(loyaltyPoints || 0)
     }))
       .unwrap()
       .then(() => dispatch(fetchServices()))
@@ -53,6 +56,7 @@ export default function Services() {
     setName("");
     setPrice("");
     setDuration("");
+    setLoyaltyPoints("");
   };
 
   const toggleActive = service => {
@@ -75,6 +79,7 @@ export default function Services() {
     setEditName(service.Name || "");
     setEditPrice(String(service.Price ?? ""));
     setEditDuration(String(service.DurationMinutes ?? ""));
+    setEditLoyaltyPoints(String(service.LoyaltyPointsEarned ?? ""));
     setEditModalOpen(true);
   };
 
@@ -84,6 +89,7 @@ export default function Services() {
     setEditName("");
     setEditPrice("");
     setEditDuration("");
+    setEditLoyaltyPoints("");
   };
 
   const saveEdit = () => {
@@ -99,6 +105,7 @@ export default function Services() {
         name: editName.trim(),
         price: Number(editPrice),
         durationMinutes: Number(editDuration),
+        loyaltyPointsEarned: Number(editLoyaltyPoints || 0),
         isActive: editService.IsActive
       }
     }))
@@ -125,7 +132,7 @@ export default function Services() {
           </div>
         )}
 
-        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Service Name</label>
             <input
@@ -159,6 +166,17 @@ export default function Services() {
               onChange={e => setDuration(e.target.value)}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
               required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Loyalty Points</label>
+            <input
+              placeholder="10"
+              type="number"
+              min="0"
+              value={loyaltyPoints}
+              onChange={e => setLoyaltyPoints(e.target.value)}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
             />
           </div>
           <div className="flex items-end">
@@ -222,6 +240,10 @@ export default function Services() {
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600 font-medium">💰 Price</span>
                     <span className="font-bold text-green-600 text-lg">${service.Price}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600 font-medium">⭐ Loyalty Points</span>
+                    <span className="font-bold text-amber-600">{service.LoyaltyPointsEarned ?? 0}</span>
                   </div>
                 </div>
 
@@ -293,6 +315,16 @@ export default function Services() {
                   min="1"
                   value={editDuration}
                   onChange={e => setEditDuration(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Loyalty Points</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={editLoyaltyPoints}
+                  onChange={e => setEditLoyaltyPoints(e.target.value)}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
                 />
               </div>

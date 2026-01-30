@@ -49,12 +49,12 @@ export default function ChatWidget() {
     });
     const [isDragging, setIsDragging] = useState(false);
     const dragState = useRef({ startX: 0, startY: 0, originX: 0, originY: 0, moved: false });
-    // const isMobile = viewport.w < 640;
+    const isMobile = viewport.w < 640;
     const launcherSize = { w: 56, h: 56 };
     // const minimizedSize = { w: 260, h: 64 };
     // const fullSize = { w: isMobile ? viewport.w : 400, h: isMobile ? viewport.h : 600 };
     const widgetSize = launcherSize;
-    const dragEnabled = !isOpen;
+    const dragEnabled = !isOpen && !isMobile;
 
     const clampPos = (x, y) => {
         const maxX = Math.max(0, viewport.w - widgetSize.w);
@@ -244,18 +244,21 @@ export default function ChatWidget() {
     }, [conversations]);
 
     if (!isOpen) {
+        const launcherStyle = isMobile
+            ? { right: 16, bottom: 88 }
+            : { left: pos.x, top: pos.y };
         return (
             <button
-                onMouseDown={handlePointerDown}
-                onTouchStart={handleTouchStart}
+                onMouseDown={dragEnabled ? handlePointerDown : undefined}
+                onTouchStart={dragEnabled ? handleTouchStart : undefined}
                 onClick={() => {
                     if (dragState.current.moved) return;
                     dispatch(openChatWindow({ barberId: null, customerId: null, peerName: "" }));
                     dispatch(showInbox());
                     dragState.current.moved = false;
                 }}
-                style={{ left: pos.x, top: pos.y }}
-                className={`fixed bg-gradient-to-tr from-blue-600 to-indigo-600 hover:scale-110 active:scale-95 text-white w-14 h-14 rounded-2xl shadow-[0_10px_25px_-5px_rgba(59,130,246,0.5)] flex items-center justify-center z-[90] transition-transform duration-300 group cursor-move ${isDragging ? 'scale-110 opacity-70' : ''}`}
+                style={launcherStyle}
+                className={`fixed bg-gradient-to-tr from-blue-600 to-indigo-600 hover:scale-110 active:scale-95 text-white w-14 h-14 rounded-2xl shadow-[0_10px_25px_-5px_rgba(59,130,246,0.5)] flex items-center justify-center z-[90] transition-transform duration-300 group ${dragEnabled ? 'cursor-move' : 'cursor-pointer'} ${isDragging ? 'scale-110 opacity-70' : ''}`}
                 title="Open messages"
             >
                 <svg className="w-7 h-7 pointer-events-none transition-transform group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -275,12 +278,12 @@ export default function ChatWidget() {
             className={`fixed z-[90] shadow-2xl transition-all duration-300 border border-gray-100 overflow-hidden flex flex-col
             ${minimized 
                 ? 'bottom-24 right-6 h-16 w-64 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-blue-200' 
-                : 'bottom-0 sm:bottom-28 right-0 sm:right-8 w-full sm:w-[400px] h-full sm:h-[600px] bg-white sm:rounded-3xl'
+                : `bottom-0 right-0 w-full h-full bg-white ${isMobile ? 'rounded-none' : 'sm:bottom-28 sm:right-8 sm:w-[400px] sm:h-[600px] sm:rounded-3xl'}`
             }`}
         >
             {/* Header */}
             <div 
-                className={`text-white p-4 flex justify-between items-center cursor-move shadow-lg relative z-10 
+                className={`text-white p-4 flex justify-between items-center ${isMobile ? 'cursor-pointer' : 'cursor-move'} shadow-lg relative z-10 
                     ${minimized ? 'bg-transparent' : 'bg-gradient-to-r from-blue-600 to-indigo-600'}
                 `}
                 onClick={() => {

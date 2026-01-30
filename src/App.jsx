@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import AppRoutes from "./routes/AppRoutes";
 import { fetchNotifications, addNotification, markAsRead } from "./features/notifications/notificationsSlice";
 import { useAppDispatch, useAppSelector } from "./app/hooks";
+import { setOnlineStatus } from "./features/ui/uiSlice";
 import { getSocket, connectSocket } from "./services/socket";
 import ChatWidget from "./components/Chat/ChatWidget";
 
@@ -11,6 +12,19 @@ export default function App() {
   const { user, token } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleOnline = () => dispatch(setOnlineStatus(true));
+    const handleOffline = () => dispatch(setOnlineStatus(false));
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [dispatch]);
 
   useEffect(() => {
     // If user is already stored but socket not connected (e.g. on refresh)
@@ -56,12 +70,34 @@ export default function App() {
             } max-w-md w-full bg-white shadow-2xl rounded-2xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 border-l-8 border-blue-600 cursor-pointer`}
             style={{ zIndex: 9999 }} // Ensure high z-index
             onClick={() => {
-               if (data.Id) {
-                  dispatch(markAsRead(data.Id));
-               }
-               const basePath = user?.roles?.includes("CUSTOMER") ? "/customer" : "/company";
-               navigate(`${basePath}/notifications`);
-               toast.dismiss(t.id);
+              if (data.Id) {
+                dispatch(markAsRead(data.Id));
+              }
+              const basePath = user?.roles?.includes("CUSTOMER") ? "/customer" : "/company";
+              const payload = data?.Data || {};
+
+              // Handle Rating deep-link
+              if (payload.type === 'RATING') {
+                const barberParam = payload.barberId ? `&barberId=${payload.barberId}` : "";
+                if (payload.appointmentId) {
+                  navigate(`${basePath}/appointments?rate=true&appointmentId=${payload.appointmentId}${barberParam}`);
+                } else if (payload.queueId) {
+                  const tParam = payload.tenantId ? `&tenantId=${payload.tenantId}` : "";
+                  navigate(`${basePath}/queue?rate=true&queueId=${payload.queueId}${tParam}${barberParam}`);
+                }
+                toast.dismiss(t.id);
+                return;
+              }
+
+              if (payload.appointmentId) {
+                navigate(`${basePath}/appointments?appointmentId=${payload.appointmentId}`);
+              } else if (payload.queueId || payload.tenantId) {
+                const tenantParam = payload.tenantId ? `?tenantId=${payload.tenantId}` : "";
+                navigate(`${basePath}/queue${tenantParam}`);
+              } else {
+                navigate(`${basePath}/notifications`);
+              }
+              toast.dismiss(t.id);
             }}
           >
             <div className="flex-1 w-0 p-4">
@@ -106,7 +142,7 @@ export default function App() {
         socket.off("notification:new", handleNotification);
       };
     }
-  }, [user, dispatch]);
+  }, [user, dispatch, navigate]);
 
 
   return (

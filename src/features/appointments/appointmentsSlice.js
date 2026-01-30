@@ -4,9 +4,12 @@ import api from "../../services/api";
 /* Fetch tenant appointments */
 export const fetchAppointments = createAsyncThunk(
   "appointments/fetch",
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
-      const res = await api.get("/appointments");
+      // Build query string if params exist
+      const q = new URLSearchParams(params).toString();
+      const url = q ? `/appointments?${q}` : "/appointments";
+      const res = await api.get(url);
       return res.data.data;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || "Failed to fetch appointments");
@@ -152,6 +155,18 @@ export const reportAppointmentPaymentThunk = createAsyncThunk(
   }
 );
 
+export const payAppointmentWithLoyaltyThunk = createAsyncThunk(
+  "appointments/payWithLoyalty",
+  async ({ id, rewardId }, { rejectWithValue }) => {
+    try {
+      await api.post(`/appointments/${id}/pay/loyalty`, { rewardId });
+      return { id, rewardId };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to redeem loyalty points");
+    }
+  }
+);
+
 export const verifyAppointmentPaymentThunk = createAsyncThunk(
   "appointments/verifyPayment",
   async (id, { rejectWithValue }) => {
@@ -169,10 +184,18 @@ const appointmentsSlice = createSlice({
   initialState: {
     items: [],
     loading: false,
-    error: null
+    error: null,
+    lastFetchedAt: null,
+    isStale: false
   },
   reducers: {
     clearAppointmentsError(state) {
+      state.error = null;
+    },
+    setCachedAppointments(state, action) {
+      state.items = action.payload.items || [];
+      state.lastFetchedAt = action.payload.lastFetchedAt || null;
+      state.isStale = true;
       state.error = null;
     }
   },
@@ -186,6 +209,8 @@ const appointmentsSlice = createSlice({
         state.loading = false;
         state.items = action.payload;
         state.error = null;
+        state.lastFetchedAt = new Date().toISOString();
+        state.isStale = false;
       })
       .addCase(fetchAppointments.rejected, (state, action) => {
         state.loading = false;
@@ -199,6 +224,8 @@ const appointmentsSlice = createSlice({
         state.loading = false;
         state.items = action.payload;
         state.error = null;
+        state.lastFetchedAt = new Date().toISOString();
+        state.isStale = false;
       })
       .addCase(fetchCustomerAppointments.rejected, (state, action) => {
         state.loading = false;
@@ -279,15 +306,57 @@ const appointmentsSlice = createSlice({
         state.loading = false;
         state.error = action.payload || action.error?.message || "Failed to reschedule appointment";
       })
+      .addCase(acceptAppointment.pending, state => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(acceptAppointment.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.items.findIndex(i => i.Id === action.payload);
+        if (index !== -1) {
+          state.items[index].Status = "SCHEDULED";
+          state.items[index].StatusId = 1;
+        }
+      })
+      .addCase(acceptAppointment.rejected, (state, action) => {
+        state.loading = true;
+        state.error = action.payload || action.error?.message || "Failed to accept appointment";
+      })
+      .addCase(declineAppointment.pending, state => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(declineAppointment.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.items.findIndex(i => i.Id === action.payload);
+        if (index !== -1) {
+          state.items[index].Status = "DECLINED";
+        }
+      })
+      .addCase(declineAppointment.rejected, (state, action) => {
+        state.loading = true;
+        state.error = action.payload || action.error?.message || "Failed to decline appointment";
+      })
       .addCase(verifyPayment.fulfilled, (state, action) => {
         const index = state.items.findIndex(i => i.Id === action.payload);
         if (index !== -1) {
             state.items[index].PaymentStatus = "PAID";
         }
+      })
+      .addCase(payAppointmentWithLoyaltyThunk.fulfilled, (state, action) => {
+        const index = state.items.findIndex(i => i.Id === action.payload.id);
+        if (index !== -1) {
+          state.items[index].PaymentStatus = "PAID";
+          state.items[index].PaymentReference = `LOYALTY:${action.payload.rewardId}`;
+          if (state.items[index].Status === "AWAITING_PAYMENT" || state.items[index].StatusId === 7) {
+            state.items[index].Status = "SCHEDULED";
+            state.items[index].StatusId = 1;
+          }
+        }
       });
   }
 });
 
-export const { clearAppointmentsError } = appointmentsSlice.actions;
+export const { clearAppointmentsError, setCachedAppointments } = appointmentsSlice.actions;
 
 export default appointmentsSlice.reducer;

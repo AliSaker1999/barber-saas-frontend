@@ -16,6 +16,7 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
   const [barbers, setBarbers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [loyalty, setLoyalty] = useState({ settings: null, rewards: [] });
   const [expandedBarberId, setExpandedBarberId] = useState(null);
   const [availabilityByBarber, setAvailabilityByBarber] = useState({});
   const [availabilityLoading, setAvailabilityLoading] = useState({});
@@ -27,12 +28,14 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
       setLoading(true);
       setError(null);
       try {
-        const [servicesRes, barbersRes] = await Promise.all([
+        const [servicesRes, barbersRes, loyaltyRes] = await Promise.all([
           api.get(`/services/tenant/${tenant.Id}`),
-          api.get(`/barbers/tenants/${tenant.Id}/barbers`)
+          api.get(`/barbers/tenants/${tenant.Id}/barbers`),
+          api.get(`/loyalty/tenant/${tenant.Id}`)
         ]);
         setServices(servicesRes.data?.data || []);
         setBarbers(barbersRes.data?.data || []);
+        setLoyalty(loyaltyRes.data?.data || { settings: null, rewards: [] });
       } catch (err) {
         setError(err.response?.data?.message || "Failed to load shop details");
       } finally {
@@ -78,11 +81,14 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
     [services]
   );
 
+  const loyaltyEnabled = loyalty?.settings?.loyaltyEnabled;
+  const loyaltyAllowRedemption = loyalty?.settings?.loyaltyAllowRedemption;
+
   if (!isOpen || !tenant) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-5xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-white w-full h-full sm:h-auto sm:max-h-[90vh] rounded-none sm:rounded-[2rem] shadow-2xl max-w-5xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
         {/* Header / Cover */}
         <div className="relative h-48 sm:h-56 bg-gray-200">
           {tenant.CoverImageUrl ? (
@@ -92,7 +98,7 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
           )}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-xl bg-white/90 hover:bg-white transition-colors shadow"
+            className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-xl bg-white/90 hover:bg-white transition-colors shadow tap-target"
           >
             <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -110,7 +116,7 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
           </div>
         </div>
 
-        <div className="p-6 sm:p-8 pt-14 overflow-y-auto">
+        <div className="p-6 sm:p-8 pt-14 overflow-y-auto flex-1 pb-24 sm:pb-8">
           {/* Title & actions */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
@@ -123,7 +129,7 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
               {onBook && (
                 <button
                   onClick={onBook}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl shadow"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl shadow tap-target"
                 >
                   Book
                 </button>
@@ -131,7 +137,7 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
               {onQueue && (
                 <button
                   onClick={onQueue}
-                  className="bg-white border-2 border-gray-100 hover:bg-gray-50 text-gray-700 font-bold px-4 py-2 rounded-xl"
+                  className="bg-white border-2 border-gray-100 hover:bg-gray-50 text-gray-700 font-bold px-4 py-2 rounded-xl tap-target"
                 >
                   Join Queue
                 </button>
@@ -144,7 +150,7 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
             {tenant.Phone && (
               <a
                 href={`tel:${tenant.Phone}`}
-                className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 p-3 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 p-3 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition-colors tap-target"
               >
                 <span className="text-blue-500">📞</span> {tenant.Phone}
               </a>
@@ -154,7 +160,7 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
                 href={`https://wa.me/${tenant.WhatsappNumber}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 p-3 rounded-xl hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+                className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 p-3 rounded-xl hover:bg-emerald-50 hover:text-emerald-600 transition-colors tap-target"
               >
                 <span className="text-emerald-500">💬</span> WhatsApp
               </a>
@@ -164,7 +170,7 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
                 href={tenant.GoogleMapLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 p-3 rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors"
+                className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 p-3 rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors tap-target"
               >
                 <span className="text-red-500">📍</span> View Map
               </a>
@@ -174,7 +180,7 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
                 href={tenant.WebsiteUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 p-3 rounded-xl hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 p-3 rounded-xl hover:bg-gray-100 transition-colors tap-target"
               >
                 <span>🌐</span> Website
               </a>
@@ -205,6 +211,34 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
                       className="text-xs font-bold bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full border border-blue-100"
                     >
                       {service.Name} • {service.DurationMinutes}m • ${service.Price}
+                      {service.LoyaltyPointsEarned ? ` • ${service.LoyaltyPointsEarned} pts` : ""}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Loyalty Program */}
+          {!loading && loyaltyEnabled && (
+            <div className="mb-8">
+              <h3 className="text-xl font-black text-gray-900 mb-3">Loyalty Rewards</h3>
+              <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-4">
+                <p className="text-sm text-amber-900 font-semibold">
+                  Earn points on services and redeem them for rewards.
+                  {loyaltyAllowRedemption ? " Loyalty redemption is available." : " Redemption is currently disabled."}
+                </p>
+              </div>
+              {loyalty.rewards?.length === 0 ? (
+                <p className="text-gray-500">No rewards available yet.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {loyalty.rewards.map(reward => (
+                    <span
+                      key={reward.Id}
+                      className="text-xs font-bold bg-white text-amber-700 px-3 py-1.5 rounded-full border border-amber-100"
+                    >
+                      {reward.PointsRequired} pts → {reward.ServiceName}
                     </span>
                   ))}
                 </div>
@@ -299,6 +333,27 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
             </div>
           )}
         </div>
+
+        {(onBook || onQueue) && (
+          <div className="sm:hidden sticky bottom-0 bg-white border-t border-gray-100 p-4 flex gap-2">
+            {onBook && (
+              <button
+                onClick={onBook}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow tap-target"
+              >
+                Book
+              </button>
+            )}
+            {onQueue && (
+              <button
+                onClick={onQueue}
+                className="flex-1 bg-white border-2 border-gray-100 hover:bg-gray-50 text-gray-700 font-bold py-3 rounded-xl tap-target"
+              >
+                Join Queue
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

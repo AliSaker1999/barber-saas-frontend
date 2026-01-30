@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchMyProfile, updateMyProfile, resetProfileStatus } from "../../features/auth/customerProfileSlice";
 import { uploadImage } from "../../services/media";
-import api from "../../services/api";
+import { changePassword } from "../../features/auth/authSlice";
 
 export default function CustomerProfile() {
   const dispatch = useDispatch();
@@ -88,16 +88,15 @@ export default function CustomerProfile() {
 
     try {
       setPasswordLoading(true);
-      await api.post("/auth/change-password", {
+      await dispatch(changePassword({
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword
-      });
+      })).unwrap();
       setPasswordSuccess(true);
       setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
       setTimeout(() => setPasswordSuccess(false), 5000);
     } catch (err) {
-      const msg = err.response?.data?.message || "Failed to change password. Please check your current password.";
-      setPasswordError(msg);
+      setPasswordError(err || "Failed to change password. Please check your current password.");
     } finally {
       setPasswordLoading(false);
     }

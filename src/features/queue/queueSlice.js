@@ -148,6 +148,18 @@ export const reportQueuePaymentThunk = createAsyncThunk(
   }
 );
 
+export const payQueueWithLoyaltyThunk = createAsyncThunk(
+  "queue/payWithLoyalty",
+  async ({ queueId, rewardId }, { rejectWithValue }) => {
+    try {
+      await api.post(`/queue/${queueId}/pay/loyalty`, { rewardId });
+      return { queueId, rewardId };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to redeem loyalty points");
+    }
+  }
+);
+
 export const approveQueueItemThunk = createAsyncThunk(
   "queue/approve",
   async (queueId, { rejectWithValue }) => {
@@ -180,7 +192,23 @@ const queueSlice = createSlice({
     loading: false,
     myPosition: null, // { inQueue, position, barberName }
     activeQueue: null, // Cross-tenant active queue if any
-    error: null
+    error: null,
+    lastFetchedAt: null,
+    isStale: false
+  },
+  reducers: {
+    setCachedQueueStats(s, a) {
+      s.stats = a.payload.stats || [];
+      s.lastFetchedAt = a.payload.lastFetchedAt || null;
+      s.isStale = true;
+      s.error = null;
+    },
+    setCachedMyPosition(s, a) {
+      s.myPosition = a.payload.myPosition || null;
+      s.lastFetchedAt = a.payload.lastFetchedAt || null;
+      s.isStale = true;
+      s.error = null;
+    }
   },
   extraReducers: builder => {
     builder
@@ -191,6 +219,8 @@ const queueSlice = createSlice({
         s.loading = false;
         s.stats = a.payload;
         s.error = null;
+        s.lastFetchedAt = new Date().toISOString();
+        s.isStale = false;
       })
       .addCase(fetchQueueStats.rejected, (s, a) => {
         s.loading = false;
@@ -216,6 +246,7 @@ const queueSlice = createSlice({
         s.loading = false;
         s.items = a.payload;
         s.error = null;
+        s.lastFetchedAt = new Date().toISOString();
       })
       .addCase(fetchQueue.rejected, (s, a) => {
         s.loading = false;
@@ -232,6 +263,8 @@ const queueSlice = createSlice({
       .addCase(fetchMyQueuePosition.fulfilled, (s, a) => {
         s.myPosition = a.payload;
         s.error = null;
+        s.lastFetchedAt = new Date().toISOString();
+        s.isStale = false;
       })
       .addCase(leaveQueue.fulfilled, s => {
         s.myPosition = null;
@@ -246,5 +279,7 @@ const queueSlice = createSlice({
       });
   }
 });
+
+export const { setCachedQueueStats, setCachedMyPosition } = queueSlice.actions;
 
 export default queueSlice.reducer;

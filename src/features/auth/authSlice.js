@@ -16,6 +16,32 @@ export const login = createAsyncThunk(
   }
 );
 
+export const registerCustomer = createAsyncThunk(
+  "auth/registerCustomer",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const res = await api.post("/auth/register/customer", payload);
+      return res.data?.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Registration failed");
+    }
+  }
+);
+
+export const changePassword = createAsyncThunk(
+  "auth/changePassword",
+  async ({ currentPassword, newPassword }, { rejectWithValue }) => {
+    try {
+      await api.post("/auth/change-password", { currentPassword, newPassword });
+      return true;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message || "Failed to change password"
+      );
+    }
+  }
+);
+
 const loadStoredUser = () => {
   try {
     const raw = localStorage.getItem("user");
@@ -31,7 +57,8 @@ const authSlice = createSlice({
     user: loadStoredUser(),
     isLoading: false,
     token: localStorage.getItem("token") || null,
-    error: null
+    error: null,
+    changePasswordLoading: false
   },
   reducers: {
     logout(state) {
@@ -68,6 +95,29 @@ const authSlice = createSlice({
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload || "Login failed";
+      })
+      .addCase(registerCustomer.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(registerCustomer.fulfilled, (state) => {
+        state.isLoading = false;
+        state.error = null;
+      })
+      .addCase(registerCustomer.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload || "Registration failed";
+      })
+      .addCase(changePassword.pending, (state) => {
+        state.changePasswordLoading = true;
+        state.error = null;
+      })
+      .addCase(changePassword.fulfilled, (state) => {
+        state.changePasswordLoading = false;
+      })
+      .addCase(changePassword.rejected, (state, action) => {
+        state.changePasswordLoading = false;
+        state.error = action.payload || "Failed to change password";
       });
   }
 });

@@ -1,10 +1,13 @@
 
 import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { markAsRead, markAllAsRead, fetchNotifications } from '../../features/notifications/notificationsSlice';
+import MobileHeader from '../../components/MobileHeader';
 
 export default function NotificationHistory() {
     const dispatch = useAppDispatch();
+    const navigate = useNavigate();
     const { items } = useAppSelector(state => state.notifications);
 
     useEffect(() => {
@@ -13,6 +16,19 @@ export default function NotificationHistory() {
 
     const handleMarkAsRead = (id) => {
         dispatch(markAsRead(id));
+    };
+
+    const handleNavigate = (item) => {
+        const data = item?.Data || {};
+        if (data.appointmentId) {
+            navigate(`/customer/appointments?appointmentId=${data.appointmentId}`);
+            return;
+        }
+        if (data.queueId || data.tenantId) {
+            const tenantParam = data.tenantId ? `?tenantId=${data.tenantId}` : "";
+            navigate(`/customer/queue${tenantParam}`);
+            return;
+        }
     };
 
     const handleMarkAll = () => {
@@ -30,6 +46,7 @@ export default function NotificationHistory() {
 
     return (
         <div className="max-w-4xl mx-auto py-6 px-4">
+            <MobileHeader title="Notifications" />
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
@@ -62,7 +79,10 @@ export default function NotificationHistory() {
                             <div 
                                 key={item.Id} 
                                 className={`p-4 sm:p-6 transition-colors hover:bg-gray-50 flex gap-4 ${!item.IsRead ? 'bg-blue-50/30' : ''}`}
-                                onClick={() => !item.IsRead && handleMarkAsRead(item.Id)}
+                                onClick={() => {
+                                    if (!item.IsRead) handleMarkAsRead(item.Id);
+                                    handleNavigate(item);
+                                }}
                             >
                                 <div className={`mt-1.5 h-2.5 w-2.5 rounded-full flex-shrink-0 ${!item.IsRead ? 'bg-blue-500' : 'bg-transparent'}`}></div>
                                 <div className="flex-1">

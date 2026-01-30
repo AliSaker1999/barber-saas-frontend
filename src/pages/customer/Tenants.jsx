@@ -4,7 +4,10 @@ import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { fetchTenants } from "../../features/tenants/tenantsSlice";
 import { selectTenant } from "../../features/booking/bookingSlice";
 import { findMyActiveQueue } from "../../features/queue/queueSlice";
+import { requestUserLocation } from "../../features/location/locationSlice";
+import { haversineDistanceKm, formatDistanceKm } from "../../utils/geo";
 import TenantDetailsModal from "../../components/TenantDetailsModal";
+import MobileHeader from "../../components/MobileHeader";
 
 /* Enhanced Dropdown Component */
 const TenantLogo = ({ tenant }) => {
@@ -105,10 +108,13 @@ export default function Tenants() {
   const navigate = useNavigate();
   const { tenants, loading } = useAppSelector(state => state.tenants);
   const activeQueue = useAppSelector(state => state.queue.activeQueue);
+  const locationState = useAppSelector(state => state.location);
   const [search, setSearch] = useState("");
   const [selectedCity, setSelectedCity] = useState("All");
   const [minRating, setMinRating] = useState(0);
   const [sortBy, setSortBy] = useState("newest");
+  const [nearMeOnly, setNearMeOnly] = useState(false);
+  const [radiusKm, setRadiusKm] = useState(10);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState(null);
 
@@ -133,21 +139,49 @@ export default function Tenants() {
     }
   };
 
+  const handleUseLocation = async () => {
+    try {
+      await dispatch(requestUserLocation()).unwrap();
+      setNearMeOnly(true);
+      setSortBy("distance");
+    } catch (err) {
+      console.error("Location error", err);
+    }
+  };
+
   const cities = ["All", ...new Set(tenants.map(t => t.City).filter(Boolean))];
 
-  const processedTenants = [...tenants]
+  const userCoords = locationState.coords;
+  const tenantsWithDistance = tenants.map(t => {
+    const lat = t.Latitude ?? t.latitude;
+    const lon = t.Longitude ?? t.longitude;
+    const hasCoords = lat != null && lon != null;
+    const distanceKm = userCoords && hasCoords
+      ? haversineDistanceKm(userCoords, { latitude: Number(lat), longitude: Number(lon) })
+      : null;
+    return { ...t, distanceKm };
+  });
+
+  const processedTenants = [...tenantsWithDistance]
     .filter(t => {
       const matchesSearch = t.Name.toLowerCase().includes(search.toLowerCase()) || 
                            (t.Area && t.Area.toLowerCase().includes(search.toLowerCase()));
       const matchesCity = selectedCity === "All" || t.City === selectedCity;
       const matchesRating = (t.AverageRating || 0) >= minRating;
-      return matchesSearch && matchesCity && matchesRating;
+      const matchesNearMe = !nearMeOnly || (t.distanceKm != null && t.distanceKm <= radiusKm);
+      return matchesSearch && matchesCity && matchesRating && matchesNearMe;
     })
     .sort((a, b) => {
       if (sortBy === "name_asc") return a.Name.localeCompare(b.Name);
       if (sortBy === "name_desc") return b.Name.localeCompare(a.Name);
       if (sortBy === "newest") return new Date(b.CreatedAt) - new Date(a.CreatedAt);
       if (sortBy === "rating_desc") return (b.AverageRating || 0) - (a.AverageRating || 0);
+      if (sortBy === "distance") {
+        if (a.distanceKm == null && b.distanceKm == null) return 0;
+        if (a.distanceKm == null) return 1;
+        if (b.distanceKm == null) return -1;
+        return a.distanceKm - b.distanceKm;
+      }
       return 0;
     });
   
@@ -161,15 +195,29 @@ export default function Tenants() {
     { value: 3, label: "3.0+ Stars" },
   ];
 
+  const radiusOptions = [
+    { value: 3, label: "Within 3 km" },
+    { value: 5, label: "Within 5 km" },
+    { value: 10, label: "Within 10 km" },
+    { value: 25, label: "Within 25 km" },
+  ];
+
   const sortOptions = [
     { value: "newest", label: "Latest Shops" },
     { value: "rating_desc", label: "Top Rated" },
     { value: "name_asc", label: "Name (A-Z)" },
     { value: "name_desc", label: "Name (Z-A)" },
+    ...(locationState.coords ? [{ value: "distance", label: "Closest to Me" }] : [])
   ];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <MobileHeader
+        title="Barbershops"
+        onBack={() => navigate("/customer")}
+        primaryAction={activeQueue ? { label: "Queue", onClick: goToActiveQueue } : null}
+        subtitle="Discover & book"
+      />
       {/* Active Queue Banner */}
       {activeQueue && (
         <div className="mb-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-3xl p-1 shadow-xl animate-in fade-in slide-in-from-top-4 duration-500">
@@ -258,6 +306,67 @@ export default function Tenants() {
             </div>
           </div>
         </div>
+
+        {/* Location Panel */}
+        <div className="mt-4 max-w-6xl mx-auto bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
+          <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+            <button
+              type="button"
+              onClick={handleUseLocation}
+              className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition disabled:opacity-60"
+              disabled={locationState.loading}
+            >
+              {locationState.loading ? (
+                <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zm7.5-2.5a7.5 7.5 0 11-15 0 7.5 7.5 0 0115 0z" />
+                </svg>
+              )}
+              Use My Location
+            </button>
+
+            <div className="flex-1">
+              {locationState.coords ? (
+                <div className="text-sm text-gray-600 font-semibold">
+                  Location enabled • Accuracy ~{Math.round(locationState.accuracy || 0)}m
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500">
+                  Enable location to see the closest barbershops.
+                </div>
+              )}
+              {locationState.error && (
+                <div className="text-xs text-red-600 mt-1">{locationState.error}</div>
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="w-full sm:w-48">
+                <Dropdown
+                  value={radiusKm}
+                  onChange={setRadiusKm}
+                  options={radiusOptions}
+                  icon={<span className="text-gray-400">📍</span>}
+                  placeholder="Radius"
+                />
+              </div>
+              <label className="inline-flex items-center gap-2 text-sm font-bold text-gray-700">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={nearMeOnly}
+                  onChange={(e) => setNearMeOnly(e.target.checked)}
+                  disabled={!locationState.coords}
+                />
+                Show near me only
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Loading State */}
@@ -324,6 +433,14 @@ export default function Tenants() {
                       <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                     </svg>
                     {tenant.City}
+                  </span>
+                )}
+                {tenant.distanceKm != null && (
+                  <span className="bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-indigo-700 shadow-sm flex items-center gap-1 self-end">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zm7.5-2.5a7.5 7.5 0 11-15 0 7.5 7.5 0 0115 0z" />
+                    </svg>
+                    {formatDistanceKm(tenant.distanceKm)}
                   </span>
                 )}
                 {tenant.AverageRating > 0 && (

@@ -1,8 +1,9 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "../app/hooks";
 import { logout } from "../features/auth/authSlice";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import NotificationsMenu from "../components/NotificationsMenu";
+import ConnectionBadge from "../components/ConnectionBadge";
 
 const navItems = [
   { to: "queue", label: "Queue", icon: "🚀", roles: ["ADMIN", "BARBER"] },
@@ -17,6 +18,7 @@ const navItems = [
 
 export default function CompanyLayout() {
   const user = useAppSelector(state => state.auth.user);
+  const { isOnline } = useAppSelector(state => state.ui);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -75,21 +77,32 @@ export default function CompanyLayout() {
 
       {/* Main Content Wrapper */}
       <div className="lg:ml-72 min-h-screen flex flex-col">
+        {!isOnline && (
+          <div className="bg-amber-500 text-white text-xs sm:text-sm font-bold py-2 px-4 text-center">
+            You are offline. Changes will sync when you reconnect.
+          </div>
+        )}
         {/* Header */}
         <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 sm:px-8 h-16 sm:h-20 flex items-center justify-between">
             <div className="flex items-center gap-3">
-               <button
+              <button
                   onClick={() => setMobileOpen(!mobileOpen)}
-                  className="lg:hidden p-2 -ml-2 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors"
+                className="lg:hidden p-2 -ml-2 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors tap-target"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
                </button>
-               <h2 className="text-lg sm:text-2xl font-black text-gray-900 truncate">
-                  {user.roles?.includes("ADMIN") ? "Dashboard" : "My Workstation"}
-               </h2>
+               <div className="flex items-center gap-4">
+                 <h2 className="text-lg sm:text-2xl font-black text-gray-900 truncate">
+                    {user.roles?.includes("ADMIN") ? "Dashboard" : "My Workstation"}
+                 </h2>
+                 <ConnectionBadge className="hidden md:flex ml-2" />
+               </div>
             </div>
 
             <div className="flex items-center gap-3 sm:gap-4">
+                <div className="md:hidden">
+                    <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500 animate-pulse'}`}></div>
+                </div>
                 <NotificationsMenu />
                 <div className="hidden sm:flex flex-col items-end">
                     <span className="text-sm font-bold text-gray-900">{user.fullName?.split(' ')[0]}</span>
@@ -120,7 +133,7 @@ export default function CompanyLayout() {
          <BottomTab to="notifications" icon="🔔" label="Alerts" />
          <button 
            onClick={() => setMobileOpen(true)}
-           className="flex flex-col items-center gap-1 p-2 text-gray-400 opacity-60 hover:opacity-100"
+           className="flex flex-col items-center gap-1 p-2 text-gray-400 opacity-60 hover:opacity-100 tap-target"
          >
             <span className="text-xl">🍔</span>
             <span className="text-[10px] font-black uppercase tracking-tighter">Menu</span>
@@ -156,7 +169,7 @@ function BottomTab({ to, icon, label }) {
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `flex flex-col items-center gap-1 p-2 transition-all duration-300 ${
+        `flex flex-col items-center gap-1 p-2 transition-all duration-300 tap-target ${
           isActive ? "text-blue-600 scale-110" : "text-gray-400 opacity-60"
         }`
       }

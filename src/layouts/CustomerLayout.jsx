@@ -1,17 +1,19 @@
 import { Outlet, useNavigate, Link, NavLink } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "../app/hooks";
 import { logout } from "../features/auth/authSlice";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import PhoneVerificationModal from "../components/PhoneVerificationModal";
 import PrivacyPolicyModal from "../components/PrivacyPolicyModal";
 import TermsOfServiceModal from "../components/TermsOfServiceModal";
 import NotificationsMenu from "../components/NotificationsMenu";
+import ConnectionBadge from "../components/ConnectionBadge";
 
 export default function CustomerLayout() {
 
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const user = useAppSelector(state => state.auth.user);
+  const { isOnline } = useAppSelector(state => state.ui);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
@@ -24,6 +26,11 @@ export default function CustomerLayout() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {!isOnline && (
+        <div className="bg-amber-500 text-white text-xs sm:text-sm font-bold py-2 px-4 text-center">
+          You are offline. Changes will sync when you reconnect.
+        </div>
+      )}
       {/* Verification Warning Banner (Red Flag) */}
       {!user?.isPhoneVerified && (
         <div 
@@ -48,7 +55,7 @@ export default function CustomerLayout() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden p-2 rounded-xl hover:bg-gray-100 transition-colors"
+                className="lg:hidden p-2 rounded-xl hover:bg-gray-100 transition-colors tap-target"
               >
                 <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={mobileMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
@@ -72,6 +79,9 @@ export default function CustomerLayout() {
               <HeaderLink to="/customer/queue" label="⏱️ Queue" />
               <HeaderLink to="/customer/reports" label="📊 Reports" />
               <HeaderLink to="/customer/profile" label="👤 Profile" />
+              <div className="ml-4 pl-4 border-l border-gray-100 flex items-center">
+                 <ConnectionBadge />
+              </div>
             </nav>
 
             {/* User Menu */}
@@ -135,12 +145,13 @@ export default function CustomerLayout() {
       </main>
 
       {/* Mobile Bottom Navigation (Tab Bar) with Safe Area support */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t px-2 pb-[env(safe-area-inset-bottom)] pt-2 flex justify-around items-center z-[60] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t px-2 pb-[env(safe-area-inset-bottom)] pt-2 flex justify-around items-center z-[60] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
           <BottomTab to="/customer" icon="🏪" end title="Shops" />
           <BottomTab to="/customer/appointments" icon="📅" title="Bookings" />
           <BottomTab to="/customer/queue" icon="⏱️" title="Queue" />
           <BottomTab to="/customer/reports" icon="📊" title="Stats" />
-      </div>
+          <BottomTab to="/customer/notifications" icon="🔔" title="Alerts" />
+        </div>
 
       {/* Footer (Desktop only) */}
       <footer className="hidden sm:block bg-white border-t border-gray-100 mt-10">
@@ -153,9 +164,10 @@ export default function CustomerLayout() {
                 <span className="font-bold text-gray-400">BarberSaaS © 2026</span>
             </div>
             <div className="flex gap-6 text-sm font-bold text-gray-400">
-               <button onClick={() => setIsPrivacyOpen(true)} className="hover:text-blue-600 transition-colors">Privacy Policy</button>
-               <button onClick={() => setIsTermsOpen(true)} className="hover:text-blue-600 transition-colors">Terms of Service</button>
-               <a href="mailto:alisaker1999@hotmail.com" className="hover:text-blue-600 transition-colors">Support</a>
+              <button onClick={() => setIsPrivacyOpen(true)} className="hover:text-blue-600 transition-colors">Privacy Policy</button>
+              <button onClick={() => setIsTermsOpen(true)} className="hover:text-blue-600 transition-colors">Terms of Service</button>
+              <a href="tel:+96100000000" className="hover:text-blue-600 transition-colors">Call Support</a>
+              <a href="https://wa.me/96100000000" className="hover:text-blue-600 transition-colors" target="_blank" rel="noreferrer">WhatsApp</a>
             </div>
           </div>
         </div>
@@ -214,7 +226,7 @@ function BottomTab({ to, icon, end = false, title }) {
       to={to}
       end={end}
       className={({ isActive }) =>
-        `flex flex-col items-center gap-1 transition-all ${
+        `flex flex-col items-center gap-1 transition-all tap-target ${
           isActive ? "text-blue-600 scale-110" : "text-gray-400 opacity-60"
         }`
       }

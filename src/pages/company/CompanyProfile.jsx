@@ -1,11 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchCompanyProfile, updateCompanyProfile, resetUpdateSuccess } from "../../features/company/companySlice";
+import { fetchServices } from "../../features/services/servicesSlice";
+import {
+  fetchLoyaltyRewards,
+  createLoyaltyReward,
+  updateLoyaltyReward,
+  deleteLoyaltyReward
+} from "../../features/loyalty/loyaltySlice";
+import { requestUserLocation } from "../../features/location/locationSlice";
 import { uploadImage } from "../../services/media";
+import Modal from "../../components/Modal";
 
 export default function CompanyProfile() {
   const dispatch = useDispatch();
   const { profile, loading, updateSuccess, error } = useSelector((state) => state.company);
+  const services = useSelector((state) => state.services.items);
+  const { items: rewards, loading: rewardsLoading, error: rewardsError } = useSelector(
+    (state) => state.loyalty.rewards
+  );
   const [isEditing, setIsEditing] = useState(false);
   const [uploading, setUploading] = useState({ logo: false, cover: false });
   const [uploadError, setUploadError] = useState(null);
@@ -27,6 +40,8 @@ export default function CompanyProfile() {
     building: "",
     floor: "",
     googleMapLink: "",
+    latitude: "",
+    longitude: "",
     taxNumber: "",
     registrationNumber: "",
     logoUrl: "",
@@ -37,7 +52,17 @@ export default function CompanyProfile() {
     whishPhoneNumber: "",
     isWhishPaymentEnabled: true,
     isCreditCardPaymentEnabled: false,
+    loyaltyEnabled: false,
+    loyaltyAllowRedemption: false,
   });
+
+  const [newRewardServiceId, setNewRewardServiceId] = useState("");
+  const [newRewardPoints, setNewRewardPoints] = useState("");
+  const [editRewardModalOpen, setEditRewardModalOpen] = useState(false);
+  const [editReward, setEditReward] = useState(null);
+  const [editRewardServiceId, setEditRewardServiceId] = useState("");
+  const [editRewardPoints, setEditRewardPoints] = useState("");
+  const [editRewardActive, setEditRewardActive] = useState(true);
 
   const [prevId, setPrevId] = useState(null);
 
@@ -55,6 +80,8 @@ export default function CompanyProfile() {
       building: profile.Building || "",
       floor: profile.Floor || "",
       googleMapLink: profile.GoogleMapLink || "",
+      latitude: profile.Latitude ?? "",
+      longitude: profile.Longitude ?? "",
       taxNumber: profile.TaxNumber || "",
       registrationNumber: profile.RegistrationNumber || "",
       logoUrl: profile.LogoUrl || "",
@@ -65,12 +92,16 @@ export default function CompanyProfile() {
       whishPhoneNumber: profile.WhishPhoneNumber || "",
       isWhishPaymentEnabled: profile.IsWhishPaymentEnabled ?? true,
       isCreditCardPaymentEnabled: profile.IsCreditCardPaymentEnabled ?? false,
+      loyaltyEnabled: profile.LoyaltyEnabled ?? false,
+      loyaltyAllowRedemption: profile.LoyaltyAllowRedemption ?? false,
     });
     setPrevId(profile.Id);
   }
 
   useEffect(() => {
     dispatch(fetchCompanyProfile());
+    dispatch(fetchServices());
+    dispatch(fetchLoyaltyRewards());
   }, [dispatch]);
 
   useEffect(() => {
@@ -114,6 +145,8 @@ export default function CompanyProfile() {
         building: profile.Building || "",
         floor: profile.Floor || "",
         googleMapLink: profile.GoogleMapLink || "",
+        latitude: profile.Latitude ?? "",
+        longitude: profile.Longitude ?? "",
         taxNumber: profile.TaxNumber || "",
         registrationNumber: profile.RegistrationNumber || "",
         logoUrl: profile.LogoUrl || "",
@@ -124,9 +157,24 @@ export default function CompanyProfile() {
         whishPhoneNumber: profile.WhishPhoneNumber || "",
         isWhishPaymentEnabled: profile.IsWhishPaymentEnabled ?? true,
         isCreditCardPaymentEnabled: profile.IsCreditCardPaymentEnabled ?? false,
+        loyaltyEnabled: profile.LoyaltyEnabled ?? false,
+        loyaltyAllowRedemption: profile.LoyaltyAllowRedemption ?? false,
       });
     }
     setIsEditing(false);
+  };
+
+  const handleUseLocation = async () => {
+    try {
+      const coords = await dispatch(requestUserLocation()).unwrap();
+      setFormData((prev) => ({
+        ...prev,
+        latitude: coords.latitude.toFixed(6),
+        longitude: coords.longitude.toFixed(6)
+      }));
+    } catch (err) {
+      console.error("Failed to get location", err);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -135,8 +183,63 @@ export default function CompanyProfile() {
       ...formData,
       maxAdvanceBookingDays: Number(formData.maxAdvanceBookingDays),
       cancellationPolicyHours: Number(formData.cancellationPolicyHours),
+      latitude: formData.latitude === "" ? null : Number(formData.latitude),
+      longitude: formData.longitude === "" ? null : Number(formData.longitude),
     };
     dispatch(updateCompanyProfile(payload));
+  };
+
+  const handleAddReward = async () => {
+    if (!newRewardServiceId || !newRewardPoints) {
+      return;
+    }
+
+    try {
+      await dispatch(
+        createLoyaltyReward({
+          serviceId: newRewardServiceId,
+          pointsRequired: Number(newRewardPoints)
+        })
+      ).unwrap();
+      setNewRewardServiceId("");
+      setNewRewardPoints("");
+    } catch (err) {
+      console.error("Failed to add reward", err);
+    }
+  };
+
+  const openEditReward = (reward) => {
+    setEditReward(reward);
+    setEditRewardServiceId(reward.ServiceId);
+    setEditRewardPoints(String(reward.PointsRequired));
+    setEditRewardActive(!!reward.IsActive);
+    setEditRewardModalOpen(true);
+  };
+
+  const saveRewardEdit = async () => {
+    if (!editReward) return;
+    try {
+      await dispatch(
+        updateLoyaltyReward({
+          rewardId: editReward.Id,
+          serviceId: editRewardServiceId,
+          pointsRequired: Number(editRewardPoints),
+          isActive: editRewardActive
+        })
+      ).unwrap();
+      setEditRewardModalOpen(false);
+      setEditReward(null);
+    } catch (err) {
+      console.error("Failed to update reward", err);
+    }
+  };
+
+  const deleteReward = async (rewardId) => {
+    try {
+      await dispatch(deleteLoyaltyReward(rewardId)).unwrap();
+    } catch (err) {
+      console.error("Failed to delete reward", err);
+    }
   };
 
   const handleUpload = async (file, kind) => {
@@ -239,7 +342,7 @@ export default function CompanyProfile() {
       <div className="space-y-10">
         {/* Helper function for rendering fields */}
         {(() => {
-          const renderFormField = ({ label, value, name, type = "text", placeholder }) => {
+          const renderFormField = ({ label, value, name, type = "text", placeholder, onBlur }) => {
             if (!isEditing) {
               return (
                 <div className="py-2">
@@ -272,6 +375,7 @@ export default function CompanyProfile() {
                     name={name}
                     value={value || ""}
                     onChange={handleChange}
+                    onBlur={onBlur}
                     className={`w-full px-4 py-3 bg-gray-50 border-2 border-transparent rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-bold text-gray-900 placeholder-gray-400 ${name === 'slug' ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
                     placeholder={placeholder}
                     readOnly={name === 'slug'}
@@ -345,6 +449,115 @@ export default function CompanyProfile() {
                   </div>
                 </div>
 
+                  {/* Loyalty Program */}
+                  <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+                    <div className="flex items-center gap-3 mb-8 pb-4 border-b border-gray-50">
+                      <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-3.314 0-6 2.686-6 6 0 2.386 1.388 4.447 3.402 5.429L12 22l2.598-2.571C16.612 18.447 18 16.386 18 14c0-3.314-2.686-6-6-6zm0 0V4m0 0a2 2 0 11-4 0m4 0a2 2 0 104 0" /></svg>
+                      </div>
+                      <h2 className="text-xl font-bold text-gray-900">Loyalty Program</h2>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                      {renderFormField({
+                        label: "Enable Loyalty Program",
+                        name: "loyaltyEnabled",
+                        value: formData.loyaltyEnabled,
+                        type: "checkbox"
+                      })}
+                      {renderFormField({
+                        label: "Allow Loyalty Redemption",
+                        name: "loyaltyAllowRedemption",
+                        value: formData.loyaltyAllowRedemption,
+                        type: "checkbox"
+                      })}
+                    </div>
+
+                    <div className="mt-8">
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">Redeem Rewards</h3>
+                      <p className="text-sm text-gray-500 mb-4">
+                        Configure which services can be redeemed with loyalty points.
+                      </p>
+
+                      {rewardsError && (
+                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 font-semibold">
+                          {rewardsError}
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">Service</label>
+                          <select
+                            value={newRewardServiceId}
+                            onChange={(e) => setNewRewardServiceId(e.target.value)}
+                            className="w-full px-4 py-3 bg-gray-50 border-2 border-transparent rounded-2xl focus:bg-white focus:border-blue-500 font-bold text-gray-900"
+                          >
+                            <option value="">Select a service</option>
+                            {services.map(service => (
+                              <option key={service.Id} value={service.Id}>{service.Name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">Points Required</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={newRewardPoints}
+                            onChange={(e) => setNewRewardPoints(e.target.value)}
+                            className="w-full px-4 py-3 bg-gray-50 border-2 border-transparent rounded-2xl focus:bg-white focus:border-blue-500 font-bold text-gray-900"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleAddReward}
+                        disabled={rewardsLoading}
+                        className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 py-3 rounded-2xl shadow-lg shadow-amber-200 disabled:opacity-50"
+                      >
+                        {rewardsLoading ? "Saving..." : "Add Reward"}
+                      </button>
+
+                      <div className="mt-6 space-y-3">
+                        {rewardsLoading && rewards.length === 0 && (
+                          <div className="bg-gray-50 p-4 rounded-xl text-gray-500 font-semibold">Loading rewards...</div>
+                        )}
+                        {!rewardsLoading && rewards.length === 0 && (
+                          <div className="bg-gray-50 p-4 rounded-xl text-gray-500 font-semibold">No rewards configured yet.</div>
+                        )}
+                        {rewards.map(reward => (
+                          <div key={reward.Id} className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gray-50 border border-gray-100 rounded-2xl p-4">
+                            <div>
+                              <p className="font-bold text-gray-900">{reward.ServiceName}</p>
+                              <p className="text-xs text-gray-500">{reward.PointsRequired} points</p>
+                              <span className={`inline-block mt-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${reward.IsActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-200 text-gray-500"}`}>
+                                {reward.IsActive ? "ACTIVE" : "INACTIVE"}
+                              </span>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => openEditReward(reward)}
+                                className="px-4 py-2 rounded-xl bg-blue-50 text-blue-600 font-bold hover:bg-blue-100"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => deleteReward(reward.Id)}
+                                className="px-4 py-2 rounded-xl bg-red-50 text-red-600 font-bold hover:bg-red-100"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
                 <div className="pt-16 pb-6 px-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <h2 className="text-2xl font-black text-gray-900 tracking-tight">{formData.name || "Your Company"}</h2>
@@ -409,7 +622,29 @@ export default function CompanyProfile() {
                   {renderFormField({ label: "Floor / Office", name: "floor", value: formData.floor })}
                 </div>
                 <div className="pt-4 border-t border-gray-50">
-                  {renderFormField({ label: "Google Maps Shared Link", name: "googleMapLink", value: formData.googleMapLink, type: "url" })}
+                  {renderFormField({
+                    label: "Google Maps Shared Link",
+                    name: "googleMapLink",
+                    value: formData.googleMapLink,
+                    type: "url"
+                  })}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {renderFormField({ label: "Latitude", name: "latitude", value: formData.latitude, type: "number", placeholder: "e.g. 33.893791" })}
+                    {renderFormField({ label: "Longitude", name: "longitude", value: formData.longitude, type: "number", placeholder: "e.g. 35.501776" })}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleUseLocation}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-50 text-blue-700 font-bold text-sm hover:bg-blue-100 transition"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zm7.5-2.5a7.5 7.5 0 11-15 0 7.5 7.5 0 0115 0z" />
+                      </svg>
+                      Use Current Location
+                    </button>
+                    <span className="text-xs text-gray-500">Used to help customers find you nearby.</span>
+                  </div>
                 </div>
               </div>
 
@@ -567,6 +802,62 @@ export default function CompanyProfile() {
           </div>
         </div>
       )}
+
+      <Modal
+        isOpen={editRewardModalOpen}
+        onClose={() => setEditRewardModalOpen(false)}
+        title="Edit Loyalty Reward"
+      >
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Service</label>
+            <select
+              value={editRewardServiceId}
+              onChange={(e) => setEditRewardServiceId(e.target.value)}
+              className="w-full px-4 py-3 bg-gray-50 border-2 border-transparent rounded-2xl focus:bg-white focus:border-blue-500 font-bold text-gray-900"
+            >
+              <option value="">Select a service</option>
+              {services.map(service => (
+                <option key={service.Id} value={service.Id}>{service.Name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Points Required</label>
+            <input
+              type="number"
+              min="1"
+              value={editRewardPoints}
+              onChange={(e) => setEditRewardPoints(e.target.value)}
+              className="w-full px-4 py-3 bg-gray-50 border-2 border-transparent rounded-2xl focus:bg-white focus:border-blue-500 font-bold text-gray-900"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              checked={editRewardActive}
+              onChange={(e) => setEditRewardActive(e.target.checked)}
+              className="w-5 h-5 text-blue-600 rounded-lg"
+            />
+            <span className="font-semibold text-gray-700">Active</span>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={() => setEditRewardModalOpen(false)}
+              className="flex-1 py-3 rounded-xl border-2 border-gray-200 text-sm font-bold text-gray-700 hover:bg-gray-50 transition"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={saveRewardEdit}
+              className="flex-1 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-sm font-bold text-white hover:from-blue-700 hover:to-indigo-700 transition shadow-lg"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       <input
         ref={logoInputRef}

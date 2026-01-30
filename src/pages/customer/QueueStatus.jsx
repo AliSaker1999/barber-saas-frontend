@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { fetchMyQueuePosition, leaveQueue, fetchQueueStats, joinQueue, findMyActiveQueue, updateQueueServicesThunk, reportQueuePaymentThunk } from "../../features/queue/queueSlice";
+import { fetchMyQueuePosition, leaveQueue, fetchQueueStats, joinQueue, findMyActiveQueue, updateQueueServicesThunk, reportQueuePaymentThunk, payQueueWithLoyaltyThunk, setCachedQueueStats, setCachedMyPosition } from "../../features/queue/queueSlice";
 import { openChatWindow } from "../../features/chat/chatSlice";
 import { selectTenant, fetchBarbersForTenant, selectBarber } from "../../features/booking/bookingSlice";
 import { getSocket } from "../../services/socket";
@@ -9,6 +10,8 @@ import BarberProfileModal from "../../components/BarberProfileModal";
 import PhoneVerificationModal from "../../components/PhoneVerificationModal";
 import RateBarberModal from "../../components/RateBarberModal";
 import Modal from "../../components/Modal";
+import MobileHeader from "../../components/MobileHeader";
+import { fetchCustomerLoyalty } from "../../features/loyalty/loyaltySlice";
 
 export default function QueueStatus() {
   const dispatch = useAppDispatch();
@@ -18,7 +21,10 @@ export default function QueueStatus() {
   const user = useAppSelector(s => s.auth.user);
   const stats = useAppSelector(s => s.queue.stats);
   const loading = useAppSelector(s => s.queue.loading);
+    const lastFetchedAt = useAppSelector(s => s.queue.lastFetchedAt);
+    const isStale = useAppSelector(s => s.queue.isStale);
   const barbers = useAppSelector(s => s.booking.barbers);
+    const location = useLocation();
 
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [viewProfileId, setViewProfileId] = useState(null);
@@ -34,9 +40,15 @@ export default function QueueStatus() {
   const [selectedBarberForJoin, setSelectedBarberForJoin] = useState(null);
   const [selectedServiceIds, setSelectedServiceIds] = useState([]);
   const [paymentReference, setPaymentReference] = useState("");
+        const [selectedRewardId, setSelectedRewardId] = useState("");
   const [isEditMode, setIsEditMode] = useState(false);
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
   const [serviceError, setServiceError] = useState("");
+
+    const loyaltyState = useAppSelector(s => s.loyalty.customer);
+    const loyaltyInfo = loyaltyState.tenantId === tenantId ? loyaltyState.data : null;
+    const loyaltyLoading = loyaltyState.loading && loyaltyState.tenantId === tenantId;
+    const loyaltyError = loyaltyState.tenantId === tenantId ? loyaltyState.error : null;
 
   const openProfile = (id) => {
       setViewProfileId(id);
@@ -95,6 +107,60 @@ export default function QueueStatus() {
     };
   }, [dispatch, tenantId]);
 
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const tenantParam = params.get("tenantId");
+        if (tenantParam) {
+            dispatch(selectTenant(tenantParam));
+            dispatch(fetchMyQueuePosition(tenantParam));
+        }
+    }, [location.search, dispatch]);
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const shouldRate = params.get("rate") === "true";
+        const qId = params.get("queueId");
+        const bId = params.get("barberId");
+        
+        if (shouldRate && qId && bId) {
+            setTimeout(() => {
+                setLastFinishedQueue({
+                    queueId: qId,
+                    barberId: bId
+                });
+                setRatingModalOpen(true);
+                // Clean up URL
+                navigate(location.pathname + (params.get("tenantId") ? `?tenantId=${params.get("tenantId")}` : ""), { replace: true });
+            }, 0);
+        }
+    }, [location.search, location.pathname, navigate]);
+
+    useEffect(() => {
+        if (!navigator.onLine) {
+            const cachedStats = localStorage.getItem("customerQueueStatsCache");
+            if (cachedStats) {
+                dispatch(setCachedQueueStats(JSON.parse(cachedStats)));
+            }
+            const cachedPosition = localStorage.getItem("customerQueuePositionCache");
+            if (cachedPosition) {
+                dispatch(setCachedMyPosition(JSON.parse(cachedPosition)));
+            }
+        }
+    }, [dispatch]);
+
+    useEffect(() => {
+        if (!isStale) {
+            localStorage.setItem(
+                "customerQueueStatsCache",
+                JSON.stringify({ stats, lastFetchedAt: lastFetchedAt || new Date().toISOString() })
+            );
+            localStorage.setItem(
+                "customerQueuePositionCache",
+                JSON.stringify({ myPosition, lastFetchedAt: lastFetchedAt || new Date().toISOString() })
+            );
+        }
+    }, [stats, myPosition, isStale, lastFetchedAt]);
+
   // Fetch stats if not in queue and we know definitely (myPosition loaded)
   useEffect(() => {
       // If myPosition is loaded (not null) and inQueue is false
@@ -107,6 +173,11 @@ export default function QueueStatus() {
          dispatch(fetchQueueStats(tenantId));
       }
   }, [dispatch, tenantId, myPosition?.inQueue, myPosition]);
+
+    useEffect(() => {
+        if (!tenantId || myPosition?.statusId !== 6) return;
+        dispatch(fetchCustomerLoyalty(tenantId));
+    }, [tenantId, myPosition?.statusId, dispatch]);
 
 
   const handleJoinClick = (barberId) => {
@@ -154,6 +225,7 @@ export default function QueueStatus() {
           
           dispatch(fetchMyQueuePosition(tenantId));
           setServiceModalOpen(false);
+          toast.success(isEditMode ? "Services updated" : "Joined the queue");
       } catch (err) {
           const errMsg = typeof err === 'string' ? err : err.message || JSON.stringify(err);
 
@@ -181,6 +253,7 @@ export default function QueueStatus() {
               setServiceError(errMsg);
               setServiceModalOpen(true);
           }
+          toast.error(errMsg);
       }
   };
 
@@ -204,8 +277,10 @@ export default function QueueStatus() {
       setServiceError("");
       await dispatch(leaveQueue(tenantId)).unwrap();
       setLeaveModalOpen(false);
+            toast.success("Left the queue");
     } catch {
       setServiceError("Failed to leave queue. Please try again.");
+            toast.error("Failed to leave queue");
     }
   };
 
@@ -221,11 +296,32 @@ export default function QueueStatus() {
         
         dispatch(fetchMyQueuePosition(tenantId));
         setPaymentModalOpen(false);
+        toast.success("Payment reported");
     } catch (err) {
         const errMsg = typeof err === "string" ? err : err?.message || "Failed to report payment.";
         setServiceError(errMsg);
+        toast.error(errMsg);
     }
   };
+
+    const confirmPayWithLoyalty = async () => {
+        try {
+            if (!selectedRewardId || !myPosition?.queueId) return;
+
+            await dispatch(payQueueWithLoyaltyThunk({
+                queueId: myPosition.queueId,
+                rewardId: selectedRewardId
+            })).unwrap();
+
+            dispatch(fetchMyQueuePosition(tenantId));
+            setSelectedRewardId("");
+            toast.success("Paid with loyalty points");
+        } catch (err) {
+            const errMsg = typeof err === "string" ? err : err?.message || "Failed to redeem loyalty points.";
+            setServiceError(errMsg);
+            toast.error(errMsg);
+        }
+    };
 
   const formatTime = (timeStr) => {
     if (!timeStr) return "";
@@ -240,6 +336,12 @@ export default function QueueStatus() {
     dispatch(selectBarber(barberId));
     navigate("/customer/services");
   };
+
+    const rewardOptions = (() => {
+        if (!loyaltyInfo?.rewards || !myPosition?.services?.length) return [];
+        const serviceIds = myPosition.services.map(s => s.id || s.ServiceId).filter(Boolean);
+        return loyaltyInfo.rewards.filter(r => serviceIds.includes(r.ServiceId));
+    })();
 
   if (!tenantId) {
     return (
@@ -285,10 +387,50 @@ export default function QueueStatus() {
                       <p className="text-xs text-amber-600 font-bold">*Transfer exactly the service amount</p>
                   </div>
 
+                                    {loyaltyLoading && (
+                                        <div className="bg-gray-50 border border-gray-100 p-4 rounded-2xl text-gray-500 font-semibold mb-4">
+                                            Loading loyalty rewards...
+                                        </div>
+                                    )}
+
+                                    {loyaltyError && (
+                                        <div className="bg-red-50 border border-red-200 p-4 rounded-2xl text-red-600 font-semibold mb-4">
+                                            {loyaltyError}
+                                        </div>
+                                    )}
+
+                                    {loyaltyInfo?.settings?.loyaltyEnabled && loyaltyInfo?.settings?.loyaltyAllowRedemption && (
+                                        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-4 text-left">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <p className="font-bold text-amber-900">Pay with Loyalty Points</p>
+                                                <span className="font-black text-amber-700">{loyaltyInfo?.points ?? 0} pts</span>
+                                            </div>
+                                            <select
+                                                value={selectedRewardId}
+                                                onChange={(e) => setSelectedRewardId(e.target.value)}
+                                                className="w-full px-4 py-3 bg-white border-2 border-transparent rounded-xl focus:border-amber-500 font-bold text-gray-900"
+                                            >
+                                                <option value="">Select a reward</option>
+                                                {rewardOptions.map(reward => (
+                                                    <option key={reward.Id} value={reward.Id}>
+                                                        {reward.PointsRequired} pts → {reward.ServiceName}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <button
+                                                onClick={confirmPayWithLoyalty}
+                                                disabled={!selectedRewardId}
+                                                className="w-full mt-3 bg-amber-600 hover:bg-amber-700 text-white font-black py-3 rounded-2xl transition disabled:opacity-50 tap-target"
+                                            >
+                                                Redeem Points
+                                            </button>
+                                        </div>
+                                    )}
+
                   {!isPendingVerification && (
-                      <button
+                                            <button
                         onClick={() => setPaymentModalOpen(true)}
-                        className="w-full bg-amber-600 hover:bg-amber-700 text-white font-black py-4 rounded-2xl transition shadow-lg shadow-amber-200 mb-4"
+                                                className="w-full bg-amber-600 hover:bg-amber-700 text-white font-black py-4 rounded-2xl transition shadow-lg shadow-amber-200 mb-4 tap-target"
                       >
                          I HAVE PAID VIA WHISH
                       </button>
@@ -301,9 +443,9 @@ export default function QueueStatus() {
                       </div>
                   )}
 
-                  <button
+                                    <button
                     onClick={handleLeaveQueue}
-                    className="w-full bg-white border-2 border-amber-100 text-amber-600 font-black py-4 rounded-2xl hover:bg-amber-50 transition"
+                                        className="w-full bg-white border-2 border-amber-100 text-amber-600 font-black py-4 rounded-2xl hover:bg-amber-50 transition tap-target"
                   >
                      CANCEL REQUEST
                   </button>
@@ -327,9 +469,9 @@ export default function QueueStatus() {
                     Please wait for them to accept your request.
                 </p>
 
-                <button
+                                <button
                   onClick={handleLeaveQueue}
-                  className="w-full bg-white border-2 border-yellow-100 text-yellow-600 font-black py-4 rounded-2xl hover:bg-yellow-50 transition"
+                                    className="w-full bg-white border-2 border-yellow-100 text-yellow-600 font-black py-4 rounded-2xl hover:bg-yellow-50 transition tap-target"
                 >
                     CANCEL REQUEST
                 </button>
@@ -386,9 +528,9 @@ export default function QueueStatus() {
                       <p className="text-xs text-blue-200 uppercase font-bold mb-3 flex justify-between items-center">
                         Selected Services ({totalDuration} min)
                         {position !== 0 && (
-                           <button 
+                                                     <button 
                             onClick={handleEditServices}
-                            className="text-[10px] bg-white text-indigo-900 px-2 py-0.5 rounded uppercase font-black hover:bg-blue-100 transition-colors"
+                                                        className="text-[10px] bg-white text-indigo-900 px-2 py-0.5 rounded uppercase font-black hover:bg-blue-100 transition-colors tap-target"
                           >
                             Edit
                           </button>
@@ -410,9 +552,9 @@ export default function QueueStatus() {
                 </div>
             </div>
 
-            <button
+                        <button
               onClick={handleLeaveQueue}
-              className="w-full bg-white hover:bg-red-50 text-red-600 font-black py-4 px-6 rounded-2xl transition-all duration-300 shadow-lg border-2 border-red-100 hover:border-red-200 flex items-center justify-center gap-2"
+                            className="w-full bg-white hover:bg-red-50 text-red-600 font-black py-4 px-6 rounded-2xl transition-all duration-300 shadow-lg border-2 border-red-100 hover:border-red-200 flex items-center justify-center gap-2 tap-target"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
               Leave Queue
@@ -421,13 +563,13 @@ export default function QueueStatus() {
             <div className="mt-8 text-center bg-gray-50 border-2 border-gray-100 p-6 rounded-3xl relative">
                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-indigo-600 text-white text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-tighter">Support</div>
                  <p className="text-gray-500 text-sm font-bold">Need to talk to {barberName}?</p>
-                 <button 
+                                 <button 
                   onClick={() => dispatch(openChatWindow({
                     barberId,
                     customerId: user.id,
                     peerName: barberName
                   }))}
-                  className="mt-2 text-indigo-600 font-black hover:text-indigo-700 transition-colors flex items-center justify-center gap-2 mx-auto"
+                                    className="mt-2 text-indigo-600 font-black hover:text-indigo-700 transition-colors flex items-center justify-center gap-2 mx-auto tap-target"
                  >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                     Chat with Barber
@@ -443,7 +585,17 @@ export default function QueueStatus() {
           <h1 className="text-3xl font-bold text-gray-900 mb-6 text-center">Join the Queue</h1>
           <p className="text-gray-600 mb-8 text-center">Select a barber to see their wait time.</p>
           
-          {loading && stats.length === 0 && <p className="text-center">Loading live stats...</p>}
+                    {loading && stats.length === 0 && (
+                        <div className="space-y-4">
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 animate-pulse">
+                                    <div className="h-4 w-40 bg-gray-200 rounded mb-3"></div>
+                                    <div className="h-6 w-24 bg-gray-200 rounded mb-2"></div>
+                                    <div className="h-10 w-full bg-gray-200 rounded"></div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
           
           <div className="space-y-4">
               {stats.map(barber => {
@@ -486,7 +638,7 @@ export default function QueueStatus() {
                                   {!isOff && (
                                       <button
                                           onClick={() => handleJoinClick(barber.barberId)}
-                                          className="w-full bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-100 transform active:scale-95 transition-all text-sm"
+                                          className="w-full bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-100 transform active:scale-95 transition-all text-sm tap-target"
                                       >
                                           Join the Queue
                                       </button>
@@ -495,7 +647,7 @@ export default function QueueStatus() {
                                   {barber.isAcceptingAppointments && (
                                       <button
                                           onClick={() => handleScheduleRedirect(barber.barberId)}
-                                          className={`w-full ${isOff ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-white text-indigo-600 border-2 border-indigo-100 hover:border-indigo-200'} px-4 py-3 rounded-xl font-bold hover:bg-indigo-50 transition-all text-sm flex items-center justify-center gap-2`}
+                                          className={`w-full ${isOff ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-white text-indigo-600 border-2 border-indigo-100 hover:border-indigo-200'} px-4 py-3 rounded-xl font-bold hover:bg-indigo-50 transition-all text-sm flex items-center justify-center gap-2 tap-target`}
                                       >
                                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                                           Book Appointment
@@ -526,9 +678,22 @@ export default function QueueStatus() {
     );
   };
 
-  return (
-    <>
-      {renderQueueContent()}
+    const headerPrimaryAction = myPosition?.inQueue
+        ? { label: "Leave", onClick: handleLeaveQueue }
+        : { label: "Browse", onClick: () => navigate("/customer") };
+
+    return (
+        <>
+            <MobileHeader
+                title="Queue"
+                onBack={() => navigate("/customer")}
+                primaryAction={headerPrimaryAction}
+                subtitle={lastFetchedAt ? `Updated ${new Date(lastFetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : undefined}
+            />
+            {isStale && (
+                <p className="text-xs text-amber-600 font-bold mb-2 px-4">Offline: showing cached data</p>
+            )}
+            {renderQueueContent()}
 
       <BarberProfileModal 
           isOpen={profileModalOpen} 
