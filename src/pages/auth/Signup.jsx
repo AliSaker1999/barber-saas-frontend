@@ -109,7 +109,8 @@ export default function Signup() {
         });
       }, 1500);
     } catch (err) {
-      setError(err.response?.data?.message || "Registration failed. Please try again.");
+      // unwrap() throws the payload from rejectWithValue, which is the message string
+      setError(typeof err === 'string' ? err : "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }

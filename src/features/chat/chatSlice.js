@@ -106,7 +106,11 @@ const chatSlice = createSlice({
     receiveMessage: (state, action) => {
       const message = action.payload;
       if (state.activeConversationId === message.conversationId) {
-        state.messages.push(message);
+        // Prevent duplicates from socket/local race
+        const exists = state.messages.find(m => (m.id || m.Id) === (message.id || message.Id));
+        if (!exists) {
+          state.messages.push(message);
+        }
       } else {
         const existing = state.conversations.find(c => c.Id === message.conversationId);
         if (existing) {
@@ -148,7 +152,7 @@ const chatSlice = createSlice({
             // Usually we add it immediately.
             const msg = action.payload;
             // Check if already exist (from socket race)
-            if (!state.messages.find(m => m.id === msg.id)) {
+            if (!state.messages.find(m => (m.id || m.Id) === (msg.id || msg.Id))) {
                 state.messages.push(msg);
             }
             const conv = state.conversations.find(c => c.Id === msg.conversationId);

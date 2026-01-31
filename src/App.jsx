@@ -149,7 +149,7 @@ export default function App() {
     <>
       <Toaster position="top-right" reverseOrder={false} />
       <AppRoutes />
-      <ChatWidget />
+      {user && <ChatWidget />}
     </>
   );
 }

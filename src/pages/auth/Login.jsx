@@ -3,6 +3,8 @@ import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { login } from "../../features/auth/authSlice";
 import PrivacyPolicyModal from "../../components/PrivacyPolicyModal";
 import TermsOfServiceModal from "../../components/TermsOfServiceModal";
+import Modal from "../../components/Modal";
+import api from "../../services/api";
 
 export default function Login() {
   const dispatch = useAppDispatch();
@@ -12,6 +14,71 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isTermsOpen, setIsTermsOpen] = useState(false);
+
+  // Forgot Password State
+  const [isForgotOpen, setIsForgotOpen] = useState(false);
+  const [forgotStep, setForgotStep] = useState(1); // 1: identity, 2: phone verification (if email), 3: code, 4: new pass
+  const [forgotIdentity, setForgotIdentity] = useState("");
+  const [forgotPhoneHint, setForgotPhoneHint] = useState("");
+  const [fullPhone, setFullPhone] = useState("");
+  const [resetCode, setResetCode] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState("");
+
+  const handleInitiateForgot = async () => {
+    if (!forgotIdentity) return setForgotError("Identity is required");
+    setForgotLoading(true);
+    setForgotError("");
+    try {
+      const { data } = await api.post("/auth/forgot-password/initiate", { identity: forgotIdentity });
+      if (data.data.status === "CODE_SENT") {
+        setForgotStep(3);
+      } else if (data.data.status === "NEED_PHONE") {
+        setForgotPhoneHint(data.data.hint);
+        setForgotStep(2);
+      }
+    } catch (err) {
+      setForgotError(err.response?.data?.message || "Failed to initiate reset");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleVerifyPhone = async () => {
+    setForgotLoading(true);
+    setForgotError("");
+    try {
+      await api.post("/auth/forgot-password/verify-phone", { 
+        email: forgotIdentity, 
+        phoneNumber: fullPhone 
+      });
+      setForgotStep(3);
+    } catch (err) {
+      setForgotError(err.response?.data?.message || "Phone number mismatch or error");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!newPass || newPass.length < 8) return setForgotError("Password must be at least 8 characters");
+    setForgotLoading(true);
+    setForgotError("");
+    try {
+      await api.post("/auth/forgot-password/reset", { 
+        identity: forgotIdentity, 
+        code: resetCode, 
+        newPassword: newPass 
+      });
+      setIsForgotOpen(false);
+      alert("Password reset successfully! Please log in.");
+    } catch (err) {
+      setForgotError(err.response?.data?.message || "Reset failed");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
 
   const submit = e => {
     e.preventDefault();
@@ -110,6 +177,7 @@ export default function Login() {
                   )}
                 </button>
               </div>
+              
             </div>
 
             {/* Remember Me & Forgot Password */}
@@ -118,9 +186,19 @@ export default function Login() {
                 <input type="checkbox" className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-2 focus:ring-blue-500" />
                 <span className="ml-2 text-sm text-gray-600">Remember me</span>
               </label>
-              <a href="#" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                Forgot password?
-              </a>
+               <div className="flex justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsForgotOpen(true);
+                    setForgotStep(1);
+                    setForgotError("");
+                  }}
+                  className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                >
+                  Forgot Password?
+                </button>
+              </div>
             </div>
 
             {/* Login Button */}
@@ -196,6 +274,103 @@ export default function Login() {
       
       <PrivacyPolicyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />
       <TermsOfServiceModal isOpen={isTermsOpen} onClose={() => setIsTermsOpen(false)} />
+
+      {/* Forgot Password Modal */}
+      <Modal 
+        isOpen={isForgotOpen} 
+        onClose={() => setIsForgotOpen(false)}
+        title="Reset Password"
+      >
+        <div className="p-4">
+          {forgotError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 text-xs font-bold rounded-lg">
+              {forgotError}
+            </div>
+          )}
+
+          {forgotStep === 1 && (
+            <div className="space-y-4">
+              <p className="text-gray-500 text-sm">Enter your email or phone number to start the reset process.</p>
+              <input
+                type="text"
+                placeholder="Email or Phone Number"
+                className="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none font-medium"
+                value={forgotIdentity}
+                onChange={(e) => setForgotIdentity(e.target.value)}
+              />
+              <button
+                onClick={handleInitiateForgot}
+                disabled={forgotLoading}
+                className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50"
+              >
+                {forgotLoading ? "Processing..." : "Continue"}
+              </button>
+            </div>
+          )}
+
+          {forgotStep === 2 && (
+            <div className="space-y-4">
+              <p className="text-gray-600 font-medium">Verify your phone number</p>
+              <p className="text-gray-500 text-xs">Enter your phone number that ends with: <span className="font-bold text-gray-900">{forgotPhoneHint}</span></p>
+              <input
+                type="tel"
+                placeholder="Full Phone Number (e.g. 961...)"
+                className="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none font-medium"
+                value={fullPhone}
+                onChange={(e) => setFullPhone(e.target.value)}
+              />
+              <button
+                onClick={handleVerifyPhone}
+                disabled={forgotLoading}
+                className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50"
+              >
+                {forgotLoading ? "Verifying..." : "Send Verification Code"}
+              </button>
+            </div>
+          )}
+
+          {forgotStep === 3 && (
+            <div className="space-y-4">
+              <p className="text-gray-600 font-medium">Enter Verification Code</p>
+              <p className="text-gray-500 text-xs">We sent a 6-digit code to your WhatsApp.</p>
+              <input
+                type="text"
+                placeholder="6-digit code"
+                className="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none font-bold text-center text-2xl tracking-[0.5em]"
+                maxLength={6}
+                value={resetCode}
+                onChange={(e) => setResetCode(e.target.value)}
+              />
+              <button
+                onClick={() => setForgotStep(4)}
+                className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-all"
+              >
+                Continue
+              </button>
+            </div>
+          )}
+
+          {forgotStep === 4 && (
+            <div className="space-y-4">
+              <p className="text-gray-600 font-medium">Create New Password</p>
+              <input
+                type="password"
+                placeholder="New Password"
+                className="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none font-medium"
+                value={newPass}
+                onChange={(e) => setNewPass(e.target.value)}
+              />
+              <button
+                onClick={handleResetPassword}
+                disabled={forgotLoading}
+                className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50"
+              >
+                {forgotLoading ? "Resetting..." : "Reset Password"}
+              </button>
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }
