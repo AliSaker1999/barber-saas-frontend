@@ -3,7 +3,7 @@ import { io } from "socket.io-client";
 let socket;
 
 export function connectSocket(token, userId) {
-  socket = io("http://localhost:5000", {
+  socket = io("https://barber-saas-backend-l4iz.onrender.com", {
     auth: { token }
   });
 
