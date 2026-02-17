@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../services/api";
+import OptimizedImage from "./OptimizedImage";
 
 const DAY_NAMES = [
   "Sunday",
@@ -92,7 +93,7 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
         {/* Header / Cover */}
         <div className="relative h-48 sm:h-56 bg-gray-200">
           {tenant.CoverImageUrl ? (
-            <img src={tenant.CoverImageUrl} alt={tenant.Name} className="w-full h-full object-cover" />
+            <OptimizedImage src={tenant.CoverImageUrl} alt={tenant.Name} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-blue-600 to-indigo-600" />
           )}
@@ -107,7 +108,7 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
 
           <div className="absolute -bottom-10 left-6 w-20 h-20 bg-white rounded-2xl shadow-lg p-1 border-4 border-white overflow-hidden">
             {tenant.LogoUrl ? (
-              <img src={tenant.LogoUrl} alt={tenant.Name} className="w-full h-full object-contain rounded-xl" />
+              <OptimizedImage src={tenant.LogoUrl} alt={tenant.Name} className="w-full h-full object-contain rounded-xl" />
             ) : (
               <div className="w-full h-full bg-gray-100 flex items-center justify-center font-bold text-2xl text-blue-600">
                 {tenant.Name ? tenant.Name[0] : "?"}
@@ -262,7 +263,7 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
                           <div className="flex items-center gap-4">
                             <div className="w-14 h-14 rounded-2xl bg-gray-100 overflow-hidden flex items-center justify-center">
                               {barber.profileImage ? (
-                                <img src={barber.profileImage} alt={barber.fullName} className="w-full h-full object-cover" />
+                                <OptimizedImage src={barber.profileImage} alt={barber.fullName} className="w-full h-full object-cover" />
                               ) : (
                                 <span className="text-xl">👤</span>
                               )}

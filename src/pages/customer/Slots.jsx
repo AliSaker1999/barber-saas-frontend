@@ -18,6 +18,10 @@ import { getSocket } from "../../services/socket";
 import BarberProfileModal from "../../components/BarberProfileModal";
 import PhoneVerificationModal from "../../components/PhoneVerificationModal";
 import Modal from "../../components/Modal";
+import LoadingState from "../../components/LoadingState";
+import EmptyState from "../../components/EmptyState";
+import ErrorState from "../../components/ErrorState";
+import { getFriendlyErrorMessage } from "../../utils/errorMessages";
 
 const getPeriodLabel = (hour) => {
   if (hour < 12) return "Morning";
@@ -145,6 +149,9 @@ export default function Slots() {
   
   const user = useAppSelector(state => state.auth.user);
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
+
+  const toFriendlyMessage = (error, fallback) =>
+    typeof error === "string" ? error : getFriendlyErrorMessage(error, fallback);
 
   // 1. Sync local list with socket
   useEffect(() => {
@@ -326,7 +333,7 @@ export default function Slots() {
       }
 
       if (serverMessage) {
-        setError(serverMessage);
+        setError(toFriendlyMessage(err, "Something went wrong. Please try again."));
       } else {
         setError("Something went wrong. Please try again.");
       }
@@ -352,7 +359,7 @@ export default function Slots() {
           setPaymentModalOpen(false);
           setIsPendingVerification(true);
       } catch (err) {
-          const errMsg = typeof err === "string" ? err : err?.message || "Failed to report payment.";
+          const errMsg = toFriendlyMessage(err, "Failed to report payment.");
           setPaymentError(errMsg);
       }
   };
@@ -421,7 +428,7 @@ export default function Slots() {
               {workingHoursLoading ? (
                 <p className="text-sm text-slate-500">Loading schedule…</p>
               ) : workingHoursError ? (
-                <p className="text-sm font-semibold text-rose-600">{workingHoursError}</p>
+                <ErrorState message={workingHoursError} />
               ) : workingHoursForSelectedDay ? (
                 <>
                   <p className="text-xl font-semibold text-slate-900">
@@ -445,11 +452,7 @@ export default function Slots() {
           </div>
         </section>
 
-        {error && (
-          <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600">
-            {error}
-          </div>
-        )}
+        {error && <ErrorState message={error} />}
 
         <section className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl shadow-slate-200">
           <div className="flex items-center justify-between">
@@ -463,17 +466,19 @@ export default function Slots() {
           </div>
 
           {slotsLoading ? (
-            <div className="mt-6 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 py-12">
-              <div className="h-12 w-12 animate-spin rounded-full border-4 border-transparent border-t-blue-600"></div>
-              <p className="text-sm text-slate-500">Loading available times…</p>
+            <div className="mt-6">
+              <LoadingState label="Loading available times..." blocks={2} />
             </div>
           ) : slotsError ? (
-            <div className="mt-6 rounded-2xl border border-rose-100 bg-rose-50 p-6 text-center text-sm font-semibold text-rose-600">
-              {slotsError}
+            <div className="mt-6">
+              <ErrorState message={slotsError} />
             </div>
           ) : sortedSlots.length === 0 ? (
-            <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-6 text-center text-sm text-slate-500">
-              No slots are available on this date yet. Try another day or update your services.
+            <div className="mt-6">
+              <EmptyState
+                title="No slots available"
+                description="Try another date or adjust your selected services."
+              />
             </div>
           ) : (
             <div className="mt-6 space-y-4">
@@ -713,7 +718,7 @@ export default function Slots() {
                 />
             </div>
             {paymentError && (
-                <p className="text-xs font-bold text-rose-500 bg-rose-50 p-2 rounded-lg">{paymentError}</p>
+              <ErrorState message={paymentError} />
             )}
             <button
                 onClick={handleReportPayment}

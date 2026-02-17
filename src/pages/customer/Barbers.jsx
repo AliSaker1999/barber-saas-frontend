@@ -6,6 +6,10 @@ import {
   selectBarber
 } from "../../features/booking/bookingSlice";
 import BarberProfileModal from "../../components/BarberProfileModal";
+import LoadingState from "../../components/LoadingState";
+import EmptyState from "../../components/EmptyState";
+import ErrorState from "../../components/ErrorState";
+import OptimizedImage from "../../components/OptimizedImage";
 
 export default function Barbers() {
   const dispatch = useAppDispatch();
@@ -92,11 +96,8 @@ export default function Barbers() {
 
   if (barbersLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="text-gray-600 mt-4">Loading barbers that match your services...</p>
-        </div>
+      <div className="min-h-screen bg-gray-50 p-6">
+        <LoadingState label="Loading barbers that match your services..." blocks={4} />
       </div>
     );
   }
@@ -122,9 +123,7 @@ export default function Barbers() {
         </div>
 
         {barbersError && (
-          <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {barbersError}
-          </div>
+          <ErrorState message={barbersError} onRetry={() => dispatch(fetchBarbersForTenant({ tenantId }))} />
         )}
 
         <div className={`rounded-2xl border px-5 py-4 text-sm ${matchedBarbersCount ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-orange-100 bg-orange-50 text-orange-700"}`}>
@@ -134,12 +133,11 @@ export default function Barbers() {
         </div>
 
         {barbers.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-lg p-10 text-center space-y-3">
-            <svg className="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M15 12a3 3 0 11-6 0 3 3 0 016 0zm6 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-gray-500 text-lg font-medium">No barbers are linked to this tenant yet.</p>
-            <p className="text-gray-400 text-sm">We could not find any barbers available for your services right now.</p>
+          <div className="space-y-4">
+            <EmptyState
+              title="No barbers available"
+              description="We could not find any barbers available for your selected services right now."
+            />
             <button
               onClick={() => navigate("/customer")}
               className="mt-6 inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-xl transition-colors"
@@ -180,7 +178,13 @@ export default function Barbers() {
                       className="w-full relative group h-32 rounded-2xl overflow-hidden block"
                     >
                       {barber.profileImage ? (
-                        <img src={barber.profileImage} alt={barber.fullName} className="w-full h-full object-cover transition duration-500 group-hover:scale-105" />
+                        <OptimizedImage
+                          src={barber.profileImage}
+                          alt={barber.fullName}
+                          className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
+                          sizes="(max-width: 768px) 100vw, 50vw"
+                          fetchPriority="low"
+                        />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-blue-400 to-indigo-600 flex flex-col items-center justify-center text-white">
                           <p className="text-sm font-semibold">{barber.isAvailable ? "Available now" : "Currently offline"}</p>

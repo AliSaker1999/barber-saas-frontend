@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { updateCustomerTenantDetails, clearSelectedCustomer } from "../features/customers/customersSlice";
+import OptimizedImage from "./OptimizedImage";
 
 export default function CustomerModal({ isOpen, onClose }) {
   const dispatch = useDispatch();
@@ -51,7 +52,7 @@ export default function CustomerModal({ isOpen, onClose }) {
           <div className="flex items-center gap-6">
             <div className="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center text-3xl border border-white/20 overflow-hidden">
               {selectedCustomer.ProfileImage ? (
-                <img 
+                <OptimizedImage 
                   src={selectedCustomer.ProfileImage} 
                   alt={selectedCustomer.FullName} 
                   className="w-full h-full object-cover"

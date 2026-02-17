@@ -3,6 +3,7 @@ import { useAppDispatch } from "../app/hooks";
 import { logout } from "../features/auth/authSlice";
 import { useState } from "react";
 import ConnectionBadge from "../components/ConnectionBadge";
+import ThemeToggle from "../components/ThemeToggle";
 
 export default function PlatformLayout() {
   const dispatch = useAppDispatch();
@@ -28,6 +29,7 @@ export default function PlatformLayout() {
           <NavItem to="tenants" label="🏬 Tenants" onClick={() => setMobileOpen(false)} />
           <NavItem to="customers" label="👥 Customers" onClick={() => setMobileOpen(false)} />
           <NavItem to="reports" label="📊 Reports" onClick={() => setMobileOpen(false)} />
+          <NavItem to="env" label="🧪 Environment" onClick={() => setMobileOpen(false)} />
         </nav>
 
         {/* User Info Mobile */}
@@ -43,8 +45,9 @@ export default function PlatformLayout() {
 
       {/* MAIN */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* TOP BAR */}
-        <header className="bg-white shadow-sm px-4 lg:px-8 py-4 flex justify-between items-center sticky top-0 z-30 pt-[env(safe-area-inset-top)]">
+        <div className="sticky top-0 z-50 bg-white/95 shadow-sm border-b border-gray-200">
+          <div className="h-[env(safe-area-inset-top)] bg-white" />
+          <header className="bg-transparent px-4 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
             {/* Mobile Toggle */}
             <button
@@ -62,6 +65,7 @@ export default function PlatformLayout() {
           </div>
 
           <div className="flex items-center gap-4">
+            <ThemeToggle className="hidden sm:inline-flex" />
             <div className="hidden sm:block text-sm font-bold text-gray-500 uppercase tracking-widest">
               Super Admin
             </div>
@@ -76,9 +80,10 @@ export default function PlatformLayout() {
             </button>
           </div>
         </header>
+        </div>
 
         {/* CONTENT */}
-        <main className="p-4 lg:p-8 flex-1">
+        <main className="app-page flex-1">
           <Outlet />
         </main>
       </div>

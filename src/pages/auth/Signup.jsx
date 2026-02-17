@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { registerCustomer } from "../../features/auth/authSlice";
 import PrivacyPolicyModal from "../../components/PrivacyPolicyModal";
 import TermsOfServiceModal from "../../components/TermsOfServiceModal";
+import ErrorState from "../../components/ErrorState";
+import { getFriendlyErrorMessage } from "../../utils/errorMessages";
 
 export default function Signup() {
   const dispatch = useDispatch();
@@ -110,7 +112,7 @@ export default function Signup() {
       }, 1500);
     } catch (err) {
       // unwrap() throws the payload from rejectWithValue, which is the message string
-      setError(typeof err === 'string' ? err : "Registration failed. Please try again.");
+      setError(typeof err === 'string' ? err : getFriendlyErrorMessage(err, "Registration failed. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -155,8 +157,8 @@ export default function Signup() {
           <form onSubmit={handleSubmit} className="px-8 py-8">
             {/* Error Alert */}
             {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-700 font-medium">{error}</p>
+              <div className="mb-6">
+                <ErrorState message={error} />
               </div>
             )}
 

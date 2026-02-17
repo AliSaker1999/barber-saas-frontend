@@ -3,6 +3,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchMyProfile, updateMyProfile, resetProfileStatus } from "../../features/auth/customerProfileSlice";
 import { uploadImage } from "../../services/media";
 import { changePassword } from "../../features/auth/authSlice";
+import LoadingState from "../../components/LoadingState";
+import ErrorState from "../../components/ErrorState";
+import OptimizedImage from "../../components/OptimizedImage";
+import { getFriendlyErrorMessage } from "../../utils/errorMessages";
 
 export default function CustomerProfile() {
   const dispatch = useDispatch();
@@ -96,7 +100,7 @@ export default function CustomerProfile() {
       setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
       setTimeout(() => setPasswordSuccess(false), 5000);
     } catch (err) {
-      setPasswordError(err || "Failed to change password. Please check your current password.");
+      setPasswordError(typeof err === "string" ? err : getFriendlyErrorMessage(err, "Failed to change password. Please check your current password."));
     } finally {
       setPasswordLoading(false);
     }
@@ -125,11 +129,7 @@ export default function CustomerProfile() {
     }
   };
 
-  if (loading && !profile) return (
-    <div className="flex justify-center items-center h-64">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-    </div>
-  );
+  if (loading && !profile) return <LoadingState label="Loading profile..." blocks={2} />;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
@@ -141,11 +141,7 @@ export default function CustomerProfile() {
 
         <form onSubmit={handleSubmit} className="p-8 space-y-10">
           {error && (
-            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl animate-shake">
-              <p className="text-red-700 text-sm font-medium">
-                {typeof error === 'string' ? error : (error?.message || "An error occurred")}
-              </p>
-            </div>
+            <ErrorState message={typeof error === 'string' ? error : (error?.message || "An error occurred")} />
           )}
 
           {updateSuccess && (
@@ -164,9 +160,7 @@ export default function CustomerProfile() {
           )}
 
           {uploadError && (
-            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl animate-shake">
-              <p className="text-red-700 text-sm font-medium">{uploadError}</p>
-            </div>
+            <ErrorState message={uploadError} />
           )}
 
           {/* Personal Info */}
@@ -191,7 +185,7 @@ export default function CustomerProfile() {
                     aria-label="Change profile photo"
                   >
                     {formData.profileImage ? (
-                      <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                      <OptimizedImage src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-2xl">👤</span>
                     )}
@@ -353,9 +347,7 @@ export default function CustomerProfile() {
                 </div>
               )}
               {passwordError && (
-                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl">
-                  <p className="text-red-700 text-sm font-medium">{passwordError}</p>
-                </div>
+                <ErrorState message={passwordError} />
               )}
 
               <div>

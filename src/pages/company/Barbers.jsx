@@ -8,6 +8,8 @@ import {
 } from "../../features/barbers/barbersSlice";
 import { fetchServices } from "../../features/services/servicesSlice";
 import BarberWorkingHours from "./BarberWorkingHours";
+import ErrorState from "../../components/ErrorState";
+import { getFriendlyErrorMessage } from "../../utils/errorMessages";
 
 export default function Barbers() {
   const dispatch = useAppDispatch();
@@ -61,7 +63,7 @@ export default function Barbers() {
           return;
         }
 
-        setFormError(message);
+        setFormError(getFriendlyErrorMessage(error, message || "Unable to add barber right now."));
       });
   };
 
@@ -90,11 +92,7 @@ export default function Barbers() {
       <div className="bg-white rounded-2xl shadow-lg p-8 mb-10">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">➕ Add New Barber</h2>
         
-        {formError && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-700 font-medium">{formError}</p>
-          </div>
-        )}
+        {formError && <ErrorState message={formError} onRetry={() => setFormError("")} retryLabel="Dismiss" />}
 
         <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>

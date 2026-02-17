@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import {
   fetchCustomers,
@@ -8,6 +8,11 @@ import {
 
 import ResetCustomerPasswordModal from "./ResetCustomerPasswordModal";
 import EditCustomerModal from "./EditCustomerModal";
+import LoadingState from "../../components/LoadingState";
+import EmptyState from "../../components/EmptyState";
+import Pagination from "../../components/Pagination";
+import usePagination from "../../hooks/usePagination";
+import useDebouncedValue from "../../hooks/useDebouncedValue";
 
 export default function PlatformCustomers() {
   const dispatch = useAppDispatch();
@@ -19,21 +24,30 @@ export default function PlatformCustomers() {
   const [editingCustomer, setEditingCustomer] = useState(null);
 
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [statusFilter, setStatusFilter] = useState("ALL");
 
   useEffect(() => {
     dispatch(fetchCustomers());
   }, [dispatch]);
 
-  const filteredCustomers = items.filter(c => {
-    const matchesSearch = c.FullName.toLowerCase().includes(search.toLowerCase()) || 
-                          c.Email.toLowerCase().includes(search.toLowerCase()) ||
-                          (c.PhoneNumber && c.PhoneNumber.includes(search));
-    const matchesStatus = statusFilter === "ALL" || 
-                          (statusFilter === "ACTIVE" && c.IsActive) || 
-                          (statusFilter === "INACTIVE" && !c.IsActive);
-    return matchesSearch && matchesStatus;
-  });
+  const filteredCustomers = useMemo(() => {
+    return items.filter(c => {
+      const matchesSearch = c.FullName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                            c.Email.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                            (c.PhoneNumber && c.PhoneNumber.includes(debouncedSearch));
+      const matchesStatus = statusFilter === "ALL" ||
+                            (statusFilter === "ACTIVE" && c.IsActive) ||
+                            (statusFilter === "INACTIVE" && !c.IsActive);
+      return matchesSearch && matchesStatus;
+    });
+  }, [items, debouncedSearch, statusFilter]);
+
+  const { currentPage, setCurrentPage, totalPages, paginatedItems } = usePagination(filteredCustomers, 9);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, statusFilter, setCurrentPage]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -72,21 +86,17 @@ export default function PlatformCustomers() {
         </div>
 
         {/* Loading State */}
-        {loading && (
-          <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="text-gray-600 mt-4">Loading customers...</p>
-          </div>
-        )}
+        {loading && <LoadingState label="Loading customers..." blocks={3} />}
 
         {!loading && filteredCustomers.length === 0 && (
-          <div className="bg-white rounded-lg shadow-md p-12 text-center text-gray-500">
-             {search || statusFilter !== "ALL" ? "No customers match your filters." : "No customers found."}
-          </div>
+          <EmptyState
+            title={search || statusFilter !== "ALL" ? "No customers match your filters" : "No customers found"}
+            description={search || statusFilter !== "ALL" ? "Try changing your filters." : "Customer records will appear here once registered."}
+          />
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCustomers.map(c => (
+          {paginatedItems.map(c => (
             <div
               key={c.Id}
               className={`rounded-xl shadow-md overflow-hidden transition-all hover:shadow-lg border-t-4 bg-white ${
@@ -148,6 +158,12 @@ export default function PlatformCustomers() {
             </div>
           ))}
         </div>
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
 
         <ResetCustomerPasswordModal
           customerId={resetId}

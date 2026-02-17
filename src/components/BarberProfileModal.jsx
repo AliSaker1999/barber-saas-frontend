@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchBarberProfile } from '../features/barbers/barbersSlice';
 import Modal from './Modal';
+import OptimizedImage from './OptimizedImage';
 
 export default function BarberProfileModal({ barberId, isOpen, onClose }) {
   const dispatch = useDispatch();
@@ -24,7 +25,7 @@ export default function BarberProfileModal({ barberId, isOpen, onClose }) {
             <div className="flex items-start space-x-4">
               <div className="w-20 h-20 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
                 {selectedProfile.ProfileImage ? (
-                  <img src={selectedProfile.ProfileImage} alt="" className="w-full h-full object-cover" />
+                  <OptimizedImage src={selectedProfile.ProfileImage} alt="" className="w-full h-full object-cover" />
                 ) : (
                    <span className="flex items-center justify-center h-full text-3xl">👤</span>
                 )}

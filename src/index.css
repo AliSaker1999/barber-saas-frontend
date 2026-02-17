@@ -4,12 +4,88 @@
 
 :root {
 	font-size: 14px;
+	color-scheme: light;
+	--app-bg: #f9fafb;
+	--app-surface: #ffffff;
+	--app-text: #111827;
+	--app-muted: #6b7280;
+}
+
+:root.dark {
+	color-scheme: dark;
+	--app-bg: #000000;
+	--app-surface: #090909;
+	--app-text: #f5f5f5;
+	--app-muted: #b4b4b4;
+}
+
+:root.dark .bg-blue-600,
+:root.dark .bg-indigo-600,
+:root.dark .bg-blue-500,
+:root.dark .bg-indigo-500 {
+	background-color: #b91c1c !important;
+}
+
+:root.dark .text-blue-600,
+:root.dark .text-indigo-600,
+:root.dark .text-blue-500,
+:root.dark .text-indigo-500 {
+	color: #ef4444 !important;
+}
+
+:root.dark .from-blue-600,
+:root.dark .from-indigo-600 {
+	--tw-gradient-from: #7f1d1d var(--tw-gradient-from-position) !important;
+	--tw-gradient-to: rgb(127 29 29 / 0) var(--tw-gradient-to-position) !important;
+	--tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+:root.dark .to-indigo-600,
+:root.dark .to-blue-600,
+:root.dark .to-blue-700 {
+	--tw-gradient-to: #b91c1c var(--tw-gradient-to-position) !important;
+}
+
+:root.dark .bg-white,
+:root.dark .bg-gray-50,
+:root.dark .bg-gray-100 {
+	background-color: #090909 !important;
+}
+
+:root.dark .text-gray-900,
+:root.dark .text-gray-800,
+:root.dark .text-gray-700,
+:root.dark .text-gray-600,
+:root.dark .text-gray-500 {
+	color: #f3f4f6 !important;
+}
+
+:root.dark .border-gray-100,
+:root.dark .border-gray-200,
+:root.dark .border-gray-300 {
+	border-color: #2b2b2b !important;
 }
 
 /* Base mobile compatibility */
 html, body {
-  background-color: #f9fafb; /* Matches gray-50 */
+  background-color: var(--app-bg);
+  color: var(--app-text);
   min-height: 100%;
+}
+
+#root {
+	min-height: 100vh;
+	background-color: var(--app-bg);
+}
+
+.app-page {
+	padding: 0.75rem;
+}
+
+@media (min-width: 640px) {
+	.app-page {
+		padding: 1rem;
+	}
 }
 
 /* Safe area utilities */
@@ -54,12 +130,13 @@ html, body {
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	z-index: 1000;
+	z-index: 9999;
 	backdrop-filter: blur(2px);
+	pointer-events: auto;
 }
 
 .app-modal {
-	background: #fff;
+	background: var(--app-surface);
 	border-radius: 12px;
 	width: 90%;
 	max-width: 500px;
@@ -67,6 +144,7 @@ html, body {
 	display: flex;
 	flex-direction: column;
 	box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+	position: relative;
 }
 
 .app-modal-header {
@@ -80,7 +158,7 @@ html, body {
 .app-modal-title {
 	font-size: 1.25rem;
 	font-weight: 700;
-	color: #111827;
+	color: var(--app-text);
 	margin: 0;
 }
 
@@ -94,7 +172,7 @@ html, body {
 	background: none;
 	font-size: 24px;
 	line-height: 1;
-	color: #9ca3af;
+	color: var(--app-muted);
 	cursor: pointer;
 	transition: color 0.2s;
 }

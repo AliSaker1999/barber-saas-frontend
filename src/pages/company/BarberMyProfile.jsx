@@ -2,6 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchBarberProfile, updateBarberProfile, toggleAvailability } from '../../features/barbers/barbersSlice';
 import { uploadImage } from "../../services/media";
+import LoadingState from "../../components/LoadingState";
+import ErrorState from "../../components/ErrorState";
+import OptimizedImage from "../../components/OptimizedImage";
+import { getFriendlyErrorMessage } from "../../utils/errorMessages";
 
 export default function BarberMyProfile() {
   const dispatch = useDispatch();
@@ -98,12 +102,12 @@ export default function BarberMyProfile() {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      const message = typeof err === 'string' ? err : (err?.message || "Failed to update profile");
+      const message = getFriendlyErrorMessage(err, "Unable to update profile right now.");
       setError(message);
     }
   };
 
-  if (loading && !selectedProfile) return <div className="p-8 text-center">Loading your profile...</div>;
+  if (loading && !selectedProfile) return <LoadingState label="Loading your profile..." blocks={2} />;
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -116,7 +120,7 @@ export default function BarberMyProfile() {
         {/* Cover Image Placeholder */}
         <div className="h-48 bg-gray-100 relative group">
           {formData.coverImage ? (
-            <img src={formData.coverImage} alt="Cover" className="w-full h-full object-cover" />
+            <OptimizedImage src={formData.coverImage} alt="Cover" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gradient-to-r from-gray-100 to-gray-200">
                No Cover Image
@@ -141,7 +145,7 @@ export default function BarberMyProfile() {
             aria-label="Change profile photo"
           >
              {formData.profileImage ? (
-               <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
+               <OptimizedImage src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
              ) : (
                <div className="w-full h-full flex items-center justify-center text-3xl bg-gray-50">👤</div>
              )}
@@ -162,19 +166,9 @@ export default function BarberMyProfile() {
             </div>
           )}
 
-          {error && (
-            <div className="bg-red-50 text-red-700 p-4 font-bold rounded-xl flex items-center justify-center animate-pulse">
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              Failed to update profile: {error}
-            </div>
-          )}
+          {error && <ErrorState message={error} onRetry={() => setError(null)} retryLabel="Dismiss" />}
 
-          {uploadError && (
-            <div className="bg-red-50 text-red-700 p-4 font-bold rounded-xl flex items-center justify-center animate-pulse">
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              {uploadError}
-            </div>
-          )}
+          {uploadError && <ErrorState message={uploadError} onRetry={() => setUploadError(null)} retryLabel="Dismiss" />}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             

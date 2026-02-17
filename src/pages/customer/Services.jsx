@@ -4,8 +4,12 @@ import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import {
   fetchServices,
   toggleService,
+  selectBarber,
   fetchBarbersForTenant
 } from "../../features/booking/bookingSlice";
+import LoadingState from "../../components/LoadingState";
+import EmptyState from "../../components/EmptyState";
+import ErrorState from "../../components/ErrorState";
 
 export default function Services() {
   const dispatch = useAppDispatch();
@@ -70,39 +74,17 @@ export default function Services() {
 
       {/* Loading State */}
       {loading && (
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <svg className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <p className="text-gray-600">Loading services...</p>
-          </div>
-        </div>
+        <LoadingState label="Loading services..." blocks={3} />
       )}
 
       {/* Error State */}
       {!loading && error && (
-        <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-          <p className="text-red-600 font-semibold">{error}</p>
-          <button
-            onClick={() => dispatch(fetchServices(tenantId))}
-            className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg"
-          >
-            Retry
-          </button>
-        </div>
+        <ErrorState message={error} onRetry={() => dispatch(fetchServices(tenantId))} />
       )}
 
       {/* Empty State */}
       {!loading && !error && services.length === 0 && (
-        <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-          <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <p className="text-gray-500 text-lg font-semibold">No services available</p>
-          <p className="text-gray-400 mt-2">This barbershop doesn't have any services yet</p>
-        </div>
+        <EmptyState title="No services available" description="This barbershop doesn't have any services yet." />
       )}
 
       {/* Services Grid */}

@@ -1,12 +1,23 @@
 import { Outlet, useNavigate, Link, NavLink } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "../app/hooks";
 import { logout } from "../features/auth/authSlice";
-import { useEffect, useState } from "react";
+import {  useState } from "react";
 import PhoneVerificationModal from "../components/PhoneVerificationModal";
 import PrivacyPolicyModal from "../components/PrivacyPolicyModal";
 import TermsOfServiceModal from "../components/TermsOfServiceModal";
 import NotificationsMenu from "../components/NotificationsMenu";
 import ConnectionBadge from "../components/ConnectionBadge";
+import ThemeToggle from "../components/ThemeToggle";
+
+const desktopNavItems = [
+  { to: "/customer", label: "Shops", icon: "🏠", end: true },
+  { to: "/customer/appointments", label: "Bookings", icon: "📅" },
+  { to: "/customer/conversations", label: "Messages", icon: "💬" },
+  { to: "/customer/queue", label: "Queue", icon: "⏱️" },
+  { to: "/customer/reports", label: "Stats", icon: "📊" },
+  { to: "/customer/profile", label: "Profile", icon: "👤" },
+  { to: "/customer/notifications", label: "Alerts", icon: "🔔" },
+];
 
 export default function CustomerLayout() {
 
@@ -70,8 +81,29 @@ export default function CustomerLayout() {
               </Link>
             </div>
 
+            <div className="hidden lg:flex flex-1 justify-center px-4">
+              <nav className="flex items-center gap-3">
+                {desktopNavItems.map((item) => (
+                  <HeaderLink
+                    key={item.to}
+                    to={item.to}
+                    label={item.label}
+                    icon={item.icon}
+                    end={item.end}
+                  />
+                ))}
+              </nav>
+            </div>
+
             {/* User Menu */}
             <div className="flex items-center gap-1 sm:gap-4">
+              <NavLink
+                to="/customer/conversations"
+                className="hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 text-red-700 text-xs font-bold"
+              >
+                💬 Conversations
+              </NavLink>
+              <ThemeToggle className="hidden sm:inline-flex" />
               <NotificationsMenu />
               <button
                 onClick={handleLogout}
@@ -91,6 +123,7 @@ export default function CustomerLayout() {
             <div className="py-2">
               <p className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Account</p>
               <MobileNavLink to="/customer/profile" label="👤 My Profile" onClick={() => setMobileMenuOpen(false)} />
+              <MobileNavLink to="/customer/conversations" label="💬 Conversations" onClick={() => setMobileMenuOpen(false)} />
               <MobileNavLink to="/customer/notifications" label="🔔 Notifications" onClick={() => setMobileMenuOpen(false)} />
             </div>
             {/* ... other menu items ... */}
@@ -99,7 +132,7 @@ export default function CustomerLayout() {
 
       {/* Main Content - Padded for Bottom Nav */}
       <main className="flex-1 pb-[calc(env(safe-area-inset-bottom)+150px)]">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="max-w-7xl mx-auto app-page">
           <Outlet />
         </div>
       </main>
@@ -111,9 +144,11 @@ export default function CustomerLayout() {
       >
         <BottomTab to="/customer" icon="🏪" end title="Shops" />
         <BottomTab to="/customer/appointments" icon="📅" title="Bookings" />
+        <BottomTab to="/customer/conversations" icon="💬" title="Chat" />
         <BottomTab to="/customer/queue" icon="⏱️" title="Queue" />
         <BottomTab to="/customer/reports" icon="📊" title="Stats" />
         <BottomTab to="/customer/notifications" icon="🔔" title="Alerts" />
+        <ThemeToggle className="!px-2 !py-1" />
       </div>
 
       {/* Footer (Desktop only) */}
@@ -146,20 +181,21 @@ export default function CustomerLayout() {
   );
 }
 
-function HeaderLink({ to, label, end = false }) {
+function HeaderLink({ to, label, icon, end = false }) {
   return (
     <NavLink
       to={to}
       end={end}
       className={({ isActive }) =>
-        `px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+        `px-5 py-3 rounded-2xl text-base sm:text-lg font-bold transition-all whitespace-nowrap border border-transparent flex items-center gap-2 ${
           isActive
-            ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
-            : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            ? "bg-white text-blue-600 shadow-lg shadow-blue-200"
+            : "text-gray-500 hover:bg-white hover:text-gray-900"
         }`
       }
     >
-      {label}
+      {icon && <span className="text-2xl sm:text-[1.6rem] leading-none">{icon}</span>}
+      <span className="text-sm sm:text-base">{label}</span>
     </NavLink>
   );
 }

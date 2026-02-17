@@ -22,6 +22,10 @@ import RateBarberModal from "../../components/RateBarberModal";
 import BarberProfileModal from "../../components/BarberProfileModal";
 import Modal from "../../components/Modal";
 import MobileHeader from "../../components/MobileHeader";
+import LoadingState from "../../components/LoadingState";
+import EmptyState from "../../components/EmptyState";
+import ErrorState from "../../components/ErrorState";
+import { getFriendlyErrorMessage } from "../../utils/errorMessages";
 
 export default function Appointments() {
   const dispatch = useAppDispatch();
@@ -212,7 +216,7 @@ export default function Appointments() {
       dispatch(fetchCustomerAppointments());
       toast.success("Payment reported");
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to report payment");
+      alert(getFriendlyErrorMessage(err, "Failed to report payment"));
       toast.error("Failed to report payment");
     } finally {
       setPayLoading(false);
@@ -256,9 +260,9 @@ export default function Appointments() {
         primaryAction={{ label: "Book", onClick: () => navigate("/customer") }}
       />
       {/* Header */}
-      <div className="mb-10">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">📅 My Appointments</h1>
-        <p className="text-gray-600 mb-2">View, manage, and reschedule your bookings</p>
+      <div className="mb-5 sm:mb-8">
+        <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-1.5">📅 My Appointments</h1>
+        <p className="text-xs sm:text-base text-gray-600 mb-1.5">View, manage, and reschedule your bookings</p>
         {lastFetchedAt && (
           <p className="text-xs text-gray-400 font-bold">
             Last updated {new Date(lastFetchedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -271,101 +275,88 @@ export default function Appointments() {
 
       {/* Stats Cards / Filters */}
       {!loading && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 mb-10">
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-7 gap-2 sm:gap-3 mb-6 sm:mb-10">
           <button 
             onClick={() => setFilter("TOTAL")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left tap-target ${filter === "TOTAL" ? "bg-blue-600 border-blue-600 text-white shadow-lg scale-105" : "bg-white border-blue-100 text-gray-700 hover:border-blue-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "TOTAL" ? "bg-blue-600 border-blue-600 text-white shadow" : "bg-white border-blue-100 text-gray-700 hover:border-blue-300 shadow-sm"}`}
           >
-            <p className={`text-sm font-semibold ${filter === "TOTAL" ? "text-blue-100" : "text-gray-500"}`}>Total</p>
-            <p className="text-4xl font-bold mt-2">{items.length}</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "TOTAL" ? "text-blue-100" : "text-gray-500"}`}>Total</p>
+            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.length}</p>
           </button>
           
           <button 
             onClick={() => setFilter("SCHEDULED")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left tap-target ${filter === "SCHEDULED" ? "bg-blue-500 border-blue-500 text-white shadow-lg scale-105" : "bg-white border-blue-100 text-gray-700 hover:border-blue-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "SCHEDULED" ? "bg-blue-500 border-blue-500 text-white shadow" : "bg-white border-blue-100 text-gray-700 hover:border-blue-300 shadow-sm"}`}
           >
-            <p className={`text-sm font-semibold ${filter === "SCHEDULED" ? "text-blue-100" : "text-gray-500"}`}>Scheduled</p>
-            <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'SCHEDULED').length}</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "SCHEDULED" ? "text-blue-100" : "text-gray-500"}`}>Scheduled</p>
+            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'SCHEDULED').length}</p>
           </button>
 
           <button 
             onClick={() => setFilter("PENDING")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left tap-target ${filter === "PENDING" ? "bg-indigo-600 border-indigo-600 text-white shadow-lg scale-105" : "bg-white border-indigo-100 text-gray-700 hover:border-indigo-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "PENDING" ? "bg-indigo-600 border-indigo-600 text-white shadow" : "bg-white border-indigo-100 text-gray-700 hover:border-indigo-300 shadow-sm"}`}
           >
-            <p className={`text-sm font-semibold ${filter === "PENDING" ? "text-indigo-100" : "text-gray-500"}`}>Pending</p>
-            <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'PENDING').length}</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "PENDING" ? "text-indigo-100" : "text-gray-500"}`}>Pending</p>
+            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'PENDING').length}</p>
           </button>
 
           <button 
             onClick={() => setFilter("COMPLETED")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left tap-target ${filter === "COMPLETED" ? "bg-green-600 border-green-600 text-white shadow-lg scale-105" : "bg-white border-green-100 text-gray-700 hover:border-green-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "COMPLETED" ? "bg-green-600 border-green-600 text-white shadow" : "bg-white border-green-100 text-gray-700 hover:border-green-300 shadow-sm"}`}
           >
-            <p className={`text-sm font-semibold ${filter === "COMPLETED" ? "text-green-100" : "text-gray-500"}`}>Completed</p>
-            <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'COMPLETED').length}</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "COMPLETED" ? "text-green-100" : "text-gray-500"}`}>Completed</p>
+            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'COMPLETED').length}</p>
           </button>
 
           <button 
             onClick={() => setFilter("CANCELLED")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left tap-target ${filter === "CANCELLED" ? "bg-red-600 border-red-600 text-white shadow-lg scale-105" : "bg-white border-red-100 text-gray-700 hover:border-red-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "CANCELLED" ? "bg-red-600 border-red-600 text-white shadow" : "bg-white border-red-100 text-gray-700 hover:border-red-300 shadow-sm"}`}
           >
-            <p className={`text-sm font-semibold ${filter === "CANCELLED" ? "text-red-100" : "text-gray-500"}`}>Cancelled</p>
-            <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'CANCELLED').length}</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "CANCELLED" ? "text-red-100" : "text-gray-500"}`}>Cancelled</p>
+            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'CANCELLED').length}</p>
           </button>
 
           <button 
             onClick={() => setFilter("DECLINED")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left tap-target ${filter === "DECLINED" ? "bg-gray-600 border-gray-600 text-white shadow-lg scale-105" : "bg-white border-gray-100 text-gray-700 hover:border-gray-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "DECLINED" ? "bg-gray-600 border-gray-600 text-white shadow" : "bg-white border-gray-100 text-gray-700 hover:border-gray-300 shadow-sm"}`}
           >
-            <p className={`text-sm font-semibold ${filter === "DECLINED" ? "text-gray-100" : "text-gray-500"}`}>Declined</p>
-            <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'DECLINED').length}</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "DECLINED" ? "text-gray-100" : "text-gray-500"}`}>Declined</p>
+            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'DECLINED').length}</p>
           </button>
 
           <button 
             onClick={() => setFilter("NO_SHOW")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left tap-target ${filter === "NO_SHOW" ? "bg-amber-600 border-amber-600 text-white shadow-lg scale-105" : "bg-white border-amber-100 text-gray-700 hover:border-amber-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "NO_SHOW" ? "bg-amber-600 border-amber-600 text-white shadow" : "bg-white border-amber-100 text-gray-700 hover:border-amber-300 shadow-sm"}`}
           >
-            <p className={`text-sm font-semibold ${filter === "NO_SHOW" ? "text-amber-100" : "text-gray-500"}`}>No Show</p>
-            <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'NO_SHOW').length}</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "NO_SHOW" ? "text-amber-100" : "text-gray-500"}`}>No Show</p>
+            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'NO_SHOW').length}</p>
           </button>
 
           <button 
             onClick={() => setFilter("AWAITING_PAYMENT")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left tap-target ${filter === "AWAITING_PAYMENT" ? "bg-amber-500 border-amber-500 text-white shadow-lg scale-105" : "bg-white border-amber-100 text-gray-700 hover:border-amber-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "AWAITING_PAYMENT" ? "bg-amber-500 border-amber-500 text-white shadow" : "bg-white border-amber-100 text-gray-700 hover:border-amber-300 shadow-sm"}`}
           >
-            <p className={`text-sm font-semibold ${filter === "AWAITING_PAYMENT" ? "text-white" : "text-gray-500"}`}>To Pay</p>
-            <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'AWAITING_PAYMENT').length}</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "AWAITING_PAYMENT" ? "text-white" : "text-gray-500"}`}>To Pay</p>
+            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'AWAITING_PAYMENT').length}</p>
           </button>
         </div>
       )}
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border-2 border-red-200 text-red-700 px-6 py-4 rounded-xl mb-8 flex items-center justify-between">
-          <span>⚠️ {error}</span>
+        <div className="mb-6">
+          <ErrorState message={error} onRetry={() => dispatch(fetchCustomerAppointments())} />
         </div>
       )}
 
       {/* Loading State */}
       {loading && (
-        <div className="space-y-4">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 animate-pulse">
-              <div className="h-4 w-24 bg-gray-200 rounded mb-2"></div>
-              <div className="h-6 w-40 bg-gray-200 rounded mb-4"></div>
-              <div className="h-4 w-64 bg-gray-200 rounded"></div>
-            </div>
-          ))}
-        </div>
+        <LoadingState label="Loading appointments..." blocks={3} />
       )}
 
       {/* Empty State */}
       {!loading && filteredItems.length === 0 && (
-        <div className="bg-white rounded-2xl shadow-lg p-12 text-center border-2 border-dashed border-gray-200">
-          <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <p className="text-gray-500 text-lg font-semibold">No {filter.toLowerCase()} appointments</p>
-        </div>
+        <EmptyState title="No appointments found" description={`No ${filter.toLowerCase()} appointments right now.`} />
       )}
 
       {/* Appointments List */}
@@ -377,18 +368,18 @@ export default function Appointments() {
 
             return (
               <div
-                key={appointment.Id}
-                id={`appointment-${appointment.Id}`}
-                className="group relative bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-2xl hover:scale-[1.01] hover:z-10 transition-all duration-300 cursor-default overflow-hidden"
+                  key={appointment.Id}
+                  id={`appointment-${appointment.Id}`}
+                  className="group relative bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-2xl hover:scale-[1.01] hover:z-10 transition-all duration-300 cursor-default overflow-hidden"
               >
-                <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-600 transform scale-y-0 group-hover:scale-y-100 transition-transform origin-top duration-300" />
+                  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-600 transform scale-y-0 group-hover:scale-y-100 transition-transform origin-top duration-300" />
                 
-                <div className="p-4 md:p-6 flex flex-col md:flex-row md:items-center gap-6">
+                  <div className="p-3 sm:p-4 md:p-6 flex flex-col md:flex-row md:items-center gap-4 sm:gap-5 md:gap-6">
                   {/* Time Column */}
-                  <div className="min-w-[140px]">
+                    <div className="min-w-[110px] sm:min-w-[140px]">
                     <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Time</p>
                     <p className="text-sm font-bold text-gray-900">{date}</p>
-                    <p className="text-indigo-600 font-black text-lg">⏰ {time}</p>
+                      <p className="text-indigo-600 font-black text-base sm:text-lg">⏰ {time}</p>
                   </div>
 
                   {/* Details Column */}
@@ -396,7 +387,7 @@ export default function Appointments() {
                     <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">
                        Services at <button onClick={() => openProfile(appointment.BarberId)} className="hover:underline hover:text-indigo-600 font-bold text-gray-500 uppercase">{appointment.BarberName}</button>
                     </p>
-                    <p className="text-lg font-bold text-gray-900">{appointment.Services}</p>
+                      <p className="text-base sm:text-lg font-bold text-gray-900">{appointment.Services}</p>
                     {appointment.Status === "DECLINED" && appointment.DeclineReason && (
                         <p className="mt-2 text-sm text-red-600 font-medium italic border-l-2 border-red-200 pl-3">
                             <span className="font-bold uppercase text-[10px] block not-italic mb-0.5">Reason for decline:</span>
@@ -413,7 +404,7 @@ export default function Appointments() {
                     {appointment.PaymentStatus === 'PENDING' && (
                         <div className="px-3 py-1 bg-amber-500 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">Verifying</div>
                     )}
-                    <div className={`px-4 py-1.5 rounded-full font-bold text-xs flex items-center gap-2 ${statusBadge.bg} border ${statusBadge.border} ${statusBadge.text}`}>
+                    <div className={`px-3 py-1 rounded-full font-bold text-[11px] sm:text-xs flex items-center gap-1.5 ${statusBadge.bg} border ${statusBadge.border} ${statusBadge.text}`}>
                       <span className="text-sm">{statusBadge.icon}</span> {appointment.Status}
                     </div>
                   </div>
@@ -423,7 +414,7 @@ export default function Appointments() {
                     {appointment.Status === "COMPLETED" && (
                         <button
                             onClick={() => openRateModal(appointment)}
-                          className="bg-yellow-50 hover:bg-yellow-600 hover:text-white text-yellow-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-yellow-100 uppercase tap-target"
+                          className="bg-yellow-50 hover:bg-yellow-600 hover:text-white text-yellow-600 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-bold text-[10px] sm:text-xs transition-all border border-yellow-100 uppercase tap-target"
                         >
                             Rate ★
                         </button>
@@ -431,12 +422,15 @@ export default function Appointments() {
                     {(appointment.Status === "SCHEDULED" || appointment.Status === "PENDING" || appointment.Status === "AWAITING_PAYMENT") && (
                       <>
                         <button
-                          onClick={() => dispatch(openChatWindow({
-                            barberId: appointment.BarberId,
-                            customerId: user.id,
-                            peerName: appointment.BarberName
-                          }))}
-                          className="bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-blue-100 uppercase tap-target"
+                          onClick={() => {
+                            dispatch(openChatWindow({
+                              barberId: appointment.BarberId,
+                              customerId: user.id,
+                              peerName: appointment.BarberName
+                            }));
+                            navigate("/customer/conversations");
+                          }}
+                          className="bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-bold text-[10px] sm:text-xs transition-all border border-blue-100 uppercase tap-target"
                         >
                           Chat
                         </button>
@@ -444,7 +438,7 @@ export default function Appointments() {
                          ((appointment.IsWhishPaymentEnabled && appointment.WhishPhoneNumber) || (appointment.LoyaltyEnabled && appointment.LoyaltyAllowRedemption)) && (
                           <button
                             onClick={() => openPayModal(appointment)}
-                            className="bg-green-50 hover:bg-green-600 hover:text-white text-green-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-green-100 uppercase flex items-center gap-1 tap-target"
+                            className="bg-green-50 hover:bg-green-600 hover:text-white text-green-600 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-bold text-[10px] sm:text-xs transition-all border border-green-100 uppercase flex items-center gap-1 tap-target"
                           >
                             <span>💸</span> Pay
                           </button>
@@ -452,7 +446,7 @@ export default function Appointments() {
                         {appointment.Status !== "AWAITING_PAYMENT" && (
                             <button
                               onClick={() => handleReschedule(appointment)}
-                              className="bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-indigo-100 uppercase tap-target"
+                              className="bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-600 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-bold text-[10px] sm:text-xs transition-all border border-indigo-100 uppercase tap-target"
                             >
                               Reschedule
                             </button>
@@ -463,7 +457,7 @@ export default function Appointments() {
                             setCancelModalOpen(true);
                             setActionError(null);
                           }}
-                          className="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 px-4 py-2 rounded-lg font-bold text-xs transition-all border border-red-100 uppercase tap-target"
+                          className="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-bold text-[10px] sm:text-xs transition-all border border-red-100 uppercase tap-target"
                         >
                           Cancel
                         </button>

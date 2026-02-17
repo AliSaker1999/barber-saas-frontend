@@ -1,5 +1,7 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAppSelector } from "../app/hooks";
+import LoadingState from "../components/LoadingState";
 
 /* Layouts */
 import PlatformLayout from "../layouts/PlatformLayout";
@@ -7,53 +9,63 @@ import CompanyLayout from "../layouts/CompanyLayout";
 import CustomerLayout from "../layouts/CustomerLayout";
 
 /* Pages */
-import Login from "../pages/auth/login";
-import Signup from "../pages/auth/Signup";
+const Login = lazy(() => import("../pages/auth/login"));
+const Signup = lazy(() => import("../pages/auth/Signup"));
 
 /* Platform */
-import PlatformTenants from "../pages/platform/Tenants";
-import PlatformCustomers from "../pages/platform/Customers";
-import Reports from "../pages/platform/Reports";
+const PlatformTenants = lazy(() => import("../pages/platform/Tenants"));
+const PlatformCustomers = lazy(() => import("../pages/platform/Customers"));
+const Reports = lazy(() => import("../pages/platform/Reports"));
+const EnvPage = lazy(() => import("../pages/platform/EnvPage"));
 
 /* Company */
-import Queue from "../pages/company/Queue";
-import Appointments from "../pages/company/Appointments";
-import Services from "../pages/company/Services";
+const Queue = lazy(() => import("../pages/company/Queue"));
+const Appointments = lazy(() => import("../pages/company/Appointments"));
+const Services = lazy(() => import("../pages/company/Services"));
 // import Staff from "../pages/company/Staff";
-import Barbers from "../pages/company/Barbers";
-import CompanyProfile from "../pages/company/CompanyProfile";
-import BarberMyProfile from "../pages/company/BarberMyProfile";
-import AdminReports from "../pages/company/AdminReports";
-import NotificationHistory from "../pages/customer/NotificationHistory";
+const Barbers = lazy(() => import("../pages/company/Barbers"));
+const CompanyProfile = lazy(() => import("../pages/company/CompanyProfile"));
+const BarberMyProfile = lazy(() => import("../pages/company/BarberMyProfile"));
+const AdminReports = lazy(() => import("../pages/company/AdminReports"));
+const NotificationHistory = lazy(() => import("../pages/customer/NotificationHistory"));
+const ConversationsPage = lazy(() => import("../pages/shared/Conversations"));
 
 /* Customer */
-import Tenants from "../pages/customer/Tenants";
-import CustomerServices from "../pages/customer/Services";
-import CustomerBarbers from "../pages/customer/Barbers";
-import Slots from "../pages/customer/Slots";
-import QueueStatus from "../pages/customer/QueueStatus";
-import CustomerAppointments from "../pages/customer/Appointments";
-import CustomerProfile from "../pages/customer/Profile";
-import CustomerReports from "../pages/customer/CustomerReports";
+const Tenants = lazy(() => import("../pages/customer/Tenants"));
+const CustomerServices = lazy(() => import("../pages/customer/Services"));
+const CustomerBarbers = lazy(() => import("../pages/customer/Barbers"));
+const Slots = lazy(() => import("../pages/customer/Slots"));
+const QueueStatus = lazy(() => import("../pages/customer/QueueStatus"));
+const CustomerAppointments = lazy(() => import("../pages/customer/Appointments"));
+const CustomerProfile = lazy(() => import("../pages/customer/Profile"));
+const CustomerReports = lazy(() => import("../pages/customer/CustomerReports"));
 
 
 export default function AppRoutes() {
   const user = useAppSelector(state => state.auth.user);
+  const routeFallback = (
+    <div className="p-4">
+      <LoadingState label="Loading page..." blocks={2} />
+    </div>
+  );
 
   /* ---------------- NOT LOGGED IN ---------------- */
   if (!user) {
     return (
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="*" element={<Navigate to="/login" />} />
-      </Routes>
+      <Suspense fallback={routeFallback}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="*" element={<Navigate to="/login" />} />
+        </Routes>
+      </Suspense>
     );
   }
 
   /* ---------------- LOGGED IN ---------------- */
   return (
-    <Routes>
+    <Suspense fallback={routeFallback}>
+      <Routes>
 
       {/* ✅ ROOT REDIRECT — THIS FIXES WHITE SCREEN */}
       <Route
@@ -75,6 +87,7 @@ export default function AppRoutes() {
           <Route path="tenants" element={<PlatformTenants />} />
           <Route path="customers" element={<PlatformCustomers />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="env" element={<EnvPage />} />
           <Route index element={<Navigate to="tenants" />} />
         </Route>
       )}
@@ -90,6 +103,7 @@ export default function AppRoutes() {
           <Route path="my-profile" element={<BarberMyProfile />} />
           <Route path="reports" element={<AdminReports />} />
           <Route path="notifications" element={<NotificationHistory />} />
+          <Route path="conversations" element={<ConversationsPage />} />
      
           <Route path="settings" element={<p>Settings page</p>} />
           <Route index element={<Navigate to="queue" />} />
@@ -108,6 +122,7 @@ export default function AppRoutes() {
           <Route path="profile" element={<CustomerProfile />} />
           <Route path="reports" element={<CustomerReports />} />
           <Route path="notifications" element={<NotificationHistory />} />
+          <Route path="conversations" element={<ConversationsPage />} />
         </Route>
       )}
 
@@ -125,6 +140,7 @@ export default function AppRoutes() {
         }
       />
 
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 }

@@ -6,7 +6,9 @@ import { fetchNotifications, addNotification, markAsRead } from "./features/noti
 import { useAppDispatch, useAppSelector } from "./app/hooks";
 import { setOnlineStatus } from "./features/ui/uiSlice";
 import { getSocket, connectSocket } from "./services/socket";
-import ChatWidget from "./components/Chat/ChatWidget";
+import { getNotificationPath } from "./utils/notificationNavigation";
+import api from "./services/api";
+import { initPushNotifications, showClientNotification } from "./services/pushNotifications";
 
 export default function App() {
   const { user, token } = useAppSelector((state) => state.auth);
@@ -30,6 +32,19 @@ export default function App() {
     // If user is already stored but socket not connected (e.g. on refresh)
     if (user && token) {
        dispatch(fetchNotifications());
+
+       initPushNotifications({
+        onToken: async (deviceToken) => {
+          try {
+            await api.post("/notifications/device-token", {
+              token: deviceToken,
+              platform: "native"
+            });
+          } catch {
+            // Silent fail for token registration.
+          }
+        }
+       });
        
        if (!getSocket()) {
           const socket = connectSocket(token, user.id);
@@ -58,6 +73,19 @@ export default function App() {
         // Add to Redux state
         dispatch(addNotification(data));
 
+        showClientNotification({
+          title: data.Title || "BarberSaaS",
+          body: data.Message || "You have a new update",
+          data,
+          tag: `notification-${data.Id || Date.now()}`,
+          onClick: () => {
+            if (data.Id) {
+              dispatch(markAsRead(data.Id));
+            }
+            navigate(getNotificationPath(data, user?.roles || []));
+          }
+        });
+
         // Play sound if available (optional enhancement)
 
         // const audio = new Audio('/notification.mp3');
@@ -73,30 +101,7 @@ export default function App() {
               if (data.Id) {
                 dispatch(markAsRead(data.Id));
               }
-              const basePath = user?.roles?.includes("CUSTOMER") ? "/customer" : "/company";
-              const payload = data?.Data || {};
-
-              // Handle Rating deep-link
-              if (payload.type === 'RATING') {
-                const barberParam = payload.barberId ? `&barberId=${payload.barberId}` : "";
-                if (payload.appointmentId) {
-                  navigate(`${basePath}/appointments?rate=true&appointmentId=${payload.appointmentId}${barberParam}`);
-                } else if (payload.queueId) {
-                  const tParam = payload.tenantId ? `&tenantId=${payload.tenantId}` : "";
-                  navigate(`${basePath}/queue?rate=true&queueId=${payload.queueId}${tParam}${barberParam}`);
-                }
-                toast.dismiss(t.id);
-                return;
-              }
-
-              if (payload.appointmentId) {
-                navigate(`${basePath}/appointments?appointmentId=${payload.appointmentId}`);
-              } else if (payload.queueId || payload.tenantId) {
-                const tenantParam = payload.tenantId ? `?tenantId=${payload.tenantId}` : "";
-                navigate(`${basePath}/queue${tenantParam}`);
-              } else {
-                navigate(`${basePath}/notifications`);
-              }
+              navigate(getNotificationPath(data, user?.roles || []));
               toast.dismiss(t.id);
             }}
           >
@@ -149,7 +154,6 @@ export default function App() {
     <>
       <Toaster position="top-right" reverseOrder={false} />
       <AppRoutes />
-      {user && <ChatWidget />}
     </>
   );
 }

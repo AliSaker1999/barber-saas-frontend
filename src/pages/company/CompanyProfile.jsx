@@ -11,6 +11,7 @@ import {
 import { requestUserLocation } from "../../features/location/locationSlice";
 import { uploadImage } from "../../services/media";
 import Modal from "../../components/Modal";
+import OptimizedImage from "../../components/OptimizedImage";
 
 export default function CompanyProfile() {
   const dispatch = useDispatch();
@@ -391,7 +392,7 @@ export default function CompanyProfile() {
               <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="relative h-60 bg-gray-100 group">
                   {formData.coverImageUrl ? (
-                    <img src={formData.coverImageUrl} alt="Cover" className="w-full h-full object-cover" />
+                    <OptimizedImage src={formData.coverImageUrl} alt="Cover" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gradient-to-r from-gray-100 to-gray-200">
                       <svg className="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -428,7 +429,7 @@ export default function CompanyProfile() {
                         aria-label="Change logo"
                       >
                         {formData.logoUrl ? (
-                          <img src={formData.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                          <OptimizedImage src={formData.logoUrl} alt="Logo" className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 text-gray-400">
                              <span className="text-4xl mb-1">🏪</span>

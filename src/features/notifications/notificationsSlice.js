@@ -43,7 +43,8 @@ const notificationsSlice = createSlice({
   initialState: {
     items: [],
     loading: false,
-    unreadCount: 0
+    unreadCount: 0,
+    error: null
   },
   reducers: {
     addNotification: (state, action) => {
@@ -60,9 +61,20 @@ const notificationsSlice = createSlice({
     }
   },
   extraReducers: (builder) => {
+    builder.addCase(fetchNotifications.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+
     builder.addCase(fetchNotifications.fulfilled, (state, action) => {
+      state.loading = false;
       state.items = action.payload;
       state.unreadCount = action.payload.filter(n => !n.IsRead).length;
+    });
+
+    builder.addCase(fetchNotifications.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload || "Failed to fetch notifications";
     });
     builder.addCase(markAsRead.fulfilled, (state, action) => {
       const item = state.items.find(n => n.Id === action.payload);

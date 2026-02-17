@@ -1,10 +1,19 @@
 import { io } from "socket.io-client";
 
+const defaultSocketUrl = "https://barber-saas-backend-l4iz.onrender.com";
+const socketUrl = import.meta.env.VITE_WS_URL || defaultSocketUrl;
+
 let socket;
 
 export function connectSocket(token, userId) {
-  socket = io("https://barber-saas-backend-l4iz.onrender.com", {
-    auth: { token }
+  socket = io(socketUrl, {
+    auth: { token },
+    transports: ["websocket"],
+    timeout: 10000,
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 300,
+    reconnectionDelayMax: 2000
   });
 
   if (userId) {

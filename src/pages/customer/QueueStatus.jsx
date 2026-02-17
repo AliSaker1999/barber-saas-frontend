@@ -12,6 +12,10 @@ import RateBarberModal from "../../components/RateBarberModal";
 import Modal from "../../components/Modal";
 import MobileHeader from "../../components/MobileHeader";
 import { fetchCustomerLoyalty } from "../../features/loyalty/loyaltySlice";
+import LoadingState from "../../components/LoadingState";
+import EmptyState from "../../components/EmptyState";
+import ErrorState from "../../components/ErrorState";
+import { getFriendlyErrorMessage } from "../../utils/errorMessages";
 
 export default function QueueStatus() {
   const dispatch = useAppDispatch();
@@ -44,6 +48,9 @@ export default function QueueStatus() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
   const [serviceError, setServiceError] = useState("");
+
+    const toFriendlyMessage = (error, fallback) =>
+        typeof error === "string" ? error : getFriendlyErrorMessage(error, fallback);
 
     const loyaltyState = useAppSelector(s => s.loyalty.customer);
     const loyaltyInfo = loyaltyState.tenantId === tenantId ? loyaltyState.data : null;
@@ -250,10 +257,10 @@ export default function QueueStatus() {
                   setServiceModalOpen(true);
               }
           } else {
-              setServiceError(errMsg);
+              setServiceError(toFriendlyMessage(err, "Unable to join queue. Please try again."));
               setServiceModalOpen(true);
           }
-          toast.error(errMsg);
+          toast.error(toFriendlyMessage(err, "Unable to join queue. Please try again."));
       }
   };
 
@@ -278,9 +285,10 @@ export default function QueueStatus() {
       await dispatch(leaveQueue(tenantId)).unwrap();
       setLeaveModalOpen(false);
             toast.success("Left the queue");
-    } catch {
-      setServiceError("Failed to leave queue. Please try again.");
-            toast.error("Failed to leave queue");
+        } catch (err) {
+            const friendly = toFriendlyMessage(err, "Failed to leave queue. Please try again.");
+            setServiceError(friendly);
+            toast.error(friendly);
     }
   };
 
@@ -298,7 +306,7 @@ export default function QueueStatus() {
         setPaymentModalOpen(false);
         toast.success("Payment reported");
     } catch (err) {
-        const errMsg = typeof err === "string" ? err : err?.message || "Failed to report payment.";
+        const errMsg = toFriendlyMessage(err, "Failed to report payment.");
         setServiceError(errMsg);
         toast.error(errMsg);
     }
@@ -317,7 +325,7 @@ export default function QueueStatus() {
             setSelectedRewardId("");
             toast.success("Paid with loyalty points");
         } catch (err) {
-            const errMsg = typeof err === "string" ? err : err?.message || "Failed to redeem loyalty points.";
+            const errMsg = toFriendlyMessage(err, "Failed to redeem loyalty points.");
             setServiceError(errMsg);
             toast.error(errMsg);
         }
@@ -346,7 +354,10 @@ export default function QueueStatus() {
   if (!tenantId) {
     return (
       <div className="text-center py-20">
-        <p className="text-gray-600 text-lg">No active queue context</p>
+                <EmptyState
+                    title="No active queue context"
+                    description="Select a barbershop first, then return to queue."
+                />
         <button
           onClick={() => navigate("/customer")}
           className="mt-4 text-indigo-600 hover:text-indigo-700 font-semibold"
@@ -564,11 +575,14 @@ export default function QueueStatus() {
                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-indigo-600 text-white text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-tighter">Support</div>
                  <p className="text-gray-500 text-sm font-bold">Need to talk to {barberName}?</p>
                                  <button 
-                  onClick={() => dispatch(openChatWindow({
-                    barberId,
-                    customerId: user.id,
-                    peerName: barberName
-                  }))}
+                                    onClick={() => {
+                                        dispatch(openChatWindow({
+                                            barberId,
+                                            customerId: user.id,
+                                            peerName: barberName
+                                        }));
+                                        navigate("/customer/conversations");
+                                    }}
                                     className="mt-2 text-indigo-600 font-black hover:text-indigo-700 transition-colors flex items-center justify-center gap-2 mx-auto tap-target"
                  >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
@@ -586,15 +600,7 @@ export default function QueueStatus() {
           <p className="text-gray-600 mb-8 text-center">Select a barber to see their wait time.</p>
           
                     {loading && stats.length === 0 && (
-                        <div className="space-y-4">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 animate-pulse">
-                                    <div className="h-4 w-40 bg-gray-200 rounded mb-3"></div>
-                                    <div className="h-6 w-24 bg-gray-200 rounded mb-2"></div>
-                                    <div className="h-10 w-full bg-gray-200 rounded"></div>
-                                </div>
-                            ))}
-                        </div>
+                        <LoadingState label="Loading queue availability..." blocks={3} />
                     )}
           
           <div className="space-y-4">
@@ -660,11 +666,10 @@ export default function QueueStatus() {
               })}
               
               {stats.length === 0 && !loading && (
-                  <div className="text-center text-gray-500 bg-gray-50 p-12 rounded-3xl border-2 border-dashed border-gray-200">
-                      <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      <p className="font-bold">No Barbers Available</p>
-                      <p className="text-sm">We couldn't find any barbers available for walk-ins right now.</p>
-                  </div>
+                  <EmptyState
+                    title="No barbers available"
+                    description="We couldn't find any barbers available for walk-ins right now."
+                  />
               )}
           </div>
           
@@ -754,9 +759,8 @@ export default function QueueStatus() {
                 </p>
 
                 {serviceError && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 text-sm font-bold rounded-xl flex items-center gap-2 animate-shake">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                        {serviceError}
+                    <div className="mb-4">
+                        <ErrorState message={serviceError} />
                     </div>
                 )}
 
@@ -926,8 +930,8 @@ export default function QueueStatus() {
                 </p>
 
                 {serviceError && (
-                    <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm font-bold">
-                        {serviceError}
+                    <div className="mb-4">
+                        <ErrorState message={serviceError} />
                     </div>
                 )}
                 

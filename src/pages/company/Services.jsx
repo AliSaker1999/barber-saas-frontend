@@ -7,6 +7,9 @@ import {
   deleteService
 } from "../../features/services/servicesSlice";
 import Modal from "../../components/Modal";
+import LoadingState from "../../components/LoadingState";
+import EmptyState from "../../components/EmptyState";
+import { getFriendlyErrorMessage } from "../../utils/errorMessages";
 
 export default function Services() {
   const dispatch = useAppDispatch();
@@ -51,7 +54,7 @@ export default function Services() {
     }))
       .unwrap()
       .then(() => dispatch(fetchServices()))
-      .catch(err => setFormError(err?.message || "Failed to add service"));
+      .catch(err => setFormError(getFriendlyErrorMessage(err, "Unable to add service right now.")));
 
     setName("");
     setPrice("");
@@ -71,7 +74,7 @@ export default function Services() {
       }
     }))
       .unwrap()
-      .catch(err => setFormError(err || "Failed to update service"));
+      .catch(err => setFormError(getFriendlyErrorMessage(err, "Unable to update this service right now.")));
   };
 
   const openEditModal = service => {
@@ -111,7 +114,7 @@ export default function Services() {
     }))
       .unwrap()
       .then(() => closeEditModal())
-      .catch(err => setFormError(err || "Failed to update service"));
+      .catch(err => setFormError(getFriendlyErrorMessage(err, "Unable to save your service changes.")));
   };
 
   return (
@@ -191,25 +194,14 @@ export default function Services() {
       </div>
 
       {/* Loading State */}
-      {loading && (
-        <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-          <svg className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <p className="text-gray-600 text-lg mt-4">Loading services...</p>
-        </div>
-      )}
+      {loading && <LoadingState label="Loading services..." blocks={3} />}
 
       {/* Empty State */}
       {!loading && items.length === 0 && (
-        <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-          <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-          <p className="text-gray-500 text-lg font-semibold">No services added yet</p>
-          <p className="text-gray-400 mt-2">Add your first service using the form above</p>
-        </div>
+        <EmptyState
+          title="No services added yet"
+          description="Add your first service using the form above."
+        />
       )}
 
       {/* Services Grid */}

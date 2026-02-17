@@ -4,6 +4,7 @@ import { logout } from "../features/auth/authSlice";
 import { useEffect, useState } from "react";
 import NotificationsMenu from "../components/NotificationsMenu";
 import ConnectionBadge from "../components/ConnectionBadge";
+import ThemeToggle from "../components/ThemeToggle";
 
 const navItems = [
   { to: "queue", label: "Queue", icon: "🚀", roles: ["ADMIN", "BARBER"] },
@@ -11,6 +12,7 @@ const navItems = [
   { to: "services", label: "Services", icon: "✂️", roles: ["ADMIN"] },
   { to: "barbers", label: "Team", icon: "👥", roles: ["ADMIN"] },
   { to: "reports", label: "Reports", icon: "📊", roles: ["ADMIN", "BARBER"] },
+  { to: "conversations", label: "Messages", icon: "💬", roles: ["ADMIN", "BARBER"] },
   { to: "my-profile", label: "My Profile", icon: "👤", roles: ["BARBER"] },
   { to: "profile", label: "Shop Profile", icon: "🏢", roles: ["ADMIN"] },
   { to: "notifications", label: "Notifications", icon: "🔔", roles: ["ADMIN", "BARBER"] }, // Added for easy access
@@ -100,6 +102,13 @@ export default function CompanyLayout() {
             </div>
 
             <div className="flex items-center gap-3 sm:gap-4">
+              <NavLink
+                to="conversations"
+                className="hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 text-red-700 text-xs font-bold"
+              >
+                💬 Conversations
+              </NavLink>
+              <ThemeToggle className="hidden sm:inline-flex" />
                 <div className="md:hidden">
                     <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500 animate-pulse'}`}></div>
                 </div>
@@ -115,7 +124,7 @@ export default function CompanyLayout() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-24 lg:pb-10 overflow-x-hidden">
+        <main className="flex-1 app-page pb-24 lg:pb-10 overflow-x-hidden">
           <Outlet />
         </main>
       </div>
@@ -129,8 +138,10 @@ export default function CompanyLayout() {
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 px-4 pb-[env(safe-area-inset-bottom)] pt-2 flex justify-between items-center z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
          <BottomTab to="queue" icon="🚀" label="Queue" />
          <BottomTab to="appointments" icon="📅" label="Bookings" />
+         <BottomTab to="conversations" icon="💬" label="Chat" />
          <BottomTab to="reports" icon="📊" label="Stats" />
          <BottomTab to="notifications" icon="🔔" label="Alerts" />
+         <ThemeToggle className="!px-2 !py-1" />
          <button 
            onClick={() => setMobileOpen(true)}
            className="flex flex-col items-center gap-1 p-2 text-gray-400 opacity-60 hover:opacity-100 tap-target"

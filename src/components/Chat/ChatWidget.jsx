@@ -1,22 +1,27 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { toast } from "react-hot-toast";
+import { useNavigate } from 'react-router-dom';
 import { 
     closeChatWindow, 
     minimizeChatWindow, 
     openChatWindow,
+    openConversationFromInbox,
     showInbox,
     fetchConversation, 
     fetchMessages, 
     sendMessage,
     receiveMessage,
     markAsRead,
-    fetchConversations
+    fetchConversations,
+    addOptimisticMessage
 } from '../../features/chat/chatSlice';
 import { getSocket } from '../../services/socket';
+import { showClientNotification } from '../../services/pushNotifications';
 
 export default function ChatWidget() {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const { 
         isOpen, 
         minimized, 
@@ -206,6 +211,21 @@ export default function ChatWidget() {
             }
 
             if (!isFromMe && (!isOpen || minimized || !isActive)) {
+                showClientNotification({
+                    title: user?.roles?.includes("CUSTOMER") ? (msg.barberName || "New message") : (msg.customerName || "New message"),
+                    body: msg.content,
+                    data: msg,
+                    tag: `chat-${msg.conversationId}`,
+                    onClick: () => {
+                        const peerName = user?.roles?.includes("CUSTOMER") ? msg.barberName : msg.customerName;
+                        dispatch(openConversationFromInbox({
+                            conversationId: msg.conversationId,
+                            barberId: msg.barberId,
+                            customerId: msg.customerId,
+                            peerName
+                        }));
+                    }
+                });
                 toast(`New message from ${user?.roles?.includes("CUSTOMER") ? msg.barberName : msg.customerName}`);
             }
         };
@@ -221,11 +241,22 @@ export default function ChatWidget() {
         e.preventDefault();
         if (!input.trim() || !activeConversationId) return;
 
+        const trimmedInput = input.trim();
+        const clientRequestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+        setInput("");
+        dispatch(addOptimisticMessage({
+            conversationId: activeConversationId,
+            senderId: user.id,
+            content: trimmedInput,
+            clientRequestId
+        }));
+
         await dispatch(sendMessage({
             conversationId: activeConversationId,
-            content: input
+            content: trimmedInput,
+            clientRequestId
         }));
-        setInput("");
     };
 
     const unreadTotal = useMemo(() => {
@@ -323,6 +354,18 @@ export default function ChatWidget() {
                             className="p-2 hover:bg-white/10 rounded-xl transition-colors font-bold text-xs uppercase"
                             onClick={(e) => {
                                 e.stopPropagation();
+                                const basePath = user?.roles?.includes("CUSTOMER") ? "/customer" : "/company";
+                                navigate(`${basePath}/conversations`);
+                            }}
+                        >
+                            Open Page ↗
+                        </button>
+                    )}
+                    {activeConversationId && !minimized && (
+                        <button
+                            className="p-2 hover:bg-white/10 rounded-xl transition-colors font-bold text-xs uppercase"
+                            onClick={(e) => {
+                                e.stopPropagation();
                                 dispatch(showInbox());
                             }}
                         >
@@ -411,7 +454,8 @@ export default function ChatWidget() {
                                         return (
                                             <button
                                                 key={conv.Id}
-                                                onClick={() => dispatch(openChatWindow({
+                                                onClick={() => dispatch(openConversationFromInbox({
+                                                    conversationId: conv.Id,
                                                     barberId: conv.BarberId,
                                                     customerId: conv.CustomerId,
                                                     peerName

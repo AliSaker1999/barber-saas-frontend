@@ -4,11 +4,16 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { markAsRead, markAllAsRead, fetchNotifications } from '../../features/notifications/notificationsSlice';
 import MobileHeader from '../../components/MobileHeader';
+import { getNotificationPath } from '../../utils/notificationNavigation';
+import LoadingState from '../../components/LoadingState';
+import EmptyState from '../../components/EmptyState';
+import ErrorState from '../../components/ErrorState';
 
 export default function NotificationHistory() {
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
-    const { items } = useAppSelector(state => state.notifications);
+    const { items, loading, error } = useAppSelector(state => state.notifications);
+    const user = useAppSelector(state => state.auth.user);
 
     useEffect(() => {
         dispatch(fetchNotifications());
@@ -19,16 +24,7 @@ export default function NotificationHistory() {
     };
 
     const handleNavigate = (item) => {
-        const data = item?.Data || {};
-        if (data.appointmentId) {
-            navigate(`/customer/appointments?appointmentId=${data.appointmentId}`);
-            return;
-        }
-        if (data.queueId || data.tenantId) {
-            const tenantParam = data.tenantId ? `?tenantId=${data.tenantId}` : "";
-            navigate(`/customer/queue${tenantParam}`);
-            return;
-        }
+        navigate(getNotificationPath(item, user?.roles || []));
     };
 
     const handleMarkAll = () => {
@@ -63,15 +59,20 @@ export default function NotificationHistory() {
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                {items.length === 0 ? (
-                    <div className="p-12 text-center">
-                        <div className="bg-gray-50 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                            </svg>
-                        </div>
-                        <h3 className="text-lg font-medium text-gray-900">No notifications yet</h3>
-                        <p className="text-gray-500">We'll notify you when there's an update on your bookings or queue positions.</p>
+                {loading ? (
+                    <div className="p-4">
+                        <LoadingState label="Loading notifications..." blocks={3} />
+                    </div>
+                ) : error ? (
+                    <div className="p-4">
+                        <ErrorState message={error} onRetry={() => dispatch(fetchNotifications())} />
+                    </div>
+                ) : items.length === 0 ? (
+                    <div className="p-4">
+                        <EmptyState
+                            title="No notifications yet"
+                            description="We'll notify you when there's an update on your bookings or queue positions."
+                        />
                     </div>
                 ) : (
                     <div className="divide-y divide-gray-100">

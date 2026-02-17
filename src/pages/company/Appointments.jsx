@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import {
   fetchAppointments,
@@ -17,9 +18,13 @@ import { fetchCustomerDetails, clearSelectedCustomer } from "../../features/cust
 import { getSocket } from "../../services/socket";
 import CustomerModal from "../../components/CustomerModal";
 import Modal from "../../components/Modal";
+import LoadingState from "../../components/LoadingState";
+import EmptyState from "../../components/EmptyState";
+import ErrorState from "../../components/ErrorState";
 
 export default function Appointments() {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { items, loading, error, lastFetchedAt } = useAppSelector(s => s.appointments);
   const [filter, setFilter] = useState("SCHEDULED");
   const [dateMode, setDateMode] = useState("today"); // 'today', 'future', 'custom', 'all'
@@ -113,9 +118,9 @@ export default function Appointments() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">📅 Appointments</h1>
-        <p className="text-gray-600 mb-2">Manage and track all salon appointments</p>
+      <div className="mb-5 sm:mb-8">
+        <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-1.5">📅 Appointments</h1>
+        <p className="text-xs sm:text-base text-gray-600 mb-1.5">Manage and track all salon appointments</p>
         {lastFetchedAt && (
           <p className="text-xs text-gray-400 font-bold mb-6">
             Last updated {new Date(lastFetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -123,36 +128,36 @@ export default function Appointments() {
         )}
         
         {/* Date Filters */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-center">
-            <span className="font-semibold text-gray-700 mr-2">Show:</span>
+        <div className="bg-white p-2.5 sm:p-4 rounded-xl shadow-sm border border-gray-100 flex flex-wrap gap-2 items-center">
+          <span className="font-semibold text-sm text-gray-700 mr-1">Show:</span>
             
             <button
                 onClick={() => setDateMode("today")}
-                className={`px-4 py-2 rounded-lg font-medium transition ${dateMode === "today" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+                className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${dateMode === "today" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
             >
                 Today
             </button>
             <button
                 onClick={() => setDateMode("future")}
-                className={`px-4 py-2 rounded-lg font-medium transition ${dateMode === "future" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+                className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${dateMode === "future" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
             >
                 Future
             </button>
             <button
                 onClick={() => setDateMode("all")}
-                className={`px-4 py-2 rounded-lg font-medium transition ${dateMode === "all" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+                className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${dateMode === "all" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
             >
                 All Time
             </button>
             <button
                 onClick={() => setDateMode("custom")}
-                className={`px-4 py-2 rounded-lg font-medium transition ${dateMode === "custom" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+                className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${dateMode === "custom" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
             >
                 Custom Range
             </button>
 
             {dateMode === "custom" && (
-                <div className="flex items-center gap-2 ml-4 animate-fadeIn">
+                <div className="flex items-center gap-2 ml-1 sm:ml-2 animate-fadeIn">
                     <input 
                         type="date" 
                         value={customRange.start}
@@ -173,119 +178,102 @@ export default function Appointments() {
 
       {/* Stats Cards / Filters */}
       {!loading && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3 mb-6 sm:mb-10">
           <button 
             onClick={() => setFilter("TOTAL")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "TOTAL" ? "bg-blue-600 border-blue-600 text-white shadow-lg scale-105" : "bg-white border-blue-100 text-gray-700 hover:border-blue-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "TOTAL" ? "bg-blue-600 border-blue-600 text-white shadow" : "bg-white border-blue-100 text-gray-700 hover:border-blue-300 shadow-sm"}`}
           >
-            <p className={`text-sm font-semibold ${filter === "TOTAL" ? "text-blue-100" : "text-gray-500"}`}>Total</p>
-            <p className="text-4xl font-bold mt-2">{items.length}</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "TOTAL" ? "text-blue-100" : "text-gray-500"}`}>Total</p>
+            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.length}</p>
           </button>
 
           {/* Payment Verification Filter */}
           <button 
             onClick={() => setFilter("PAYMENT_PENDING")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "PAYMENT_PENDING" ? "bg-amber-600 border-amber-600 text-white shadow-lg scale-105" : "bg-white border-amber-100 text-gray-700 hover:border-amber-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "PAYMENT_PENDING" ? "bg-amber-600 border-amber-600 text-white shadow" : "bg-white border-amber-100 text-gray-700 hover:border-amber-300 shadow-sm"}`}
           >
             <div className="flex items-center justify-between">
-                <p className={`text-sm font-semibold ${filter === "PAYMENT_PENDING" ? "text-amber-100" : "text-amber-600"}`}>Verify Payment</p>
+                <p className={`text-xs sm:text-sm font-semibold ${filter === "PAYMENT_PENDING" ? "text-amber-100" : "text-amber-600"}`}>Verify Payment</p>
                 {items.filter(a => a.PaymentStatus === 'PENDING').length > 0 && (
-                    <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">Action Required</span>
+                    <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-pulse">Action</span>
                 )}
             </div>
-            <p className="text-4xl font-bold mt-2">{items.filter(a => a.PaymentStatus === 'PENDING').length}</p>
+            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.PaymentStatus === 'PENDING').length}</p>
           </button>
 
           <button 
             onClick={() => setFilter("PENDING")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "PENDING" ? "bg-purple-600 border-purple-600 text-white shadow-lg scale-105" : "bg-white border-purple-100 text-gray-700 hover:border-purple-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "PENDING" ? "bg-purple-600 border-purple-600 text-white shadow" : "bg-white border-purple-100 text-gray-700 hover:border-purple-300 shadow-sm"}`}
           >
-            <p className={`text-sm font-semibold ${filter === "PENDING" ? "text-purple-100" : "text-gray-500"}`}>Pending</p>
-            <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'PENDING').length}</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "PENDING" ? "text-purple-100" : "text-gray-500"}`}>Pending</p>
+            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'PENDING').length}</p>
           </button>
 
           <button 
             onClick={() => setFilter("AWAITING_PAYMENT")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "AWAITING_PAYMENT" ? "bg-amber-700 border-amber-700 text-white shadow-lg scale-105" : "bg-white border-amber-100 text-gray-700 hover:border-amber-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "AWAITING_PAYMENT" ? "bg-amber-700 border-amber-700 text-white shadow" : "bg-white border-amber-100 text-gray-700 hover:border-amber-300 shadow-sm"}`}
           >
-            <p className={`text-sm font-semibold ${filter === "AWAITING_PAYMENT" ? "text-amber-100" : "text-gray-500"}`}>Restricted</p>
-            <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'AWAITING_PAYMENT').length}</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "AWAITING_PAYMENT" ? "text-amber-100" : "text-gray-500"}`}>Restricted</p>
+            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'AWAITING_PAYMENT').length}</p>
           </button>
           
           <button 
             onClick={() => setFilter("SCHEDULED")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "SCHEDULED" ? "bg-green-600 border-green-600 text-white shadow-lg scale-105" : "bg-white border-green-100 text-gray-700 hover:border-green-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "SCHEDULED" ? "bg-green-600 border-green-600 text-white shadow" : "bg-white border-green-100 text-gray-700 hover:border-green-300 shadow-sm"}`}
           >
-            <p className={`text-sm font-semibold ${filter === "SCHEDULED" ? "text-green-100" : "text-gray-500"}`}>Scheduled</p>
-            <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'SCHEDULED').length}</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "SCHEDULED" ? "text-green-100" : "text-gray-500"}`}>Scheduled</p>
+            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'SCHEDULED').length}</p>
           </button>
 
           <button 
             onClick={() => setFilter("COMPLETED")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "COMPLETED" ? "bg-emerald-600 border-emerald-600 text-white shadow-lg scale-105" : "bg-white border-emerald-100 text-gray-700 hover:border-emerald-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "COMPLETED" ? "bg-emerald-600 border-emerald-600 text-white shadow" : "bg-white border-emerald-100 text-gray-700 hover:border-emerald-300 shadow-sm"}`}
           >
-            <p className={`text-sm font-semibold ${filter === "COMPLETED" ? "text-emerald-100" : "text-gray-500"}`}>Completed</p>
-            <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'COMPLETED').length}</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "COMPLETED" ? "text-emerald-100" : "text-gray-500"}`}>Completed</p>
+            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'COMPLETED').length}</p>
           </button>
 
           <button 
             onClick={() => setFilter("CANCELLED")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "CANCELLED" ? "bg-red-600 border-red-600 text-white shadow-lg scale-105" : "bg-white border-red-100 text-gray-700 hover:border-red-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "CANCELLED" ? "bg-red-600 border-red-600 text-white shadow" : "bg-white border-red-100 text-gray-700 hover:border-red-300 shadow-sm"}`}
           >
-            <p className={`text-sm font-semibold ${filter === "CANCELLED" ? "text-red-100" : "text-gray-500"}`}>Cancelled</p>
-            <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'CANCELLED').length}</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "CANCELLED" ? "text-red-100" : "text-gray-500"}`}>Cancelled</p>
+            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'CANCELLED').length}</p>
           </button>
 
           <button 
             onClick={() => setFilter("NO_SHOW")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "NO_SHOW" ? "bg-amber-600 border-amber-600 text-white shadow-lg scale-105" : "bg-white border-amber-100 text-gray-700 hover:border-amber-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "NO_SHOW" ? "bg-amber-600 border-amber-600 text-white shadow" : "bg-white border-amber-100 text-gray-700 hover:border-amber-300 shadow-sm"}`}
           >
-            <p className={`text-sm font-semibold ${filter === "NO_SHOW" ? "text-amber-100" : "text-gray-500"}`}>No Show</p>
-            <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'NO_SHOW').length}</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "NO_SHOW" ? "text-amber-100" : "text-gray-500"}`}>No Show</p>
+            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'NO_SHOW').length}</p>
           </button>
 
           <button 
             onClick={() => setFilter("DECLINED")}
-            className={`transition-all duration-200 rounded-2xl border-2 p-6 text-left ${filter === "DECLINED" ? "bg-gray-600 border-gray-600 text-white shadow-lg scale-105" : "bg-white border-gray-100 text-gray-700 hover:border-gray-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "DECLINED" ? "bg-gray-600 border-gray-600 text-white shadow" : "bg-white border-gray-100 text-gray-700 hover:border-gray-300 shadow-sm"}`}
           >
-            <p className={`text-sm font-semibold ${filter === "DECLINED" ? "text-gray-100" : "text-gray-500"}`}>Declined</p>
-            <p className="text-4xl font-bold mt-2">{items.filter(a => a.Status === 'DECLINED').length}</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "DECLINED" ? "text-gray-100" : "text-gray-500"}`}>Declined</p>
+            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'DECLINED').length}</p>
           </button>
         </div>
       )}
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border-2 border-red-200 text-red-700 px-6 py-4 rounded-xl mb-8 flex items-center justify-between">
-          <span>⚠️ {error}</span>
-          <button 
-            onClick={() => dispatch(clearAppointmentsError())}
-            className="text-red-500 hover:text-red-700 font-bold"
-          >
-            ✕
-          </button>
+        <div className="mb-6">
+          <ErrorState message={error} onRetry={() => dispatch(clearAppointmentsError())} retryLabel="Dismiss" />
         </div>
       )}
 
       {/* Loading State */}
       {loading && (
-        <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-          <svg className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <p className="text-gray-600 text-lg mt-4">Loading appointments...</p>
-        </div>
+        <LoadingState label="Loading appointments..." blocks={3} />
       )}
 
       {/* Empty State */}
       {!loading && filteredItems.length === 0 && (
-        <div className="bg-white rounded-2xl shadow-lg p-12 text-center border-2 border-dashed border-gray-200">
-          <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <p className="text-gray-500 text-lg font-semibold">No {filter.toLowerCase()} appointments</p>
-        </div>
+        <EmptyState title="No appointments found" description={`No ${filter.toLowerCase()} appointments right now.`} />
       )}
 
       {/* Appointments List (List to Card on Hover) */}
@@ -303,12 +291,12 @@ export default function Appointments() {
                 {/* Decoration for hover */}
                 <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-600 transform scale-y-0 group-hover:scale-y-100 transition-transform origin-top duration-300" />
                 
-                <div className="p-4 md:p-6 flex flex-col md:flex-row md:items-center gap-6">
+                <div className="p-3 sm:p-4 md:p-6 flex flex-col md:flex-row md:items-center gap-4 sm:gap-5 md:gap-6">
                   {/* Date & Time Column */}
-                  <div className="min-w-[140px]">
+                  <div className="min-w-[110px] sm:min-w-[140px]">
                     <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Schedule</p>
                     <p className="text-sm font-bold text-gray-900">{date}</p>
-                    <p className="text-indigo-600 font-black text-lg">⏰ {time}</p>
+                    <p className="text-indigo-600 font-black text-base sm:text-lg">⏰ {time}</p>
                   </div>
 
                   {/* Customer Column */}
@@ -316,11 +304,11 @@ export default function Appointments() {
                     <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Customer</p>
                     <button 
                       onClick={() => handleOpenCustomer(appointment.CustomerId)}
-                      className="text-lg font-bold text-gray-900 hover:text-blue-600 transition-colors pointer-events-auto text-left block"
+                      className="text-base sm:text-lg font-bold text-gray-900 hover:text-blue-600 transition-colors pointer-events-auto text-left block"
                     >
                       {appointment.CustomerName}
                     </button>
-                    <p className="text-sm text-gray-600 truncate max-w-xs">{appointment.Services}</p>
+                    <p className="text-xs sm:text-sm text-gray-600 truncate max-w-xs">{appointment.Services}</p>
                   </div>
 
                   {/* Barber Column */}
@@ -331,7 +319,7 @@ export default function Appointments() {
 
                   {/* Status & Payment Badge */}
                   <div className="flex flex-col items-end gap-2">
-                    <div className={`px-4 py-1.5 rounded-full font-bold text-xs flex items-center gap-2 ${statusBadge.bg} border ${statusBadge.border} ${statusBadge.text}`}>
+                    <div className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-full font-bold text-[11px] sm:text-xs flex items-center gap-1.5 ${statusBadge.bg} border ${statusBadge.border} ${statusBadge.text}`}>
                       <span className="text-sm">{statusBadge.icon}</span> {appointment.Status}
                     </div>
                     
@@ -380,11 +368,14 @@ export default function Appointments() {
                     {(appointment.Status === "SCHEDULED" || appointment.Status === "PENDING") && (
                       <>
                         <button
-                          onClick={() => dispatch(openChatWindow({
-                            barberId: appointment.BarberId,
-                            customerId: appointment.CustomerId,
-                            peerName: appointment.CustomerName
-                          }))}
+                          onClick={() => {
+                            dispatch(openChatWindow({
+                              barberId: appointment.BarberId,
+                              customerId: appointment.CustomerId,
+                              peerName: appointment.CustomerName
+                            }));
+                            navigate("/company/conversations");
+                          }}
                           className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-all shadow-sm flex items-center justify-center mr-2 tap-target"
                           title="Internal Chat"
                         >

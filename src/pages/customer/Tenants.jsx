@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { fetchTenants } from "../../features/tenants/tenantsSlice";
@@ -8,21 +8,30 @@ import { requestUserLocation } from "../../features/location/locationSlice";
 import { haversineDistanceKm, formatDistanceKm } from "../../utils/geo";
 import TenantDetailsModal from "../../components/TenantDetailsModal";
 import MobileHeader from "../../components/MobileHeader";
+import LoadingState from "../../components/LoadingState";
+import EmptyState from "../../components/EmptyState";
+import OptimizedImage from "../../components/OptimizedImage";
+import Pagination from "../../components/Pagination";
+import useDebouncedValue from "../../hooks/useDebouncedValue";
+import usePagination from "../../hooks/usePagination";
+import { runBackgroundJob } from "../../utils/backgroundJob";
 
 /* Enhanced Dropdown Component */
-const TenantLogo = ({ tenant }) => {
+const TenantLogo = memo(function TenantLogo({ tenant }) {
   const [error, setError] = useState(false);
 
   if (tenant.LogoUrl && !error) {
     return (
-      <img
+      <OptimizedImage
         src={tenant.LogoUrl}
         alt="Logo"
         className="w-full h-full object-contain rounded-xl"
-        onError={(e) => {
-          e.target.onerror = null; 
-          setError(true);
-        }}
+        fallback={null}
+        sizes="64px"
+        fetchPriority="low"
+        loading="lazy"
+        decoding="async"
+        onError={() => setError(true)}
       />
     );
   }
@@ -32,9 +41,9 @@ const TenantLogo = ({ tenant }) => {
       {tenant.Name ? tenant.Name[0] : "?"}
     </div>
   );
-};
+});
 
-const Dropdown = ({ value, onChange, options, icon, placeholder }) => {
+const Dropdown = memo(function Dropdown({ value, onChange, options, icon, placeholder }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -101,7 +110,7 @@ const Dropdown = ({ value, onChange, options, icon, placeholder }) => {
       )}
     </div>
   );
-};
+});
 
 export default function Tenants() {
   const dispatch = useAppDispatch();
@@ -110,34 +119,37 @@ export default function Tenants() {
   const activeQueue = useAppSelector(state => state.queue.activeQueue);
   const locationState = useAppSelector(state => state.location);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 350);
   const [selectedCity, setSelectedCity] = useState("All");
   const [minRating, setMinRating] = useState(0);
   const [sortBy, setSortBy] = useState("newest");
   const [nearMeOnly, setNearMeOnly] = useState(false);
   const [radiusKm, setRadiusKm] = useState(10);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState(null);
+  const [processedTenants, setProcessedTenants] = useState([]);
 
   useEffect(() => {
     dispatch(fetchTenants());
     dispatch(findMyActiveQueue());
   }, [dispatch]);
 
-  const openDetails = (tenant) => {
+  const openDetails = useCallback((tenant) => {
     setSelectedTenant(tenant);
     setDetailsOpen(true);
-  };
+  }, []);
 
-  const closeDetails = () => {
+  const closeDetails = useCallback(() => {
     setDetailsOpen(false);
-  };
+  }, []);
 
-  const goToActiveQueue = () => {
+  const goToActiveQueue = useCallback(() => {
     if (activeQueue) {
       dispatch(selectTenant(activeQueue.tenantId));
       navigate("/customer/queue");
     }
-  };
+  }, [activeQueue, dispatch, navigate]);
 
   const handleUseLocation = async () => {
     try {
@@ -149,41 +161,84 @@ export default function Tenants() {
     }
   };
 
-  const cities = ["All", ...new Set(tenants.map(t => t.City).filter(Boolean))];
+  const cities = useMemo(() => ["All", ...new Set(tenants.map(t => t.City).filter(Boolean))], [tenants]);
 
   const userCoords = locationState.coords;
-  const tenantsWithDistance = tenants.map(t => {
-    const lat = t.Latitude ?? t.latitude;
-    const lon = t.Longitude ?? t.longitude;
-    const hasCoords = lat != null && lon != null;
-    const distanceKm = userCoords && hasCoords
-      ? haversineDistanceKm(userCoords, { latitude: Number(lat), longitude: Number(lon) })
-      : null;
-    return { ...t, distanceKm };
-  });
+  useEffect(() => {
+    let isCancelled = false;
 
-  const processedTenants = [...tenantsWithDistance]
-    .filter(t => {
-      const matchesSearch = t.Name.toLowerCase().includes(search.toLowerCase()) || 
-                           (t.Area && t.Area.toLowerCase().includes(search.toLowerCase()));
-      const matchesCity = selectedCity === "All" || t.City === selectedCity;
-      const matchesRating = (t.AverageRating || 0) >= minRating;
-      const matchesNearMe = !nearMeOnly || (t.distanceKm != null && t.distanceKm <= radiusKm);
-      return matchesSearch && matchesCity && matchesRating && matchesNearMe;
-    })
-    .sort((a, b) => {
-      if (sortBy === "name_asc") return a.Name.localeCompare(b.Name);
-      if (sortBy === "name_desc") return b.Name.localeCompare(a.Name);
-      if (sortBy === "newest") return new Date(b.CreatedAt) - new Date(a.CreatedAt);
-      if (sortBy === "rating_desc") return (b.AverageRating || 0) - (a.AverageRating || 0);
-      if (sortBy === "distance") {
-        if (a.distanceKm == null && b.distanceKm == null) return 0;
-        if (a.distanceKm == null) return 1;
-        if (b.distanceKm == null) return -1;
-        return a.distanceKm - b.distanceKm;
-      }
-      return 0;
+    runBackgroundJob(() => {
+      const tenantsWithDistance = tenants.map(t => {
+        const lat = t.Latitude ?? t.latitude;
+        const lon = t.Longitude ?? t.longitude;
+        const hasCoords = lat != null && lon != null;
+        const distanceKm = userCoords && hasCoords
+          ? haversineDistanceKm(userCoords, { latitude: Number(lat), longitude: Number(lon) })
+          : null;
+        return { ...t, distanceKm };
+      });
+
+      return [...tenantsWithDistance]
+        .filter(t => {
+          const matchesSearch = t.Name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+            (t.Area && t.Area.toLowerCase().includes(debouncedSearch.toLowerCase()));
+          const matchesCity = selectedCity === "All" || t.City === selectedCity;
+          const matchesRating = (t.AverageRating || 0) >= minRating;
+          const matchesNearMe = !nearMeOnly || (t.distanceKm != null && t.distanceKm <= radiusKm);
+          return matchesSearch && matchesCity && matchesRating && matchesNearMe;
+        })
+        .sort((a, b) => {
+          if (sortBy === "name_asc") return a.Name.localeCompare(b.Name);
+          if (sortBy === "name_desc") return b.Name.localeCompare(a.Name);
+          if (sortBy === "newest") return new Date(b.CreatedAt) - new Date(a.CreatedAt);
+          if (sortBy === "rating_desc") return (b.AverageRating || 0) - (a.AverageRating || 0);
+          if (sortBy === "distance") {
+            if (a.distanceKm == null && b.distanceKm == null) return 0;
+            if (a.distanceKm == null) return 1;
+            if (b.distanceKm == null) return -1;
+            return a.distanceKm - b.distanceKm;
+          }
+          return 0;
+        });
+    }).then(results => {
+      if (!isCancelled) setProcessedTenants(results);
     });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [tenants, userCoords, debouncedSearch, selectedCity, minRating, nearMeOnly, radiusKm, sortBy]);
+
+  const totalVisible = processedTenants.length;
+  const topRatedCount = processedTenants.filter(t => (t.AverageRating || 0) >= 4.5).length;
+  const nearbyCount = processedTenants.filter(t => t.distanceKm != null && t.distanceKm <= radiusKm).length;
+  const hasActiveFilters =
+    debouncedSearch.trim().length > 0 ||
+    selectedCity !== "All" ||
+    minRating > 0 ||
+    nearMeOnly ||
+    sortBy !== "newest";
+
+  const clearFilters = useCallback(() => {
+    setSearch("");
+    setSelectedCity("All");
+    setMinRating(0);
+    setSortBy("newest");
+    setNearMeOnly(false);
+    setRadiusKm(10);
+  }, []);
+
+  const featuredTenant = processedTenants[0] || null;
+  const {
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    paginatedItems
+  } = usePagination(processedTenants, 9);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, selectedCity, minRating, nearMeOnly, radiusKm, sortBy, setCurrentPage]);
   
   // Dropdown Options
   const cityOptions = cities.map(c => ({ value: c, label: c === "All" ? "All Cities" : c }));
@@ -211,7 +266,7 @@ export default function Tenants() {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-4 sm:py-8">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
       <MobileHeader
         title="Barbershops"
         onBack={() => navigate("/customer")}
@@ -244,16 +299,34 @@ export default function Tenants() {
       )}
 
       {/* Hero Section with Search */}
-      <div className="relative mb-4 sm:mb-12 text-center px-4">
-        <h1 className="text-2xl sm:text-5xl md:text-6xl font-black text-gray-900 tracking-tighter mb-1 sm:mb-6 leading-tight">
-          The Best Barbers,<br/><span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Your Style.</span>
-        </h1>
-        <p className="hidden sm:block text-base sm:text-xl text-gray-500 max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-4">
-          Discover top-rated barbershops in your area and book your next cut in seconds.
-        </p>
+      <div className="relative mb-2 sm:mb-10 px-1 sm:px-2">
+        <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-blue-100/60 to-indigo-100/30 blur-2xl" />
+        <div className="relative text-center px-1 sm:px-4 pt-1 sm:pt-4">
+          <h1 className="text-2xl sm:text-5xl md:text-6xl font-black text-gray-900 tracking-tight mb-1.5 sm:mb-5 leading-[1.05]">
+            Your Next Cut,
+            <span className="block sm:inline bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent"> Perfectly Matched.</span>
+          </h1>
+          <p className="hidden sm:block text-sm sm:text-lg text-gray-500 max-w-2xl mx-auto mb-3 sm:mb-7 leading-relaxed">
+            Search, compare, and book trusted barbershops in seconds with smart filters that adapt to your location.
+          </p>
+
+          <div className="hidden sm:flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+            <span className="px-3 py-1.5 rounded-full bg-white border border-blue-100 text-[11px] sm:text-sm font-bold text-blue-700 shadow-sm">
+              {totalVisible} shops available
+            </span>
+            <span className="px-3 py-1.5 rounded-full bg-white border border-emerald-100 text-[11px] sm:text-sm font-bold text-emerald-700 shadow-sm">
+              {topRatedCount} top-rated 4.5+
+            </span>
+            {locationState.coords && (
+              <span className="px-3 py-1.5 rounded-full bg-white border border-indigo-100 text-[11px] sm:text-sm font-bold text-indigo-700 shadow-sm">
+                {nearbyCount} within {radiusKm} km
+              </span>
+            )}
+          </div>
+        </div>
 
         {/* Search & Filter Bar - Enhanced Design */}
-        <div className="bg-white p-1.5 sm:p-3 rounded-xl sm:rounded-3xl shadow-xl shadow-blue-900/5 border border-gray-100 max-w-6xl mx-auto">
+        <div className="bg-white/95 backdrop-blur p-2 sm:p-3 rounded-2xl sm:rounded-3xl shadow-xl shadow-blue-900/5 border border-gray-100 max-w-6xl mx-auto">
           <div className="flex flex-col lg:flex-row gap-1.5 sm:gap-3">
             {/* Search Input */}
             <div className="flex-1 relative group">
@@ -270,9 +343,17 @@ export default function Tenants() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
+
+            <button
+              type="button"
+              onClick={() => setMobileFiltersOpen(prev => !prev)}
+              className="sm:hidden w-full py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs font-bold text-gray-700"
+            >
+              {mobileFiltersOpen ? "Hide filters" : "Show filters"}
+            </button>
             
             {/* Filters Row */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-3 w-full lg:w-auto">
+            <div className={`${mobileFiltersOpen ? "grid" : "hidden"} sm:grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-3 w-full lg:w-auto`}>
               <div className="w-full lg:w-48">
                 <Dropdown 
                   value={selectedCity} 
@@ -308,7 +389,7 @@ export default function Tenants() {
         </div>
 
         {/* Location Panel */}
-        <div className="mt-2 sm:mt-4 max-w-6xl mx-auto bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm p-3 sm:p-5">
+        <div className={`${mobileFiltersOpen ? "block" : "hidden"} sm:block mt-2 sm:mt-4 max-w-6xl mx-auto bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm p-2.5 sm:p-5`}>
           <div className="flex flex-col md:flex-row md:items-center gap-2 sm:gap-4">
             <button
               type="button"
@@ -369,38 +450,50 @@ export default function Tenants() {
         </div>
       </div>
 
+      {/* Results Insight */}
+      <div className="mb-2 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-3">
+        <div>
+          <p className="hidden sm:block text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide">Discover</p>
+          <h2 className="text-base sm:text-2xl font-black text-gray-900">
+            Showing {totalVisible} of {tenants.length} barbershops
+          </h2>
+          {featuredTenant && (
+            <p className="hidden sm:block text-xs sm:text-sm text-gray-500 mt-1">
+              Featured right now: <span className="font-bold text-gray-700">{featuredTenant.Name}</span>
+            </p>
+          )}
+        </div>
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="self-start sm:self-auto px-4 py-2 rounded-xl bg-white border border-gray-200 text-xs sm:text-sm font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition"
+          >
+            Reset filters
+          </button>
+        )}
+      </div>
+
       {/* Loading State */}
       {loading && (
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-8">
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="animate-pulse bg-white rounded-xl sm:rounded-3xl h-32 sm:h-96 shadow-sm border border-gray-100"></div>
-          ))}
-        </div>
+        <LoadingState label="Loading barbershops..." blocks={6} />
       )}
 
       {/* Empty State */}
       {!loading && processedTenants.length === 0 && (
-        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-gray-100 p-8 sm:p-16 text-center max-w-lg mx-auto">
-          <div className="w-12 h-12 sm:w-20 sm:h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-            <svg className="w-6 h-6 sm:w-10 sm:h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-          </div>
-          <h3 className="text-lg sm:text-2xl font-bold text-gray-900 mb-2">No results found</h3>
-          <p className="text-xs sm:text-base text-gray-500">Try adjusting your search or filters.</p>
-        </div>
+        <EmptyState title="No barbershops found" description="Try adjusting your search, city, or distance filters." />
       )}
 
       {/* Tenants Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-8 auto-rows-fr">
-        {processedTenants.map((tenant) => (
+      <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-7 auto-rows-fr">
+        {paginatedItems.map((tenant) => (
           <div
             key={tenant.Id}
-            className="group bg-white rounded-xl sm:rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-gray-100 flex flex-col h-full"
+            className="group bg-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-gray-100 flex flex-col h-full"
           >
             {/* Header / Cover Image */}
             <div
-              className="relative h-24 sm:h-48 overflow-hidden bg-gray-200 cursor-pointer"
+              className="relative h-20 sm:h-48 overflow-hidden bg-gray-200 cursor-pointer"
               role="button"
               tabIndex={0}
               onClick={() => openDetails(tenant)}
@@ -411,24 +504,26 @@ export default function Tenants() {
               }}
             >
               {tenant.CoverImageUrl ? (
-                <img
+                <OptimizedImage
                   src={tenant.CoverImageUrl}
                   alt={tenant.Name}
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  sizes="(max-width: 768px) 33vw, (max-width: 1024px) 50vw, 33vw"
+                  fetchPriority="low"
                 />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-600 opacity-80"></div>
               )}
               
               {/* Logo Overlay */}
-              <div className="absolute -bottom-3 left-1.5 w-8 h-8 sm:-bottom-6 sm:left-6 sm:w-20 sm:h-20 bg-white rounded sm:rounded-2xl shadow-lg p-0.5 sm:p-1 border-2 sm:border-4 border-white overflow-hidden">
+              <div className="absolute -bottom-3 left-1.5 w-8 h-8 sm:-bottom-6 sm:left-6 sm:w-20 sm:h-20 bg-white rounded-lg sm:rounded-2xl shadow-lg p-0.5 sm:p-1 border-2 sm:border-4 border-white overflow-hidden">
                 <TenantLogo tenant={tenant} />
               </div>
 
               {/* Badges - Hidden/Simplified on mobile */}
               <div className="absolute top-2 right-2 flex flex-col gap-1 sm:top-4 sm:right-4 sm:gap-2">
                 {tenant.distanceKm != null && (
-                  <span className="bg-white/90 backdrop-blur px-1 .5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[8px] sm:text-xs font-bold text-indigo-700 shadow-sm flex items-center gap-0.5 sm:gap-1 self-end">
+                  <span className="bg-white/90 backdrop-blur px-1.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold text-indigo-700 shadow-sm flex items-center gap-1 self-end">
                     <svg className="w-2 h-2 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zm7.5-2.5a7.5 7.5 0 11-15 0 7.5 7.5 0 0115 0z" />
                     </svg>
@@ -436,7 +531,7 @@ export default function Tenants() {
                   </span>
                 )}
                 {tenant.AverageRating > 0 && (
-                  <span className="bg-white/90 backdrop-blur px-1.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[8px] sm:text-xs font-bold text-yellow-600 shadow-sm flex items-center gap-0.5 sm:gap-1 self-end">
+                  <span className="bg-white/90 backdrop-blur px-1.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold text-yellow-600 shadow-sm flex items-center gap-1 self-end">
                     <svg className="w-2 h-2 sm:w-3 sm:h-3" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                     </svg>
@@ -447,13 +542,17 @@ export default function Tenants() {
             </div>
 
             {/* Content */}
-            <div className="p-2 pt-4 sm:p-8 sm:pt-10 flex flex-col flex-grow">
-              <div className="mb-2 sm:mb-4">
-                <h3 className="text-[10px] sm:text-2xl font-bold text-gray-900 mb-0.5 sm:mb-1 group-hover:text-blue-600 transition-colors truncate">
+            <div className="p-2 pt-3 sm:p-8 sm:pt-10 flex flex-col flex-grow">
+              <div className="mb-1.5 sm:mb-4">
+                <h3 className="text-[11px] sm:text-2xl font-bold text-gray-900 mb-0.5 sm:mb-1 group-hover:text-blue-600 transition-colors truncate">
                   {tenant.Name}
                 </h3>
-                <p className="text-[8px] sm:text-sm text-gray-500 flex items-center gap-1 truncate">
+                <p className="text-[9px] sm:text-sm text-gray-500 flex items-center gap-1 truncate">
                   {tenant.Area || "Premium"}
+                </p>
+                <p className="hidden sm:block text-[11px] sm:text-sm text-gray-400 truncate mt-1">
+                  {tenant.City || "Lebanon"}
+                  {tenant.distanceKm != null ? ` • ${formatDistanceKm(tenant.distanceKm)}` : ""}
                 </p>
               </div>
 
@@ -502,7 +601,7 @@ export default function Tenants() {
                 
                 <button
                   onClick={() => openDetails(tenant)}
-                  className="w-full bg-white text-gray-600 sm:text-blue-600 font-bold py-1.5 sm:py-3 rounded-lg sm:rounded-2xl hover:bg-blue-50 transition-all border sm:border-2 border-gray-100 sm:border-blue-100 flex items-center justify-center gap-1 sm:gap-2 text-[10px] sm:text-base"
+                  className="hidden sm:flex w-full bg-white text-gray-600 sm:text-blue-600 font-bold py-2 sm:py-3 rounded-xl sm:rounded-2xl hover:bg-blue-50 transition-all border sm:border-2 border-gray-100 sm:border-blue-100 items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-base"
                 >
                   <svg className="w-2.5 h-2.5 sm:w-5 sm:h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.6} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -515,6 +614,12 @@ export default function Tenants() {
           </div>
         ))}
       </div>
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
 
       <TenantDetailsModal
         isOpen={detailsOpen}

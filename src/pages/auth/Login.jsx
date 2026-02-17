@@ -1,10 +1,16 @@
 import { useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { login } from "../../features/auth/authSlice";
+import { clearAuthError, login } from "../../features/auth/authSlice";
 import PrivacyPolicyModal from "../../components/PrivacyPolicyModal";
 import TermsOfServiceModal from "../../components/TermsOfServiceModal";
 import Modal from "../../components/Modal";
-import api from "../../services/api";
+import ErrorState from "../../components/ErrorState";
+import {
+  initiateForgotPassword,
+  verifyForgotPasswordPhone,
+  resetForgotPassword
+} from "../../services/authService";
+import { getFriendlyErrorMessage } from "../../utils/errorMessages";
 
 export default function Login() {
   const dispatch = useAppDispatch();
@@ -31,15 +37,15 @@ export default function Login() {
     setForgotLoading(true);
     setForgotError("");
     try {
-      const { data } = await api.post("/auth/forgot-password/initiate", { identity: forgotIdentity });
-      if (data.data.status === "CODE_SENT") {
+      const result = await initiateForgotPassword(forgotIdentity);
+      if (result.status === "CODE_SENT") {
         setForgotStep(3);
-      } else if (data.data.status === "NEED_PHONE") {
-        setForgotPhoneHint(data.data.hint);
+      } else if (result.status === "NEED_PHONE") {
+        setForgotPhoneHint(result.hint);
         setForgotStep(2);
       }
     } catch (err) {
-      setForgotError(err.response?.data?.message || "Failed to initiate reset");
+      setForgotError(getFriendlyErrorMessage(err, "Failed to initiate reset"));
     } finally {
       setForgotLoading(false);
     }
@@ -49,13 +55,10 @@ export default function Login() {
     setForgotLoading(true);
     setForgotError("");
     try {
-      await api.post("/auth/forgot-password/verify-phone", { 
-        email: forgotIdentity, 
-        phoneNumber: fullPhone 
-      });
+      await verifyForgotPasswordPhone({ identity: forgotIdentity, phoneNumber: fullPhone });
       setForgotStep(3);
     } catch (err) {
-      setForgotError(err.response?.data?.message || "Phone number mismatch or error");
+      setForgotError(getFriendlyErrorMessage(err, "Phone number mismatch or error"));
     } finally {
       setForgotLoading(false);
     }
@@ -66,15 +69,11 @@ export default function Login() {
     setForgotLoading(true);
     setForgotError("");
     try {
-      await api.post("/auth/forgot-password/reset", { 
-        identity: forgotIdentity, 
-        code: resetCode, 
-        newPassword: newPass 
-      });
+      await resetForgotPassword({ identity: forgotIdentity, code: resetCode, newPassword: newPass });
       setIsForgotOpen(false);
       alert("Password reset successfully! Please log in.");
     } catch (err) {
-      setForgotError(err.response?.data?.message || "Reset failed");
+      setForgotError(getFriendlyErrorMessage(err, "Reset failed"));
     } finally {
       setForgotLoading(false);
     }
@@ -116,8 +115,12 @@ export default function Login() {
           <form onSubmit={submit} className="px-8 py-8">
             {/* Error Alert */}
             {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-700 font-medium">{error}</p>
+              <div className="mb-6">
+                <ErrorState
+                  message={getFriendlyErrorMessage(error, "Unable to sign in right now.")}
+                  onRetry={() => dispatch(clearAuthError())}
+                  retryLabel="Dismiss"
+                />
               </div>
             )}
 
@@ -283,8 +286,8 @@ export default function Login() {
       >
         <div className="p-4">
           {forgotError && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 text-xs font-bold rounded-lg">
-              {forgotError}
+            <div className="mb-4">
+              <ErrorState message={forgotError} onRetry={() => setForgotError("")} retryLabel="Dismiss" />
             </div>
           )}
 

@@ -41,12 +41,19 @@ export const fetchConversations = createAsyncThunk(
 
 export const sendMessage = createAsyncThunk(
   "chat/sendMessage",
-  async ({ conversationId, content }, { rejectWithValue }) => {
+  async ({ conversationId, content, clientRequestId }, { rejectWithValue }) => {
     try {
       const response = await api.post(`/chat/${conversationId}/messages`, { content });
-      return response.data.data;
+      return {
+        ...response.data.data,
+        clientRequestId
+      };
     } catch (err) {
-      return rejectWithValue(err.response?.data || err.message);
+      return rejectWithValue({
+        error: err.response?.data || err.message,
+        conversationId,
+        clientRequestId
+      });
     }
   }
 );
@@ -73,6 +80,7 @@ const chatSlice = createSlice({
     minimized: false,
     activeConversationId: null,
     messages: [], 
+    messagesByConversation: {},
     conversations: [],
     loading: false,
     error: null,
@@ -89,7 +97,19 @@ const chatSlice = createSlice({
       state.minimized = false;
       state.activeDetails = action.payload;
       state.activeConversationId = null;
-      state.messages = []; // Clear previous until loaded
+      state.messages = [];
+    },
+    openConversationFromInbox: (state, action) => {
+      const { conversationId, barberId, customerId, peerName } = action.payload;
+      state.isOpen = true;
+      state.minimized = false;
+      state.activeConversationId = conversationId;
+      state.activeDetails = {
+        barberId: barberId || null,
+        customerId: customerId || null,
+        peerName: peerName || ""
+      };
+      state.messages = state.messagesByConversation[conversationId] || [];
     },
     closeChatWindow: (state) => {
       state.isOpen = false;
@@ -105,11 +125,28 @@ const chatSlice = createSlice({
     },
     receiveMessage: (state, action) => {
       const message = action.payload;
+      const conversationId = message.conversationId;
+      const normalizedMessage = {
+        ...message,
+        id: message.id || message.Id
+      };
+
+      if (!state.messagesByConversation[conversationId]) {
+        state.messagesByConversation[conversationId] = [];
+      }
+
+      const existsInCache = state.messagesByConversation[conversationId].find(
+        m => (m.id || m.Id) === (normalizedMessage.id || normalizedMessage.Id)
+      );
+      if (!existsInCache) {
+        state.messagesByConversation[conversationId].push(normalizedMessage);
+      }
+
       if (state.activeConversationId === message.conversationId) {
         // Prevent duplicates from socket/local race
         const exists = state.messages.find(m => (m.id || m.Id) === (message.id || message.Id));
         if (!exists) {
-          state.messages.push(message);
+          state.messages.push(normalizedMessage);
         }
       } else {
         const existing = state.conversations.find(c => c.Id === message.conversationId);
@@ -131,34 +168,98 @@ const chatSlice = createSlice({
           });
         }
       }
+    },
+    addOptimisticMessage: (state, action) => {
+      const { conversationId, senderId, content, clientRequestId } = action.payload;
+      const optimisticId = `optimistic-${clientRequestId}`;
+      const optimisticMessage = {
+        id: optimisticId,
+        conversationId,
+        senderId,
+        content,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+        pending: true,
+        clientRequestId
+      };
+
+      if (!state.messagesByConversation[conversationId]) {
+        state.messagesByConversation[conversationId] = [];
+      }
+
+      state.messagesByConversation[conversationId].push(optimisticMessage);
+      if (state.activeConversationId === conversationId) {
+        state.messages.push(optimisticMessage);
+      }
+
+      const conv = state.conversations.find(c => c.Id === conversationId);
+      if (conv) {
+        conv.LastMessage = content;
+        conv.LastMessageAt = optimisticMessage.createdAt;
+      }
     }
   },
   extraReducers: (builder) => {
     builder
         .addCase(fetchConversation.fulfilled, (state, action) => {
             state.activeConversationId = action.payload.Id;
-            // Trigger fetch messages? In component.
+          state.messages = state.messagesByConversation[action.payload.Id] || [];
         })
         .addCase(fetchMessages.fulfilled, (state, action) => {
-            if (state.activeConversationId === action.payload.conversationId) {
-                state.messages = action.payload.messages;
-            }
+          state.messagesByConversation[action.payload.conversationId] = action.payload.messages;
+          if (state.activeConversationId === action.payload.conversationId) {
+            state.messages = action.payload.messages;
+          }
         })
         .addCase(fetchConversations.fulfilled, (state, action) => {
             state.conversations = action.payload || [];
         })
         .addCase(sendMessage.fulfilled, (state, action) => {
-            // Optimistic update handled or wait for socket?
-            // Usually we add it immediately.
             const msg = action.payload;
-            // Check if already exist (from socket race)
-            if (!state.messages.find(m => (m.id || m.Id) === (msg.id || msg.Id))) {
-                state.messages.push(msg);
+            const conversationId = msg.conversationId;
+
+            const cleanConversation = (arr) =>
+              arr.filter(m => m.clientRequestId !== msg.clientRequestId && !(m.pending && m.content === msg.content));
+
+            if (state.messagesByConversation[conversationId]) {
+              state.messagesByConversation[conversationId] = cleanConversation(state.messagesByConversation[conversationId]);
             }
+
+            if (!state.messagesByConversation[conversationId]) {
+              state.messagesByConversation[conversationId] = [];
+            }
+
+            const cacheExists = state.messagesByConversation[conversationId].find(m => (m.id || m.Id) === (msg.id || msg.Id));
+            if (!cacheExists) {
+              state.messagesByConversation[conversationId].push(msg);
+            }
+
+            if (state.activeConversationId === conversationId) {
+              state.messages = cleanConversation(state.messages);
+              if (!state.messages.find(m => (m.id || m.Id) === (msg.id || msg.Id))) {
+                state.messages.push(msg);
+              }
+            }
+
             const conv = state.conversations.find(c => c.Id === msg.conversationId);
             if (conv) {
               conv.LastMessage = msg.content;
               conv.LastMessageAt = msg.createdAt;
+            }
+        })
+        .addCase(sendMessage.rejected, (state, action) => {
+            const conversationId = action.payload?.conversationId;
+            const clientRequestId = action.payload?.clientRequestId;
+            if (!conversationId || !clientRequestId) return;
+
+            const removeFailed = (arr) => arr.filter(m => m.clientRequestId !== clientRequestId);
+
+            if (state.messagesByConversation[conversationId]) {
+              state.messagesByConversation[conversationId] = removeFailed(state.messagesByConversation[conversationId]);
+            }
+
+            if (state.activeConversationId === conversationId) {
+              state.messages = removeFailed(state.messages);
             }
         })
         .addCase(markAsRead.fulfilled, (state, action) => {
@@ -171,5 +272,5 @@ const chatSlice = createSlice({
   }
 });
 
-export const { openChatWindow, closeChatWindow, minimizeChatWindow, receiveMessage, showInbox } = chatSlice.actions;
+export const { openChatWindow, openConversationFromInbox, closeChatWindow, minimizeChatWindow, receiveMessage, showInbox, addOptimisticMessage } = chatSlice.actions;
 export default chatSlice.reducer;

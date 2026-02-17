@@ -1,6 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { fetchTenantsReport, fetchCustomersReport } from "../../features/reports/reportsSlice";
+import LoadingState from "../../components/LoadingState";
+import EmptyState from "../../components/EmptyState";
+import Pagination from "../../components/Pagination";
+import usePagination from "../../hooks/usePagination";
+import useDebouncedValue from "../../hooks/useDebouncedValue";
 
 export default function Reports() {
   const dispatch = useAppDispatch();
@@ -9,6 +14,7 @@ export default function Reports() {
   
   // Filters
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [minRevenue, setMinRevenue] = useState("");
   const [status, setStatus] = useState("ALL");
 
@@ -20,26 +26,34 @@ export default function Reports() {
     }
   }, [activeTab, dispatch]);
 
-  const filteredData = (activeTab === "TENANTS" ? tenants : customers).filter(item => {
-    const name = (item.Name || item.FullName || "").toLowerCase();
-    const matchesSearch = name.includes(search.toLowerCase()) || 
-                          (item.Email && item.Email.toLowerCase().includes(search.toLowerCase())) ||
-                          (item.Slug && item.Slug.toLowerCase().includes(search.toLowerCase()));
-    
-    const matchesStatus = status === "ALL" || 
-                          (status === "ACTIVE" && item.IsActive) || 
-                          (status === "INACTIVE" && !item.IsActive);
+  const filteredData = useMemo(() => {
+    return (activeTab === "TENANTS" ? tenants : customers).filter(item => {
+      const name = (item.Name || item.FullName || "").toLowerCase();
+      const matchesSearch = name.includes(debouncedSearch.toLowerCase()) ||
+                            (item.Email && item.Email.toLowerCase().includes(debouncedSearch.toLowerCase())) ||
+                            (item.Slug && item.Slug.toLowerCase().includes(debouncedSearch.toLowerCase()));
 
-    if (activeTab === "TENANTS") {
+      const matchesStatus = status === "ALL" ||
+                            (status === "ACTIVE" && item.IsActive) ||
+                            (status === "INACTIVE" && !item.IsActive);
+
+      if (activeTab === "TENANTS") {
         const revenue = item.TotalRevenue || 0;
         const matchesRevenue = !minRevenue || revenue >= parseFloat(minRevenue);
         return matchesSearch && matchesStatus && matchesRevenue;
-    } else {
-        const spent = item.TotalSpent || 0;
-        const matchesSpent = !minRevenue || spent >= parseFloat(minRevenue);
-        return matchesSearch && matchesStatus && matchesSpent;
-    }
-  });
+      }
+
+      const spent = item.TotalSpent || 0;
+      const matchesSpent = !minRevenue || spent >= parseFloat(minRevenue);
+      return matchesSearch && matchesStatus && matchesSpent;
+    });
+  }, [activeTab, tenants, customers, debouncedSearch, status, minRevenue]);
+
+  const { currentPage, setCurrentPage, totalPages, paginatedItems } = usePagination(filteredData, 12);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, debouncedSearch, minRevenue, status, setCurrentPage]);
 
   return (
     <div className="space-y-6">
@@ -102,6 +116,13 @@ export default function Reports() {
       </div>
 
       {/* Data Table */}
+      {loading && <LoadingState label="Loading report data..." blocks={3} />}
+
+      {!loading && filteredData.length === 0 && (
+        <EmptyState title="No data matches your filters" description="Try changing your search or filter values." />
+      )}
+
+      {!loading && filteredData.length > 0 && (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -118,7 +139,7 @@ export default function Reports() {
                 <tr><td colSpan="4" className="px-6 py-12 text-center text-gray-400 font-bold">Loading report data...</td></tr>
               ) : filteredData.length === 0 ? (
                 <tr><td colSpan="4" className="px-6 py-12 text-center text-gray-400 font-bold">No data matches your filters.</td></tr>
-              ) : filteredData.map(item => (
+              ) : paginatedItems.map(item => (
                 <tr key={item.Id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-6 py-5">
                     <div className="font-bold text-gray-900">{item.Name || item.FullName}</div>
@@ -160,6 +181,13 @@ export default function Reports() {
           </table>
         </div>
       </div>
+      )}
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 }

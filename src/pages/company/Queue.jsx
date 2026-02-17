@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { fetchQueue, moveNext, markQueueNoShow, updateQueueServicesThunk, notifyCustomer, verifyQueuePaymentThunk, approveQueueItemThunk, declineQueueItemThunk } from "../../features/queue/queueSlice";
 import { openChatWindow } from "../../features/chat/chatSlice";
@@ -7,10 +8,15 @@ import { fetchBarbersForTenant } from "../../features/booking/bookingSlice";
 import { getSocket } from "../../services/socket";
 import CustomerModal from "../../components/CustomerModal";
 import Modal from "../../components/Modal";
+import LoadingState from "../../components/LoadingState";
+import EmptyState from "../../components/EmptyState";
+import ErrorState from "../../components/ErrorState";
+import { getFriendlyErrorMessage } from "../../utils/errorMessages";
 
 export default function Queue() {
   const dispatch = useAppDispatch();
-    const { items, loading, lastFetchedAt } = useAppSelector(state => state.queue);
+    const navigate = useNavigate();
+    const { items, loading, error, lastFetchedAt } = useAppSelector(state => state.queue);
   const barbers = useAppSelector(state => state.booking.barbers);
   const tenantId = useAppSelector(state => state.auth.user?.tenantId);
 
@@ -52,7 +58,7 @@ export default function Queue() {
         setEditingItem(null);
         dispatch(fetchQueue());
     } catch (err) {
-        setActionError(err);
+        setActionError(getFriendlyErrorMessage(err, "Unable to update queue services."));
     }
   };
 
@@ -120,7 +126,7 @@ export default function Queue() {
         dispatch(fetchQueue());
         setIsNextModalOpen(false);
     } catch (err) {
-        setActionError(err);
+        setActionError(getFriendlyErrorMessage(err, "Unable to move to next customer."));
     }
   };
 
@@ -136,7 +142,7 @@ export default function Queue() {
           dispatch(fetchQueue());
           setIsApproveModalOpen(false);
       } catch (err) {
-          setActionError(err);
+          setActionError(getFriendlyErrorMessage(err, "Unable to approve this request."));
       }
   };
 
@@ -152,7 +158,7 @@ export default function Queue() {
           dispatch(fetchQueue());
           setIsDeclineModalOpen(false);
       } catch (err) {
-          setActionError(err);
+          setActionError(getFriendlyErrorMessage(err, "Unable to decline this request."));
       }
   };
 
@@ -168,7 +174,7 @@ export default function Queue() {
         dispatch(fetchQueue());
         setIsNoShowModalOpen(false);
     } catch (err) {
-        setActionError(err);
+        setActionError(getFriendlyErrorMessage(err, "Unable to mark as no show."));
     }
   };
 
@@ -183,7 +189,7 @@ export default function Queue() {
         await dispatch(notifyCustomer(actionTargetId)).unwrap();
         setIsNotifyModalOpen(false);
     } catch (err) {
-        setActionError(err);
+        setActionError(getFriendlyErrorMessage(err, "Unable to notify customer right now."));
     }
   };
 
@@ -199,7 +205,7 @@ export default function Queue() {
           dispatch(fetchQueue()); // Refresh to move item to active queue
           setIsVerifyModalOpen(false);
       } catch (err) {
-          setActionError(err);
+          setActionError(getFriendlyErrorMessage(err, "Unable to verify payment right now."));
       }
   };
 
@@ -222,18 +228,20 @@ export default function Queue() {
         <p className="text-gray-600">Manage customer flow</p>
       </div>
 
-      {loading && items.length === 0 && (
-         <div className="text-center py-10">
-            <p>Loading queue data...</p>
-         </div>
-      )}
+            {error && (
+                <div className="mb-6">
+                    <ErrorState
+                        message={getFriendlyErrorMessage(error, "Unable to load queue data right now.")}
+                        onRetry={() => dispatch(fetchQueue())}
+                    />
+                </div>
+            )}
+
+            {loading && items.length === 0 && <LoadingState label="Loading queue data..." blocks={2} />}
       
-      {!loading && items.length === 0 && (
-        <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-            <p className="text-gray-500 text-lg font-semibold">Queue is empty</p>
-            <p className="text-gray-400 mt-2">No customers waiting.</p>
-        </div>
-      )}
+            {!loading && items.length === 0 && (
+                <EmptyState title="Queue is empty" description="No customers are waiting right now." />
+            )}
 
       <div className="space-y-12">
       
@@ -410,11 +418,14 @@ export default function Queue() {
                                
                                <div className="flex items-center gap-3">
                                    <button
-                                       onClick={() => dispatch(openChatWindow({
-                                           barberId: item.barberId,
-                                           customerId: item.customerId,
-                                           peerName: item.customerName
-                                       }))}
+                                       onClick={() => {
+                                           dispatch(openChatWindow({
+                                               barberId: item.barberId,
+                                               customerId: item.customerId,
+                                               peerName: item.customerName
+                                           }));
+                                           navigate("/company/conversations");
+                                       }}
                                        className="w-8 h-8 flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm tap-target"
                                        title="Internal Chat"
                                    >

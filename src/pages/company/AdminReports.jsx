@@ -1,17 +1,31 @@
 import { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { fetchTenantDashboard } from "../../features/reports/reportsSlice";
+import LoadingState from "../../components/LoadingState";
+import EmptyState from "../../components/EmptyState";
+import ErrorState from "../../components/ErrorState";
+import { getFriendlyErrorMessage } from "../../utils/errorMessages";
 
 export default function AdminReports() {
   const dispatch = useAppDispatch();
-  const { tenantDashboard, loading } = useAppSelector(s => s.reports);
+  const { tenantDashboard, loading, error } = useAppSelector(s => s.reports);
 
   useEffect(() => {
     dispatch(fetchTenantDashboard());
   }, [dispatch]);
 
-  if (loading) return <div className="p-8 text-center font-bold text-gray-500">Loading shop intelligence...</div>;
-  if (!tenantDashboard) return <div className="p-8 text-center text-red-500 font-bold">No data available.</div>;
+  if (loading) return <LoadingState label="Loading shop intelligence..." blocks={3} />;
+  if (error) {
+    return (
+      <ErrorState
+        message={getFriendlyErrorMessage(error, "Unable to load analytics right now.")}
+        onRetry={() => dispatch(fetchTenantDashboard())}
+      />
+    );
+  }
+  if (!tenantDashboard) {
+    return <EmptyState title="No analytics data yet" description="Report data will appear after activity starts." />;
+  }
 
   const { summary, barbers, services, dailyRevenue, topCustomers } = tenantDashboard;
 

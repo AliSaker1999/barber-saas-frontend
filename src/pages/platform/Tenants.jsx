@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import {
   fetchPlatformTenants,
@@ -11,6 +11,11 @@ import {
 import CreateTenantAdminModal from "./CreateTenantAdminModal";
 import ResetTenantAdminModal from "./ResetTenantAdminModal";
 import EditTenantModal from "./EditTenantModal";
+import LoadingState from "../../components/LoadingState";
+import EmptyState from "../../components/EmptyState";
+import Pagination from "../../components/Pagination";
+import usePagination from "../../hooks/usePagination";
+import useDebouncedValue from "../../hooks/useDebouncedValue";
 
 export default function PlatformTenants() {
   const dispatch = useAppDispatch();
@@ -23,6 +28,7 @@ export default function PlatformTenants() {
   const [phoneNumber, setPhoneNumber] = useState("");
 
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [statusFilter, setStatusFilter] = useState("ALL");
 
   const [createAdminTenantId, setCreateAdminTenantId] = useState(null);
@@ -47,14 +53,22 @@ export default function PlatformTenants() {
     setPhoneNumber("");
   };
 
-  const filteredTenants = items.filter(t => {
-    const matchesSearch = t.Name.toLowerCase().includes(search.toLowerCase()) || 
-                          t.Slug.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "ALL" || 
-                          (statusFilter === "ACTIVE" && t.IsActive) || 
-                          (statusFilter === "INACTIVE" && !t.IsActive);
-    return matchesSearch && matchesStatus;
-  });
+  const filteredTenants = useMemo(() => {
+    return items.filter(t => {
+      const matchesSearch = t.Name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                            t.Slug.toLowerCase().includes(debouncedSearch.toLowerCase());
+      const matchesStatus = statusFilter === "ALL" ||
+                            (statusFilter === "ACTIVE" && t.IsActive) ||
+                            (statusFilter === "INACTIVE" && !t.IsActive);
+      return matchesSearch && matchesStatus;
+    });
+  }, [items, debouncedSearch, statusFilter]);
+
+  const { currentPage, setCurrentPage, totalPages, paginatedItems } = usePagination(filteredTenants, 8);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, statusFilter, setCurrentPage]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -141,23 +155,19 @@ export default function PlatformTenants() {
         </div>
 
         {/* Loading State */}
-        {loading && (
-          <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="text-gray-600 mt-4">Loading tenants...</p>
-          </div>
-        )}
+        {loading && <LoadingState label="Loading tenants..." blocks={3} />}
 
         {/* Tenants Grid */}
         {!loading && filteredTenants.length === 0 && (
-          <div className="bg-white rounded-lg shadow-md p-12 text-center text-gray-500">
-            {search || statusFilter !== "ALL" ? "No tenants match your filters." : "No tenants created yet."}
-          </div>
+          <EmptyState
+            title={search || statusFilter !== "ALL" ? "No tenants match your filters" : "No tenants created yet"}
+            description={search || statusFilter !== "ALL" ? "Try changing your filters." : "Create your first tenant to get started."}
+          />
         )}
 
         {!loading && filteredTenants.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredTenants.map(t => {
+            {paginatedItems.map(t => {
               const admin = admins[t.Id];
 
               return (
@@ -269,6 +279,12 @@ export default function PlatformTenants() {
             })}
           </div>
         )}
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
 
         {/* MODALS */}
         <CreateTenantAdminModal
