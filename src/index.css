@@ -6,6 +6,47 @@
 	font-size: 14px;
 }
 
+/* Base mobile compatibility */
+html, body {
+  background-color: #f9fafb; /* Matches gray-50 */
+  min-height: 100%;
+}
+
+/* Safe area utilities */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.safe-left {
+  padding-left: env(safe-area-inset-left);
+}
+.safe-right {
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Mobile App specific tweaks */
+@media (max-width: 640px) {
+  .app-modal {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .app-modal-content {
+    flex: 1;
+  }
+
+  /* Make sure inputs don't zoom on iOS */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
 .app-modal-overlay {
 	position: fixed;
 	inset: 0;
@@ -66,7 +107,7 @@
 
 @media (max-width: 640px) {
 	:root {
-		font-size: 11px;
+		font-size: 15px;
 	}
 
 	.app-modal {

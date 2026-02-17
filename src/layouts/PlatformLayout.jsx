@@ -20,7 +20,7 @@ export default function PlatformLayout() {
       <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r shadow-sm transition-transform duration-300 lg:translate-x-0 lg:static ${
         mobileOpen ? "translate-x-0" : "-translate-x-full"
       }`}>
-        <div className="p-6 text-xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent border-b">
+        <div className="p-6 pt-[calc(env(safe-area-inset-top)+1.5rem)] text-xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent border-b">
           Barber SaaS
         </div>
 
@@ -31,7 +31,7 @@ export default function PlatformLayout() {
         </nav>
 
         {/* User Info Mobile */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t lg:hidden bg-gray-50">
+        <div className="absolute bottom-0 left-0 right-0 p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] border-t lg:hidden bg-gray-50">
            <button
              onClick={handleLogout}
              className="w-full inline-flex items-center justify-center gap-2 px-3 py-3 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl transition-colors text-sm"
@@ -44,7 +44,7 @@ export default function PlatformLayout() {
       {/* MAIN */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* TOP BAR */}
-        <header className="bg-white shadow-sm px-4 lg:px-8 py-4 flex justify-between items-center sticky top-0 z-30">
+        <header className="bg-white shadow-sm px-4 lg:px-8 py-4 flex justify-between items-center sticky top-0 z-30 pt-[env(safe-area-inset-top)]">
           <div className="flex items-center gap-4">
             {/* Mobile Toggle */}
             <button

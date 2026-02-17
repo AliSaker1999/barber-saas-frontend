@@ -245,7 +245,7 @@ export default function ChatWidget() {
 
     if (!isOpen) {
         const launcherStyle = isMobile
-            ? { right: 16, bottom: 88 }
+            ? { right: 16, bottom: `calc(env(safe-area-inset-bottom) + 110px)` }
             : { left: pos.x, top: pos.y };
         return (
             <button
@@ -277,14 +277,16 @@ export default function ChatWidget() {
         <div 
             className={`fixed z-[90] shadow-2xl transition-all duration-300 border border-gray-100 overflow-hidden flex flex-col
             ${minimized 
-                ? 'bottom-24 right-6 h-16 w-64 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-blue-200' 
+                ? 'right-6 h-16 w-64 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-blue-200' 
                 : `bottom-0 right-0 w-full h-full bg-white ${isMobile ? 'rounded-none' : 'sm:bottom-28 sm:right-8 sm:w-[400px] sm:h-[600px] sm:rounded-3xl'}`
             }`}
+            style={minimized ? { bottom: `calc(env(safe-area-inset-bottom) + 110px)` } : {}}
         >
             {/* Header */}
             <div 
                 className={`text-white p-4 flex justify-between items-center ${isMobile ? 'cursor-pointer' : 'cursor-move'} shadow-lg relative z-10 
                     ${minimized ? 'bg-transparent' : 'bg-gradient-to-r from-blue-600 to-indigo-600'}
+                    ${isMobile && !minimized ? 'pt-[calc(env(safe-area-inset-top)+1rem)]' : ''}
                 `}
                 onClick={() => {
                     if (!dragState.current.moved) {
@@ -453,7 +455,7 @@ export default function ChatWidget() {
 
                     {/* Input */}
                     {activeConversationId && (
-                        <div className="p-4 bg-white border-t border-gray-100">
+                        <div className={`p-4 bg-white border-t border-gray-100 ${isMobile ? 'pb-[calc(env(safe-area-inset-bottom)+1rem)]' : ''}`}>
                             <form onSubmit={handleSend} className="relative flex items-center gap-2">
                                 <input
                                     type="text"

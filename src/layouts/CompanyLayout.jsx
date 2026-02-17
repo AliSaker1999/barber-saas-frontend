@@ -39,7 +39,7 @@ export default function CompanyLayout() {
         mobileOpen ? "translate-x-0" : "-translate-x-full"
       }`}>
         {/* Logo */}
-        <div className="h-20 flex items-center px-6 border-b border-gray-100">
+        <div className="h-auto min-h-20 flex items-center px-6 border-b border-gray-100 pt-[env(safe-area-inset-top)] pb-4">
            <div className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200 mr-3">
               <span className="text-xl">✂️</span>
            </div>
@@ -83,8 +83,8 @@ export default function CompanyLayout() {
           </div>
         )}
         {/* Header */}
-        <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 sm:px-8 h-16 sm:h-20 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 sm:px-8 h-auto min-h-16 sm:min-h-20 flex items-center justify-between pt-[env(safe-area-inset-top)]">
+            <div className="flex items-center gap-3 py-4">
               <button
                   onClick={() => setMobileOpen(!mobileOpen)}
                 className="lg:hidden p-2 -ml-2 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors tap-target"
