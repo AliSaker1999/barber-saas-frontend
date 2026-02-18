@@ -25,15 +25,38 @@ export async function initPushNotifications({ onToken, onNotification } = {}) {
       return;
     }
 
-    await PushNotifications.register();
-
     await PushNotifications.addListener("registration", token => {
       if (onToken) onToken(token.value);
+    });
+
+    await PushNotifications.addListener("registrationError", error => {
+      console.error("Push registration error:", error);
     });
 
     await PushNotifications.addListener("pushNotificationReceived", notification => {
       if (onNotification) onNotification(notification);
     });
+
+    await PushNotifications.addListener("pushNotificationActionPerformed", notification => {
+      if (onNotification) onNotification(notification.notification || notification);
+    });
+
+    if (Capacitor.getPlatform() === "android") {
+      try {
+        await PushNotifications.createChannel({
+          id: "default",
+          name: "General",
+          description: "General notifications",
+          importance: 5,
+          visibility: 1,
+          sound: "default"
+        });
+      } catch {
+        // Channel may already exist.
+      }
+    }
+
+    await PushNotifications.register();
   } catch {
     // Keep app functional even when native push setup is incomplete.
   }

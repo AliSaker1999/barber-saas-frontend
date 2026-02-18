@@ -99,7 +99,7 @@ export default function CustomerLayout() {
             <div className="flex items-center gap-1 sm:gap-4">
               <NavLink
                 to="/customer/conversations"
-                className="hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 text-red-700 text-xs font-bold"
+                className="hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-red-600 text-white text-xs font-bold"
               >
                 💬 Conversations
               </NavLink>
@@ -189,8 +189,8 @@ function HeaderLink({ to, label, icon, end = false }) {
       className={({ isActive }) =>
         `px-5 py-3 rounded-2xl text-base sm:text-lg font-bold transition-all whitespace-nowrap border border-transparent flex items-center gap-2 ${
           isActive
-            ? "bg-white text-blue-600 shadow-lg shadow-blue-200"
-            : "text-gray-500 hover:bg-white hover:text-gray-900"
+            ? "bg-red-600 text-white shadow-lg shadow-red-200"
+            : "text-gray-500 hover:bg-red-600 hover:text-white"
         }`
       }
     >
@@ -209,8 +209,8 @@ function MobileNavLink({ to, label, onClick, end = false }) {
       className={({ isActive }) =>
         `block px-4 py-3 rounded-xl text-base font-bold transition-all ${
           isActive
-            ? "bg-blue-600 text-white shadow-md shadow-blue-100"
-            : "bg-white text-gray-700 border border-gray-100 hover:bg-gray-50"
+            ? "bg-red-600 text-white shadow-md shadow-red-200"
+            : "bg-white text-gray-700 border border-gray-100 hover:bg-red-600 hover:text-white"
         }`
       }
     >
@@ -225,8 +225,8 @@ function BottomTab({ to, icon, end = false, title }) {
       to={to}
       end={end}
       className={({ isActive }) =>
-        `flex flex-col items-center gap-1 transition-all tap-target ${
-          isActive ? "text-blue-600 scale-110" : "text-gray-400 opacity-60"
+        `flex flex-col items-center gap-1 transition-all tap-target rounded-lg px-2 py-1 ${
+          isActive ? "bg-red-600 text-white scale-110 opacity-100" : "text-gray-400 opacity-60 hover:bg-red-600 hover:text-white hover:opacity-100"
         }`
       }
     >

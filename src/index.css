@@ -14,9 +14,9 @@
 :root.dark {
 	color-scheme: dark;
 	--app-bg: #000000;
-	--app-surface: #090909;
-	--app-text: #f5f5f5;
-	--app-muted: #b4b4b4;
+	--app-surface: #050505;
+	--app-text: #ffffff;
+	--app-muted: #f3f4f6;
 }
 
 :root.dark .bg-blue-600,
@@ -48,22 +48,47 @@
 
 :root.dark .bg-white,
 :root.dark .bg-gray-50,
-:root.dark .bg-gray-100 {
+:root.dark .bg-gray-100,
+:root.dark .bg-gray-200 {
 	background-color: #090909 !important;
 }
 
+:root.dark .bg-gray-900,
+:root.dark .bg-black {
+	background-color: #000000 !important;
+}
+
 :root.dark .text-gray-900,
+:root.dark .text-gray-400,
 :root.dark .text-gray-800,
 :root.dark .text-gray-700,
 :root.dark .text-gray-600,
-:root.dark .text-gray-500 {
-	color: #f3f4f6 !important;
+:root.dark .text-gray-500,
+:root.dark .text-black {
+	color: #ffffff !important;
 }
 
 :root.dark .border-gray-100,
 :root.dark .border-gray-200,
 :root.dark .border-gray-300 {
 	border-color: #2b2b2b !important;
+}
+
+:root.dark .border-white {
+	border-color: #7f1d1d !important;
+}
+
+:root.dark input,
+:root.dark textarea,
+:root.dark select {
+	color: #ffffff;
+	background-color: #050505;
+	border-color: #3f3f46;
+}
+
+:root.dark input::placeholder,
+:root.dark textarea::placeholder {
+	color: #d1d5db;
 }
 
 /* Base mobile compatibility */

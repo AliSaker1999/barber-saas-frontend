@@ -80,9 +80,9 @@ export default function ConversationsPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-11rem)] bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex flex-col md:flex-row">
-      <aside className="w-full md:w-[320px] border-r-0 md:border-r border-b md:border-b-0 border-gray-100 bg-gray-50/60">
-        <div className="p-4 border-b border-gray-100 bg-white">
+    <div className="h-[calc(100dvh-15rem)] md:h-[calc(100vh-11rem)] bg-white dark:bg-black rounded-3xl border border-gray-100 dark:border-red-900/40 shadow-sm overflow-hidden flex flex-col md:flex-row">
+      <aside className="w-full md:w-[320px] border-r-0 md:border-r border-b md:border-b-0 border-gray-100 dark:border-red-900/40 bg-gray-50/60 dark:bg-black">
+        <div className="p-4 border-b border-gray-100 dark:border-red-900/40 bg-white dark:bg-black">
           <h1 className="text-lg font-black text-gray-900">Conversations</h1>
         </div>
         <div className="p-3 space-y-2 overflow-y-auto max-h-[220px] md:max-h-[calc(100%-65px)]">
@@ -114,20 +114,20 @@ export default function ConversationsPage() {
         </div>
       </aside>
 
-      <section className="flex-1 flex flex-col min-w-0">
-        <div className="p-4 border-b border-gray-100 bg-white">
+      <section className="flex-1 flex flex-col min-w-0 relative">
+        <div className="p-4 border-b border-gray-100 dark:border-red-900/40 bg-white dark:bg-black">
           <h2 className="font-black text-gray-900">
             {activeConversationId ? "Messages" : "Select a conversation"}
           </h2>
         </div>
 
-        <div className="flex-1 p-4 overflow-y-auto bg-gray-50/50 space-y-2">
+        <div className="flex-1 p-4 overflow-y-auto bg-gray-50/50 dark:bg-black space-y-2 pb-24 md:pb-4">
           {activeConversationId ? (
             messages.map(msg => {
               const isMe = msg.senderId === user.id;
               return (
                 <div key={msg.id || msg.Id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm font-medium ${isMe ? "bg-red-600 text-white" : "bg-white text-gray-800 border border-gray-100"}`}>
+                  <div className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm font-medium ${isMe ? "bg-red-600 text-white" : "bg-white dark:bg-black text-gray-800 border border-gray-100 dark:border-red-900/40"}`}>
                     {msg.content}
                   </div>
                 </div>
@@ -138,13 +138,14 @@ export default function ConversationsPage() {
           )}
         </div>
 
-        <form onSubmit={handleSend} className="p-4 border-t border-gray-100 bg-white flex gap-2">
+        <form onSubmit={handleSend} className="p-4 border-t border-gray-100 dark:border-red-900/40 bg-white dark:bg-black flex gap-2 sticky bottom-[calc(env(safe-area-inset-bottom)+88px)] md:bottom-0">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={!activeConversationId}
-            placeholder={activeConversationId ? "Type a message..." : "Select a conversation first"}
-            className="flex-1 rounded-xl bg-gray-100 px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-red-500 outline-none disabled:opacity-60"
+            placeholder={activeConversationId ? "Write your message here..." : "Select a conversation first"}
+            className="flex-1 rounded-xl bg-gray-100 dark:bg-black border border-transparent dark:border-red-900/40 px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-red-500 outline-none disabled:opacity-60"
+            aria-label="Write your message"
           />
           <button
             type="submit"

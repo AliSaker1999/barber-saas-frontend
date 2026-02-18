@@ -43,6 +43,27 @@ export default function App() {
           } catch {
             // Silent fail for token registration.
           }
+        },
+        onNotification: (notification) => {
+          const title = notification?.title || "BarberSaaS";
+          const message = notification?.body || "You have a new notification";
+          const payload = notification?.data || {};
+
+          dispatch(addNotification({
+            Id: payload.notificationId || `native-${Date.now()}`,
+            Title: title,
+            Message: message,
+            Type: payload.type || "PUSH",
+            TenantId: payload.tenantId || null,
+            IsRead: false,
+            CreatedAt: new Date().toISOString(),
+            Data: payload
+          }));
+
+          toast.success(message, {
+            id: `native-push-${payload.notificationId || Date.now()}`,
+            duration: 4000
+          });
         }
        });
        

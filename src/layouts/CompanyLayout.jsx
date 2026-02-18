@@ -104,7 +104,7 @@ export default function CompanyLayout() {
             <div className="flex items-center gap-3 sm:gap-4">
               <NavLink
                 to="conversations"
-                className="hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 text-red-700 text-xs font-bold"
+                className="hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-red-600 text-white text-xs font-bold"
               >
                 💬 Conversations
               </NavLink>
@@ -163,8 +163,8 @@ function SidebarLink({ to, icon, label, onClick }) {
       className={({ isActive }) =>
         `flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition-all duration-200 group ${
           isActive
-            ? "bg-blue-50 text-blue-600 shadow-sm"
-            : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+            ? "bg-red-600 text-white shadow-sm shadow-red-200"
+            : "text-gray-500 hover:bg-red-600 hover:text-white"
         }`
       }
     >
@@ -180,8 +180,8 @@ function BottomTab({ to, icon, label }) {
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `flex flex-col items-center gap-1 p-2 transition-all duration-300 tap-target ${
-          isActive ? "text-blue-600 scale-110" : "text-gray-400 opacity-60"
+        `flex flex-col items-center gap-1 p-2 transition-all duration-300 tap-target rounded-lg ${
+          isActive ? "bg-red-600 text-white scale-110 opacity-100" : "text-gray-400 opacity-60 hover:bg-red-600 hover:text-white hover:opacity-100"
         }`
       }
     >
