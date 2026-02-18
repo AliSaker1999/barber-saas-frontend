@@ -374,7 +374,7 @@ export default function Slots() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-slate-100 to-white">
       <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-10 md:px-6">
-        <section className="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-2xl shadow-slate-200 backdrop-blur">
+        <section className="rounded-3xl border border-app-border bg-app-surface/80 p-6 shadow-2xl shadow-slate-200 backdrop-blur">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-500">Review &amp; book</p>

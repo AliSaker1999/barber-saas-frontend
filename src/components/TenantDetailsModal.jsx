@@ -89,7 +89,7 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full h-full sm:h-auto sm:max-h-[90vh] rounded-none sm:rounded-[2rem] shadow-2xl max-w-5xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
+      <div className="bg-app-surface w-full h-full sm:h-auto sm:max-h-[90vh] rounded-none sm:rounded-[2rem] shadow-2xl max-w-5xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
         {/* Header / Cover */}
         <div className="relative h-48 sm:h-56 bg-gray-200">
           {tenant.CoverImageUrl ? (
@@ -106,7 +106,7 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
             </svg>
           </button>
 
-          <div className="absolute -bottom-10 left-6 w-20 h-20 bg-white rounded-2xl shadow-lg p-1 border-4 border-white overflow-hidden">
+          <div className="absolute -bottom-10 left-6 w-20 h-20 bg-app-surface rounded-2xl shadow-lg p-1 border-4 border-app-border overflow-hidden">
             {tenant.LogoUrl ? (
               <OptimizedImage src={tenant.LogoUrl} alt={tenant.Name} className="w-full h-full object-contain rounded-xl" />
             ) : (
@@ -336,7 +336,7 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
         </div>
 
         {(onBook || onQueue) && (
-          <div className="sm:hidden sticky bottom-0 bg-white border-t border-gray-100 p-4 flex gap-2">
+          <div className="sm:hidden sticky bottom-0 bg-app-surface border-t border-app-border p-4 flex gap-2">
             {onBook && (
               <button
                 onClick={onBook}

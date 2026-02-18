@@ -4,10 +4,10 @@ import { Link } from 'react-router-dom';
 const PrivacyPolicy = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 dark:bg-slate-900">
-      <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-sm p-8 sm:p-12 border border-gray-100 dark:bg-slate-800 dark:border-slate-700">
+      <div className="max-w-4xl mx-auto bg-app-surface rounded-3xl shadow-sm p-8 sm:p-12 border border-app-border dark:bg-slate-800 dark:border-slate-700">
         <div className="mb-12">
           <Link to="/" className="text-blue-600 font-bold hover:underline mb-8 inline-block">← Back to Platform</Link>
-          <h1 className="text-4xl font-black text-gray-900 mb-4 dark:text-slate-100">Privacy Policy</h1>
+          <h1 className="text-4xl font-black text-app-text mb-4 dark:text-slate-100">Privacy Policy</h1>
           <p className="text-gray-500 font-medium dark:text-slate-400">Effective Date: January 23, 2026</p>
         </div>
 

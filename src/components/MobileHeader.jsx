@@ -19,7 +19,7 @@ export default function MobileHeader({ title, onBack, primaryAction, subtitle, s
   }, [lastSyncAt]);
 
   return (
-    <div className="sm:hidden sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100">
+    <div className="sm:hidden sticky top-0 z-40 bg-app-surface/90 backdrop-blur-md border-b border-app-border">
       <div className="flex items-center justify-between px-4 h-14">
         <div className="flex items-center gap-2">
             <button

@@ -45,8 +45,8 @@ export default function NotificationHistory() {
             <MobileHeader title="Notifications" />
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
-                    <p className="text-gray-500 text-sm">Review your past alerts and messages</p>
+                    <h1 className="text-2xl font-bold text-app-text">Notifications</h1>
+                    <p className="text-app-muted text-sm">Review your past alerts and messages</p>
                 </div>
                 {items.some(i => !i.IsRead) && (
                     <button 
@@ -58,7 +58,7 @@ export default function NotificationHistory() {
                 )}
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-app-surface rounded-2xl shadow-sm border border-app-border overflow-hidden">
                 {loading ? (
                     <div className="p-4">
                         <LoadingState label="Loading notifications..." blocks={3} />
@@ -79,7 +79,7 @@ export default function NotificationHistory() {
                         {items.map((item) => (
                             <div 
                                 key={item.Id} 
-                                className={`p-4 sm:p-6 transition-colors hover:bg-gray-50 flex gap-4 ${!item.IsRead ? 'bg-blue-50/30' : ''}`}
+                                className={`p-4 sm:p-6 transition-colors hover:bg-app-surface-2 flex gap-4 ${!item.IsRead ? 'bg-blue-50/30' : ''}`}
                                 onClick={() => {
                                     if (!item.IsRead) handleMarkAsRead(item.Id);
                                     handleNavigate(item);
@@ -88,7 +88,7 @@ export default function NotificationHistory() {
                                 <div className={`mt-1.5 h-2.5 w-2.5 rounded-full flex-shrink-0 ${!item.IsRead ? 'bg-blue-500' : 'bg-transparent'}`}></div>
                                 <div className="flex-1">
                                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 mb-2">
-                                        <h4 className={`text-base ${!item.IsRead ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
+                                        <h4 className={`text-base ${!item.IsRead ? 'font-bold text-app-text' : 'font-medium text-app-muted'}`}>
                                             {item.Title}
                                         </h4>
                                         <span className="text-xs text-gray-400">

@@ -17,6 +17,23 @@ import usePagination from "../../hooks/usePagination";
 import { runBackgroundJob } from "../../utils/backgroundJob";
 
 /* Enhanced Dropdown Component */
+function Dropdown({ value, onChange, options = [], icon = null, placeholder = null }) {
+  return (
+    <div className="relative">
+      {icon && <div className="absolute left-3 top-1/2 -translate-y-1/2 text-app-muted pointer-events-none">{icon}</div>}
+      <select
+        value={value}
+        onChange={(e) => onChange && onChange(e.target.value)}
+        className={`w-full appearance-none bg-transparent border border-app-border rounded-lg px-3 py-2 ${icon ? 'pl-10' : ''}`}
+      >
+        {placeholder && <option value="">{placeholder}</option>}
+        {options.map((opt) => (
+          <option key={String(opt.value)} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
 const TenantLogo = memo(function TenantLogo({ tenant }) {
   const [error, setError] = useState(false);
 
@@ -24,95 +41,21 @@ const TenantLogo = memo(function TenantLogo({ tenant }) {
     return (
       <OptimizedImage
         src={tenant.LogoUrl}
-        alt="Logo"
-        className="w-full h-full object-contain rounded-xl"
-        fallback={null}
-        sizes="64px"
-        fetchPriority="low"
-        loading="lazy"
-        decoding="async"
+        alt={tenant.Name}
+        className="w-full h-full object-contain"
         onError={() => setError(true)}
       />
     );
   }
-
+  // fallback: show initials or a placeholder
   return (
-    <div className="w-full h-full bg-gray-100 flex items-center justify-center font-bold text-2xl text-blue-600">
+    <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 font-bold text-xl">
       {tenant.Name ? tenant.Name[0] : "?"}
     </div>
   );
 });
 
-const Dropdown = memo(function Dropdown({ value, onChange, options, icon, placeholder }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const selectedLabel = options.find(o => o.value === value)?.label || placeholder;
-
-  return (
-    <div className="relative w-full" ref={dropdownRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`w-full py-2 px-3 sm:py-3.5 sm:px-4 bg-white border-2 border-transparent rounded-xl sm:rounded-2xl flex items-center justify-between transition-all duration-200 ${
-          isOpen 
-            ? 'border-blue-600 shadow-lg ring-4 ring-blue-50/50' 
-            : 'hover:bg-gray-50'
-        }`}
-        style={{ backgroundColor: isOpen ? 'white' : '#F9FAFB' }} // Match bg-gray-50 when closed
-      >
-        <div className="flex items-center gap-1.5 sm:gap-2 truncate text-left">
-          {icon && <span className="text-gray-400 shrink-0 scale-90 sm:scale-100">{icon}</span>}
-          <span className={`font-bold truncate text-[11px] sm:text-base ${isOpen ? 'text-blue-600' : 'text-gray-700'}`}>
-            {selectedLabel}
-          </span>
-        </div>
-        <svg 
-          className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180 text-blue-600' : ''}`} 
-          fill="none" 
-          stroke="currentColor" 
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {isOpen && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-2 bg-white border border-gray-100 rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 origin-top">
-          <div className="max-h-60 overflow-y-auto section-scrollbar">
-            {options.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => {
-                  onChange(option.value);
-                  setIsOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2 sm:px-4 sm:py-3 text-[11px] sm:text-sm font-bold transition-all border-l-4 ${
-                  value === option.value 
-                    ? "bg-blue-50 text-blue-600 border-blue-600" 
-                    : "text-gray-600 border-transparent hover:bg-gray-50 hover:text-gray-900"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-});
-
-export default function Tenants() {
+function Tenants() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { tenants, loading } = useAppSelector(state => state.tenants);
@@ -486,14 +429,14 @@ export default function Tenants() {
 
       {/* Tenants Grid */}
       <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-7 auto-rows-fr">
-        {paginatedItems.map((tenant) => (
+        {paginatedItems.map((tenant, idx) => (
           <div
             key={tenant.Id}
             className="group bg-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-gray-100 flex flex-col h-full"
           >
             {/* Header / Cover Image */}
             <div
-              className="relative h-20 sm:h-48 overflow-hidden bg-gray-200 cursor-pointer"
+              className="relative h-20 sm:h-48 overflow-hidden bg-app-surface-2 cursor-pointer"
               role="button"
               tabIndex={0}
               onClick={() => openDetails(tenant)}
@@ -503,17 +446,30 @@ export default function Tenants() {
                 }
               }}
             >
-              {tenant.CoverImageUrl ? (
-                <OptimizedImage
-                  src={tenant.CoverImageUrl}
-                  alt={tenant.Name}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  sizes="(max-width: 768px) 33vw, (max-width: 1024px) 50vw, 33vw"
-                  fetchPriority="low"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-600 opacity-80"></div>
-              )}
+              {/* choose cover: for 3rd and 4th items reuse first/second cover if available */}
+              {
+                (() => {
+                  const firstCover = paginatedItems[0]?.CoverImageUrl || paginatedItems[0]?.LogoUrl;
+                  const secondCover = paginatedItems[1]?.CoverImageUrl || paginatedItems[1]?.LogoUrl;
+                  let coverUrl = tenant.CoverImageUrl || tenant.LogoUrl || null;
+                  if (!coverUrl) {
+                    if (idx === 2) coverUrl = firstCover;
+                    if (idx === 3) coverUrl = secondCover;
+                  }
+                  if (coverUrl) {
+                    return (
+                      <OptimizedImage
+                        src={coverUrl}
+                        alt={tenant.Name}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        sizes="(max-width: 768px) 33vw, (max-width: 1024px) 50vw, 33vw"
+                        fetchPriority="low"
+                      />
+                    );
+                  }
+                  return <div className="w-full h-full gradient-app-primary opacity-90"></div>;
+                })()
+              }
               
               {/* Logo Overlay */}
               <div className="absolute -bottom-3 left-1.5 w-8 h-8 sm:-bottom-6 sm:left-6 sm:w-20 sm:h-20 bg-white rounded-lg sm:rounded-2xl shadow-lg p-0.5 sm:p-1 border-2 sm:border-4 border-white overflow-hidden">
@@ -641,3 +597,5 @@ export default function Tenants() {
     </div>
   );
 }
+
+export default Tenants;

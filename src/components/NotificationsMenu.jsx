@@ -54,7 +54,7 @@ export default function NotificationsMenu() {
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Menu.Items className="absolute right-[-40px] sm:right-0 mt-2 w-[calc(100vw-2rem)] sm:w-96 origin-top-right bg-white divide-y divide-gray-100 rounded-2xl shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none z-50 overflow-hidden">
+        <Menu.Items className="absolute right-[-40px] sm:right-0 mt-2 w-[calc(100vw-2rem)] sm:w-96 origin-top-right bg-app-surface divide-y divide-app-border rounded-2xl shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none z-50 overflow-hidden">
           <div className="px-4 py-3 bg-gray-50 border-b flex justify-between items-center">
              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Notifications</h3>
              {unreadCount > 0 && (

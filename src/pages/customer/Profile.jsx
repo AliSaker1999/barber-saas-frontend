@@ -176,12 +176,12 @@ export default function CustomerProfile() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2">
-                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-tight">Profile Photo</label>
+                <label className="block text-sm font-bold text-app-muted mb-2 uppercase tracking-tight">Profile Photo</label>
                 <div className="flex items-center gap-4">
                   <button
                     type="button"
                     onClick={() => setIsPhotoModalOpen(true)}
-                    className="relative w-20 h-20 rounded-full overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center group"
+                    className="relative w-20 h-20 rounded-full overflow-hidden border border-app-border bg-app-surface-2 flex items-center justify-center group"
                     aria-label="Change profile photo"
                   >
                     {formData.profileImage ? (

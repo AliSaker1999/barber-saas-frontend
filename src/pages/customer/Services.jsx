@@ -58,12 +58,12 @@ export default function Services() {
           </svg>
           Back to Barbershops
         </button>
-        <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+        <h1 className="text-4xl font-bold text-app-text mb-2 flex items-center gap-3">
             {selectedBarberId ? `Services for ${barbers.find(b => b.barberId === selectedBarberId)?.fullName || "Barber"}` : "Select Services"}
             {selectedBarberId && (
                 <button 
                   onClick={() => dispatch(selectBarber(null))}
-                  className="text-xs bg-gray-100 text-gray-500 hover:bg-gray-200 px-3 py-1.5 rounded-full font-medium transition-colors"
+                  className="text-xs bg-app-surface-2 text-app-muted hover:bg-app-surface-2/80 px-3 py-1.5 rounded-full font-medium transition-colors"
                 >
                   Show all barbers
                 </button>

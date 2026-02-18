@@ -392,9 +392,9 @@ export default function QueueStatus() {
                       }
                   </p>
 
-                  <div className="bg-white p-6 rounded-2xl border border-amber-100 mb-8 text-left shadow-sm">
+                  <div className="bg-app-surface p-6 rounded-2xl border border-amber-100 mb-8 text-left shadow-sm">
                       <p className="text-xs font-black text-amber-500 uppercase tracking-widest mb-2">Whish Transfer Info</p>
-                      <p className="text-2xl font-black text-gray-900 mb-1">{myPosition.whishPhoneNumber || "Contact Support"}</p>
+                      <p className="text-2xl font-black text-app-text mb-1">{myPosition.whishPhoneNumber || "Contact Support"}</p>
                       <p className="text-xs text-amber-600 font-bold">*Transfer exactly the service amount</p>
                   </div>
 
@@ -571,7 +571,7 @@ export default function QueueStatus() {
               Leave Queue
             </button>
             
-            <div className="mt-8 text-center bg-gray-50 border-2 border-gray-100 p-6 rounded-3xl relative">
+            <div className="mt-8 text-center bg-app-surface-2 border-2 border-app-border p-6 rounded-3xl relative">
                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-indigo-600 text-white text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-tighter">Support</div>
                  <p className="text-gray-500 text-sm font-bold">Need to talk to {barberName}?</p>
                                  <button 
@@ -596,7 +596,7 @@ export default function QueueStatus() {
     // Case: User NOT in Queue - Select Logic
     return (
       <div className="max-w-lg mx-auto p-4">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6 text-center">Join the Queue</h1>
+          <h1 className="text-3xl font-bold text-app-text mb-6 text-center">Join the Queue</h1>
           <p className="text-gray-600 mb-8 text-center">Select a barber to see their wait time.</p>
           
                     {loading && stats.length === 0 && (

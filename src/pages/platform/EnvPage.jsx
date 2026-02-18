@@ -61,8 +61,8 @@ export default function EnvPage() {
   return (
     <div className="min-h-screen bg-slate-50 py-8">
       <div className="max-w-5xl mx-auto space-y-6 px-4">
-        <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-8 space-y-4">
-          <h1 className="text-3xl font-black text-gray-900">.env / Environment</h1>
+        <div className="bg-app-surface rounded-3xl shadow-2xl border border-app-border p-8 space-y-4">
+          <h1 className="text-3xl font-black text-app-text">.env / Environment</h1>
           <p className="text-gray-600">
             The values below reflect what Vite exposes to the client build. Copy the snippet into a <span className="font-mono text-sm">.env.local</span> file at the project root, then restart the dev server for changes to take effect.
           </p>
@@ -75,7 +75,7 @@ export default function EnvPage() {
           {recommendedVariables.map(item => {
             const value = import.meta.env[item.key];
             return (
-              <div key={item.key} className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-3">
+              <div key={item.key} className="bg-app-surface rounded-3xl border border-app-border shadow-sm p-6 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-bold uppercase tracking-widest text-gray-500">{item.label}</p>
