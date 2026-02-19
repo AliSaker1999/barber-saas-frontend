@@ -51,7 +51,7 @@ export default function Services() {
       <div className="mb-10">
         <button
           onClick={() => navigate("/customer")}
-          className="text-indigo-600 hover:text-indigo-700 font-medium text-sm flex items-center gap-2 mb-4 hover:translate-x-1 transition-transform"
+          className="text-app-primary hover:text-app-primary font-medium text-sm flex items-center gap-2 mb-4 hover:translate-x-1 transition-transform rounded-[25px]"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -69,7 +69,7 @@ export default function Services() {
                 </button>
             )}
         </h1>
-        <p className="text-gray-600">Choose the services you'd like</p>
+        <p className="text-app-muted">Choose the services you'd like</p>
       </div>
 
       {/* Loading State */}
@@ -95,10 +95,10 @@ export default function Services() {
               <div
                 key={service.Id}
                 onClick={() => dispatch(toggleService(service.Id))}
-                className={`p-6 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                className={`p-6 rounded-[12px] border-2 cursor-pointer transition-all duration-200 ${
                   selectedServiceIds.includes(service.Id)
-                    ? "border-indigo-600 bg-indigo-50 shadow-md"
-                    : "border-gray-200 bg-white hover:border-indigo-300 hover:shadow-md"
+                    ? "border-app-accent bg-app-surface-2 shadow-md"
+                    : "border-app-border bg-app-surface hover:border-app-accent hover:shadow-md"
                 }`}
               >
                 <div className="flex items-start gap-4">
@@ -117,15 +117,15 @@ export default function Services() {
 
                   {/* Content */}
                   <div className="flex-1">
-                    <h3 className="text-lg font-bold text-gray-900">{service.Name}</h3>
-                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                    <h3 className="text-lg font-bold text-app-text">{service.Name}</h3>
+                    <div className="flex items-center gap-4 mt-2 text-sm text-app-muted">
                       <span className="flex items-center gap-1">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         {service.DurationMinutes} min
                       </span>
-                      <span className="font-semibold text-indigo-600 text-base">
+                      <span className="font-semibold text-app-accent text-base">
                         ${service.Price}
                       </span>
                     </div>
@@ -136,16 +136,16 @@ export default function Services() {
           </div>
 
           {/* Summary and Navigation */}
-          <div className="bg-white rounded-2xl shadow-lg p-6">
+          <div className="bg-app-surface rounded-[12px] shadow-lg p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">Services selected:</p>
-                <p className="text-3xl font-bold text-gray-900">{selectedServiceIds.length}</p>
+                <p className="text-app-muted text-sm">Services selected:</p>
+                <p className="text-3xl font-bold text-app-text">{selectedServiceIds.length}</p>
               </div>
               <button
                 disabled={selectedServiceIds.length === 0}
                 onClick={() => navigate("/customer/barbers")}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 px-8 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
+                className="bg-app-accent hover:bg-app-accent-dark disabled:bg-app-surface disabled:opacity-60 text-white font-bold py-3 px-8 rounded-[12px] transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
               >
                 Continue
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -12,6 +12,12 @@ export default function CustomerProfile() {
   const dispatch = useDispatch();
   const { profile, loading, updateSuccess, error } = useSelector((state) => state.customerProfile);
 
+  // ...existing code...
+  // UI palette and radius update
+  // Replace hardcoded colors with semantic classes: bg-app-bg, text-app-text, border-app-border, bg-app-surface, text-app-muted
+  // Use border-radius-[12px] for cards, border-radius-[25px] for buttons
+  // Example: <div className="bg-app-bg text-app-text rounded-[12px] ...">
+  // Example: <button className="bg-app-surface text-app-text rounded-[25px] ...">
   const [formData, setFormData] = useState({
     fullName: "",
     phoneNumber: "",
@@ -133,10 +139,10 @@ export default function CustomerProfile() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
-      <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-8 py-12 text-white">
-          <h1 className="text-3xl font-bold decoration-blue-200 decoration-2">My Profile</h1>
-          <p className="text-blue-100 mt-2 opacity-90">Manage your personal information and preferences</p>
+      <div className="bg-app-bg rounded-[12px] shadow-xl overflow-hidden border border-app-border">
+        <div className="bg-app-surface px-8 py-12 text-app-text">
+          <h1 className="text-3xl font-bold decoration-app-muted decoration-2">My Profile</h1>
+          <p className="text-app-muted mt-2 opacity-90">Manage your personal information and preferences</p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-8 space-y-10">

@@ -35,8 +35,8 @@ export default function AdminReports() {
     <div className="space-y-8 pb-12">
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-black text-gray-900 tracking-tight">Analytics & Intelligence</h1>
-        <p className="text-gray-500 font-medium text-lg">In-depth performance tracking for your shop</p>
+        <h1 className="text-4xl font-black text-app-text tracking-tight">Analytics & Intelligence</h1>
+        <p className="text-app-muted font-medium text-lg">In-depth performance tracking for your shop</p>
       </div>
 
       {/* Summary Row */}
@@ -68,25 +68,25 @@ export default function AdminReports() {
       </div>
 
       {/* Revenue Chart (CSS Implementation) */}
-      <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-        <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-2">
-          <span className="w-2 h-6 bg-blue-600 rounded-full"></span>
+      <div className="bg-app-surface p-8 rounded-[25px] border border-app-border shadow-sm">
+        <h3 className="text-xl font-black text-app-text mb-6 flex items-center gap-2">
+          <span className="w-2 h-6 bg-app-accent rounded-full"></span>
           Revenue Trend (Last 30 Days)
         </h3>
         <div className="h-48 flex items-end gap-1 px-4">
           {dailyRevenue.map((d, i) => (
             <div key={i} className="flex-1 group relative">
               <div 
-                className="bg-blue-100 group-hover:bg-blue-600 transition-all rounded-t-sm" 
+                className="bg-app-accent/10 group-hover:bg-app-accent transition-all rounded-t-sm" 
                 style={{ height: `${(d.Revenue / maxRevenue) * 100}%` }}
               ></div>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-900 text-white text-[10px] py-1 px-2 rounded whitespace-nowrap z-10">
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-app-accent-dark text-white text-[10px] py-1 px-2 rounded whitespace-nowrap z-10">
                 {new Date(d.Date).toLocaleDateString()}: ${d.Revenue.toLocaleString()}
               </div>
             </div>
           ))}
         </div>
-        <div className="flex justify-between mt-4 text-[10px] font-black text-gray-400 uppercase tracking-widest px-4">
+        <div className="flex justify-between mt-4 text-[10px] font-black text-app-muted uppercase tracking-widest px-4">
            <span>{new Date(dailyRevenue[0]?.Date).toLocaleDateString()}</span>
            <span>Today</span>
         </div>
@@ -95,21 +95,21 @@ export default function AdminReports() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Barber Performance */}
-        <div className="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
-           <h3 className="text-xl font-black text-gray-900 mb-6 uppercase tracking-tight">Barber Performance</h3>
+          <div className="bg-app-surface border border-app-border rounded-[25px] p-8 shadow-sm">
+            <h3 className="text-xl font-black text-app-text mb-6 uppercase tracking-tight">Barber Performance</h3>
            <div className="space-y-6">
               {barbers.map((b, i) => {
                 const maxBarberRev = Math.max(...barbers.map(bar => bar.Revenue), 1);
                 return (
                   <div key={i} className="space-y-2">
                     <div className="flex justify-between text-sm font-bold">
-                       <span className="text-gray-900">{b.BarberName}</span>
-                       <span className="text-blue-600">${b.Revenue.toLocaleString()}</span>
+                    <span className="text-app-text">{b.BarberName}</span>
+                    <span className="text-app-accent">${b.Revenue.toLocaleString()}</span>
                     </div>
-                    <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                       <div className="bg-blue-600 h-full transition-all" style={{ width: `${(b.Revenue / maxBarberRev) * 100}%` }}></div>
+                  <div className="w-full bg-app-surface-2 h-2 rounded-full overflow-hidden">
+                    <div className="bg-app-accent h-full transition-all" style={{ width: `${(b.Revenue / maxBarberRev) * 100}%` }}></div>
                     </div>
-                    <div className="flex justify-between text-[10px] font-black text-gray-400 uppercase">
+                  <div className="flex justify-between text-[10px] font-black text-app-muted uppercase">
                        <span>{b.CompletedCount} Completed</span>
                        <span>{b.TotalAppointments} Total</span>
                     </div>
@@ -120,58 +120,58 @@ export default function AdminReports() {
         </div>
 
         {/* Service Popularity */}
-        <div className="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
-           <h3 className="text-xl font-black text-gray-900 mb-6 uppercase tracking-tight">Top Services</h3>
-           <div className="space-y-4">
+          <div className="bg-app-surface border border-app-border rounded-[25px] p-8 shadow-sm">
+            <h3 className="text-xl font-black text-app-text mb-6 uppercase tracking-tight">Top Services</h3>
+            <div className="space-y-4">
               {services.slice(0, 6).map((s, i) => (
-                <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
-                   <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center font-black text-gray-300 text-xs border border-gray-100">{i + 1}</div>
-                      <div>
-                        <div className="font-bold text-gray-900">{s.ServiceName}</div>
-                        <div className="text-[10px] text-gray-400 font-black uppercase tracking-widest">{s.UsageCount} Times Used</div>
-                      </div>
+               <div key={i} className="flex items-center justify-between p-4 bg-app-surface-2 rounded-[12px]">
+                 <div className="flex items-center gap-4">
+                   <div className="w-10 h-10 bg-app-surface rounded-[12px] flex items-center justify-center font-black text-app-muted text-xs border border-app-border">{i + 1}</div>
+                   <div>
+                    <div className="font-bold text-app-text">{s.ServiceName}</div>
+                    <div className="text-[10px] text-app-muted font-black uppercase tracking-widest">{s.UsageCount} Times Used</div>
                    </div>
-                   <div className="text-sm font-black text-green-600">+${s.Revenue.toLocaleString()}</div>
-                </div>
+                 </div>
+                 <div className="text-sm font-black text-app-accent">+${s.Revenue.toLocaleString()}</div>
+               </div>
               ))}
-           </div>
-        </div>
+            </div>
+          </div>
 
       </div>
 
       {/* Top Customers */}
-      <div className="bg-white border border-gray-100 rounded-3xl shadow-sm overflow-hidden">
-        <div className="p-8 border-b border-gray-50 flex justify-between items-center">
-           <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Most Loyal Customers</h3>
-           <span className="text-xs font-black text-blue-600 uppercase bg-blue-50 px-3 py-1 rounded-full">VIP Tracker</span>
+      <div className="bg-app-surface border border-app-border rounded-[25px] shadow-sm overflow-hidden">
+        <div className="p-8 border-b border-app-surface-2 flex justify-between items-center">
+          <h3 className="text-xl font-black text-app-text uppercase tracking-tight">Most Loyal Customers</h3>
+          <span className="text-xs font-black text-app-accent uppercase bg-app-accent/10 px-3 py-1 rounded-full">VIP Tracker</span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
-             <thead className="bg-gray-50/50">
-                <tr>
-                   <th className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Customer</th>
-                   <th className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Visits</th>
-                   <th className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Total Life-Time Value</th>
-                </tr>
-             </thead>
-             <tbody className="divide-y divide-gray-100">
-                {topCustomers.map((c, i) => (
-                  <tr key={i} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-8 py-6">
-                       <div className="font-bold text-gray-900">{c.FullName}</div>
-                       <div className="text-xs text-gray-500 font-medium">{c.Email}</div>
-                    </td>
-                    <td className="px-8 py-6 text-center">
-                       <span className="px-4 py-1.5 bg-gray-100 rounded-xl font-black text-gray-700 text-xs">{c.VisitCount}</span>
-                    </td>
-                    <td className="px-8 py-6 text-right font-black text-blue-600 text-lg">
-                       ${c.TotalSpend.toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-             </tbody>
-          </table>
+         <table className="w-full text-left">
+           <thead className="bg-app-surface-2">
+             <tr>
+               <th className="px-8 py-4 text-[10px] font-black text-app-muted uppercase tracking-widest">Customer</th>
+               <th className="px-8 py-4 text-[10px] font-black text-app-muted uppercase tracking-widest text-center">Visits</th>
+               <th className="px-8 py-4 text-[10px] font-black text-app-muted uppercase tracking-widest text-right">Total Life-Time Value</th>
+             </tr>
+           </thead>
+           <tbody className="divide-y divide-app-border">
+             {topCustomers.map((c, i) => (
+              <tr key={i} className="hover:bg-app-surface-2 transition-colors">
+                <td className="px-8 py-6">
+                  <div className="font-bold text-app-text">{c.FullName}</div>
+                  <div className="text-xs text-app-muted font-medium">{c.Email}</div>
+                </td>
+                <td className="px-8 py-6 text-center">
+                  <span className="px-4 py-1.5 bg-app-surface-2 rounded-[12px] font-black text-app-text text-xs">{c.VisitCount}</span>
+                </td>
+                <td className="px-8 py-6 text-right font-black text-app-accent text-lg">
+                  ${c.TotalSpend.toLocaleString()}
+                </td>
+              </tr>
+             ))}
+           </tbody>
+         </table>
         </div>
       </div>
 
@@ -181,10 +181,10 @@ export default function AdminReports() {
 
 function StatCard({ title, value, color, subtext }) {
   const colors = {
-    blue: "bg-blue-600 shadow-blue-200",
-    green: "bg-emerald-600 shadow-emerald-200",
-    red: "bg-rose-600 shadow-rose-200",
-    orange: "bg-amber-600 shadow-amber-200"
+    blue: "bg-app-accent",
+    green: "bg-app-accent",
+    red: "bg-app-accent",
+    orange: "bg-app-accent"
   };
 
   return (

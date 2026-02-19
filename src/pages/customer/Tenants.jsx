@@ -1,5 +1,6 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo,  useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { fetchTenants } from "../../features/tenants/tenantsSlice";
 import { selectTenant } from "../../features/booking/bookingSlice";
@@ -24,7 +25,7 @@ function Dropdown({ value, onChange, options = [], icon = null, placeholder = nu
       <select
         value={value}
         onChange={(e) => onChange && onChange(e.target.value)}
-        className={`w-full appearance-none bg-transparent border border-app-border rounded-lg px-3 py-2 ${icon ? 'pl-10' : ''}`}
+        className={`w-full appearance-none bg-app-surface border border-app-border rounded-[25px] px-3 py-2 ${icon ? 'pl-10' : ''}`}
       >
         {placeholder && <option value="">{placeholder}</option>}
         {options.map((opt) => (
@@ -49,7 +50,7 @@ const TenantLogo = memo(function TenantLogo({ tenant }) {
   }
   // fallback: show initials or a placeholder
   return (
-    <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 font-bold text-xl">
+    <div className="w-full h-full flex items-center justify-center bg-app-surface-2 text-app-muted font-bold text-xl">
       {tenant.Name ? tenant.Name[0] : "?"}
     </div>
   );
@@ -96,11 +97,15 @@ function Tenants() {
 
   const handleUseLocation = async () => {
     try {
-      await dispatch(requestUserLocation()).unwrap();
-      setNearMeOnly(true);
-      setSortBy("distance");
+      const coords = await dispatch(requestUserLocation()).unwrap();
+      if (coords && coords.latitude != null) {
+        setNearMeOnly(true);
+        setSortBy("distance");
+        toast.success("Location enabled");
+      }
     } catch (err) {
       console.error("Location error", err);
+      toast.error(typeof err === "string" ? err : (err?.message || "Failed to get location"));
     }
   };
 
@@ -209,7 +214,7 @@ function Tenants() {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 bg-app-bg text-app-text">
       <MobileHeader
         title="Barbershops"
         onBack={() => navigate("/customer")}
@@ -218,22 +223,22 @@ function Tenants() {
       />
       {/* Active Queue Banner */}
       {activeQueue && (
-        <div className="mb-4 sm:mb-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl sm:rounded-3xl p-0.5 sm:p-1 shadow-xl animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="bg-white/10 backdrop-blur-sm rounded-[14px] sm:rounded-[22px] p-3 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
+        <div className="mb-4 sm:mb-8 bg-app-primary-gradient rounded-[12px] sm:rounded-[12px] p-0.5 sm:p-1 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="bg-app-surface/10 backdrop-blur-sm rounded-[12px] sm:rounded-[12px] p-3 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
             <div className="flex items-center gap-3 sm:gap-5 text-white w-full sm:w-auto">
-              <div className="bg-white text-blue-600 p-2 sm:p-3 rounded-xl sm:rounded-2xl shadow-lg">
+              <div className="bg-app-surface text-app-primary p-2 sm:p-3 rounded-[25px] shadow-none">
                 <svg className="w-5 h-5 sm:w-8 sm:h-8 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div>
-                <p className="font-extrabold text-sm sm:text-xl tracking-tight line-clamp-1">In line at {activeQueue.tenantName}</p>
-                <p className="text-blue-100 text-[10px] sm:text-base font-medium opacity-90 truncate">Barber: {activeQueue.barberName}</p>
+                <p className="font-extrabold text-sm sm:text-xl tracking-tight line-clamp-1 text-app-text">In line at {activeQueue.tenantName}</p>
+                <p className="text-app-muted text-[10px] sm:text-base font-medium opacity-90 truncate">Barber: {activeQueue.barberName}</p>
               </div>
             </div>
             <button 
               onClick={goToActiveQueue}
-              className="w-full sm:w-auto bg-white text-blue-600 px-4 py-2 sm:px-8 sm:py-3 rounded-lg sm:rounded-xl font-bold hover:bg-blue-50 transition-all active:scale-95 text-xs sm:text-base"
+              className="w-full sm:w-auto bg-app-primary-gradient text-app-text px-4 py-2 sm:px-8 sm:py-3 rounded-[25px] font-bold hover:bg-app-primary-gradient transition-all active:scale-95 text-xs sm:text-base"
             >
               Go to Queue →
             </button>
@@ -243,25 +248,25 @@ function Tenants() {
 
       {/* Hero Section with Search */}
       <div className="relative mb-2 sm:mb-10 px-1 sm:px-2">
-        <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-blue-100/60 to-indigo-100/30 blur-2xl" />
+        <div className="absolute inset-0 rounded-[12px] bg-app-primary-gradient pointer-events-none" />
         <div className="relative text-center px-1 sm:px-4 pt-1 sm:pt-4">
-          <h1 className="text-2xl sm:text-5xl md:text-6xl font-black text-gray-900 tracking-tight mb-1.5 sm:mb-5 leading-[1.05]">
+          <h1 className="text-2xl sm:text-5xl md:text-6xl font-black text-app-text tracking-tight mb-1.5 sm:mb-5 leading-[1.05]">
             Your Next Cut,
-            <span className="block sm:inline bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent"> Perfectly Matched.</span>
+            <span className="block sm:inline bg-app-primary-gradient bg-clip-text "> Perfectly Matched.</span>
           </h1>
-          <p className="hidden sm:block text-sm sm:text-lg text-gray-500 max-w-2xl mx-auto mb-3 sm:mb-7 leading-relaxed">
+          <p className="hidden sm:block text-sm sm:text-lg text-app-muted max-w-2xl mx-auto mb-3 sm:mb-7 leading-relaxed">
             Search, compare, and book trusted barbershops in seconds with smart filters that adapt to your location.
           </p>
 
           <div className="hidden sm:flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-            <span className="px-3 py-1.5 rounded-full bg-white border border-blue-100 text-[11px] sm:text-sm font-bold text-blue-700 shadow-sm">
+            <span className="px-3 py-1.5 rounded-full bg-app-surface border border-app-border text-[11px] sm:text-sm font-bold text-app-primary">
               {totalVisible} shops available
             </span>
-            <span className="px-3 py-1.5 rounded-full bg-white border border-emerald-100 text-[11px] sm:text-sm font-bold text-emerald-700 shadow-sm">
+            <span className="px-3 py-1.5 rounded-full bg-app-surface border border-app-border text-[11px] sm:text-sm font-bold text-app-success">
               {topRatedCount} top-rated 4.5+
             </span>
             {locationState.coords && (
-              <span className="px-3 py-1.5 rounded-full bg-white border border-indigo-100 text-[11px] sm:text-sm font-bold text-indigo-700 shadow-sm">
+              <span className="px-3 py-1.5 rounded-full bg-app-surface border border-app-border text-[11px] sm:text-sm font-bold text-app-primary">
                 {nearbyCount} within {radiusKm} km
               </span>
             )}
@@ -269,7 +274,7 @@ function Tenants() {
         </div>
 
         {/* Search & Filter Bar - Enhanced Design */}
-        <div className="bg-white/95 backdrop-blur p-2 sm:p-3 rounded-2xl sm:rounded-3xl shadow-xl shadow-blue-900/5 border border-gray-100 max-w-6xl mx-auto">
+        <div className="bg-app-surface/95 backdrop-blur p-2 sm:p-3 rounded-[12px] border border-app-border max-w-6xl mx-auto">
           <div className="flex flex-col lg:flex-row gap-1.5 sm:gap-3">
             {/* Search Input */}
             <div className="flex-1 relative group">
@@ -332,7 +337,7 @@ function Tenants() {
         </div>
 
         {/* Location Panel */}
-        <div className={`${mobileFiltersOpen ? "block" : "hidden"} sm:block mt-2 sm:mt-4 max-w-6xl mx-auto bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm p-2.5 sm:p-5`}>
+        <div className={`${mobileFiltersOpen ? "block" : "hidden"} sm:block mt-2 sm:mt-4 max-w-6xl mx-auto bg-app-surface rounded-[12px] border border-app-border p-2.5 sm:p-5`}>
           <div className="flex flex-col md:flex-row md:items-center gap-2 sm:gap-4">
             <button
               type="button"
@@ -432,7 +437,7 @@ function Tenants() {
         {paginatedItems.map((tenant, idx) => (
           <div
             key={tenant.Id}
-            className="group bg-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-gray-100 flex flex-col h-full"
+            className="group bg-app-surface rounded-[12px] overflow-hidden transition-all duration-500 border border-app-border flex flex-col h-full"
           >
             {/* Header / Cover Image */}
             <div

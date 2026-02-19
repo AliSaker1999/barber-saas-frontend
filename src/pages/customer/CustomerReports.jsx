@@ -29,7 +29,7 @@ export default function CustomerReports() {
   const { stats, shopSpending, servicePrefs, recentActivities } = customerDashboard;
 
   return (
-    <div className="space-y-8 pb-12">
+    <div className="space-y-8 pb-12 bg-app-bg text-app-text">
       {/* Header */}
       <div>
         <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">Your Grooming Stats</h1>

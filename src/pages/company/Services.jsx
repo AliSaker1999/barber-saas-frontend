@@ -121,33 +121,33 @@ export default function Services() {
     <div>
       {/* Header */}
       <div className="mb-10">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">✂️ Services</h1>
-        <p className="text-gray-600">Manage your salon services and pricing</p>
+        <h1 className="text-4xl font-bold text-app-text mb-2">✂️ Services</h1>
+        <p className="text-app-muted">Manage your salon services and pricing</p>
       </div>
 
       {/* Add Service Form */}
-      <div className="bg-white rounded-2xl shadow-lg p-8 mb-10">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">➕ Add New Service</h2>
+      <div className="bg-app-surface rounded-[25px] shadow p-8 mb-10">
+        <h2 className="text-2xl font-bold text-app-text mb-6">➕ Add New Service</h2>
         
         {formError && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-700 font-medium">{formError}</p>
+          <div className="mb-4 p-4 bg-app-surface-2 border border-red-200 rounded-[12px]">
+            <p className="text-sm text-red-600 font-medium">{formError}</p>
           </div>
         )}
 
         <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Service Name</label>
+            <label className="block text-sm font-semibold text-app-text mb-2">Service Name</label>
             <input
               placeholder="e.g., Haircut"
               value={name}
               onChange={e => setName(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+              className="w-full px-4 py-3 border-2 border-app-border rounded-[12px] focus:border-app-accent focus:outline-none transition-colors text-app-text"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Price ($)</label>
+            <label className="block text-sm font-semibold text-app-text mb-2">Price ($)</label>
             <input
               placeholder="25.00"
               type="number"
@@ -155,37 +155,37 @@ export default function Services() {
               min="0"
               value={price}
               onChange={e => setPrice(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+              className="w-full px-4 py-3 border-2 border-app-border rounded-[12px] focus:border-app-accent focus:outline-none transition-colors text-app-text"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Duration (min)</label>
+            <label className="block text-sm font-semibold text-app-text mb-2">Duration (min)</label>
             <input
               placeholder="30"
               type="number"
               min="1"
               value={duration}
               onChange={e => setDuration(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+              className="w-full px-4 py-3 border-2 border-app-border rounded-[12px] focus:border-app-accent focus:outline-none transition-colors text-app-text"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Loyalty Points</label>
+            <label className="block text-sm font-semibold text-app-text mb-2">Loyalty Points</label>
             <input
               placeholder="10"
               type="number"
               min="0"
               value={loyaltyPoints}
               onChange={e => setLoyaltyPoints(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+              className="w-full px-4 py-3 border-2 border-app-border rounded-[12px] focus:border-app-accent focus:outline-none transition-colors text-app-text"
             />
           </div>
           <div className="flex items-end">
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg hover:shadow-xl"
+              className="w-full bg-app-accent hover:bg-app-accent-dark text-white font-bold py-3 px-6 rounded-[12px] transition-all shadow-lg"
             >
               Add Service
             </button>
@@ -210,9 +210,9 @@ export default function Services() {
           {items.map(service => (
             <div
               key={service.Id}
-              className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
+              className="bg-app-surface rounded-[25px] shadow overflow-hidden hover:shadow-lg transition-all duration-300"
             >
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 h-24 relative overflow-hidden">
+              <div className="h-24 relative overflow-hidden bg-app-accent/10">
                 <div className="absolute inset-0 opacity-10">
                   <svg className="w-full h-full" fill="currentColor" viewBox="0 0 100 100">
                     <circle cx="30" cy="30" r="20" opacity="0.5" />
@@ -222,37 +222,37 @@ export default function Services() {
               </div>
 
               <div className="p-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">{service.Name}</h3>
+                <h3 className="text-2xl font-bold text-app-text mb-3">{service.Name}</h3>
 
-                <div className="space-y-3 mb-6 pb-6 border-b border-gray-200">
+                <div className="space-y-3 mb-6 pb-6 border-b border-app-border">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600 font-medium">⏱️ Duration</span>
-                    <span className="font-bold text-indigo-600">{service.DurationMinutes} min</span>
+                    <span className="text-app-muted font-medium">⏱️ Duration</span>
+                    <span className="font-bold text-app-accent">{service.DurationMinutes} min</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600 font-medium">💰 Price</span>
-                    <span className="font-bold text-green-600 text-lg">${service.Price}</span>
+                    <span className="text-app-muted font-medium">💰 Price</span>
+                    <span className="font-bold text-app-accent text-lg">${service.Price}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600 font-medium">⭐ Loyalty Points</span>
-                    <span className="font-bold text-amber-600">{service.LoyaltyPointsEarned ?? 0}</span>
+                    <span className="text-app-muted font-medium">⭐ Loyalty Points</span>
+                    <span className="font-bold text-app-accent">{service.LoyaltyPointsEarned ?? 0}</span>
                   </div>
                 </div>
 
                   <div className="flex gap-3">
                     <button
                       onClick={() => toggleActive(service)}
-                      className={`flex-1 font-semibold py-2 px-4 rounded-lg transition-all ${
+                      className={`flex-1 font-semibold py-2 px-4 rounded-[12px] transition-all ${
                         service.IsActive
-                          ? "bg-green-100 hover:bg-green-200 text-green-700 border-2 border-green-300"
-                          : "bg-gray-100 hover:bg-gray-200 text-gray-700 border-2 border-gray-300"
+                          ? "bg-app-accent/10 hover:bg-app-accent/20 text-app-accent border-2 border-app-accent/20"
+                          : "bg-app-surface-2 hover:bg-app-surface text-app-text border-2 border-app-border"
                       }`}
                     >
                       {service.IsActive ? "✓ Active" : "○ Inactive"}
                     </button>
                     <button
                       onClick={() => openEditModal(service)}
-                      className="font-semibold py-2 px-4 rounded-lg transition-all bg-blue-100 hover:bg-blue-200 text-blue-700 border-2 border-blue-300"
+                      className="font-semibold py-2 px-4 rounded-[12px] transition-all bg-app-surface-2 hover:bg-app-surface text-app-text border-2 border-app-border"
                     >
                       Edit
                     </button>
@@ -262,7 +262,7 @@ export default function Services() {
                         serviceId: service.Id,
                         serviceName: service.Name
                       })}
-                      className="font-semibold py-2 px-4 rounded-lg transition-all bg-red-100 hover:bg-red-200 text-red-700 border-2 border-red-300"
+                      className="font-semibold py-2 px-4 rounded-[12px] transition-all bg-app-surface-2 hover:bg-app-surface text-app-text border-2 border-red-200"
                     >
                       Delete
                     </button>
@@ -282,42 +282,42 @@ export default function Services() {
         <div className="p-6">
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Name</label>
+                <label className="block text-sm font-semibold text-app-text mb-2">Name</label>
                 <input
                   value={editName}
                   onChange={e => setEditName(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                  className="w-full px-4 py-3 border-2 border-app-border rounded-[12px] focus:border-app-accent focus:outline-none transition-colors text-app-text"
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Price ($)</label>
+                <label className="block text-sm font-semibold text-app-text mb-2">Price ($)</label>
                 <input
                   type="number"
                   step="0.01"
                   min="0"
                   value={editPrice}
                   onChange={e => setEditPrice(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                  className="w-full px-4 py-3 border-2 border-app-border rounded-[12px] focus:border-app-accent focus:outline-none transition-colors text-app-text"
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Duration (min)</label>
+                <label className="block text-sm font-semibold text-app-text mb-2">Duration (min)</label>
                 <input
                   type="number"
                   min="1"
                   value={editDuration}
                   onChange={e => setEditDuration(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                  className="w-full px-4 py-3 border-2 border-app-border rounded-[12px] focus:border-app-accent focus:outline-none transition-colors text-app-text"
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Loyalty Points</label>
+                <label className="block text-sm font-semibold text-app-text mb-2">Loyalty Points</label>
                 <input
                   type="number"
                   min="0"
                   value={editLoyaltyPoints}
                   onChange={e => setEditLoyaltyPoints(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                  className="w-full px-4 py-3 border-2 border-app-border rounded-[12px] focus:border-app-accent focus:outline-none transition-colors text-app-text"
                 />
               </div>
             </div>
@@ -325,13 +325,13 @@ export default function Services() {
             <div className="mt-8 flex gap-3">
               <button
                 onClick={closeEditModal}
-                className="flex-1 py-3 rounded-xl border-2 border-gray-200 text-sm font-bold text-gray-700 hover:bg-gray-50 transition"
+                className="flex-1 py-3 rounded-[12px] border-2 border-app-border text-sm font-bold text-app-text hover:bg-app-surface transition"
               >
                 Cancel
               </button>
               <button
                 onClick={saveEdit}
-                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-sm font-bold text-white hover:from-blue-700 hover:to-indigo-700 transition shadow-lg"
+                className="flex-1 py-3 rounded-[12px] bg-app-accent text-sm font-bold text-white hover:bg-app-accent-dark transition shadow-lg"
               >
                 Save Changes
               </button>
@@ -346,27 +346,27 @@ export default function Services() {
         title="Delete Service"
       >
         <div className="p-6 text-center">
-            <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            <div className="w-20 h-20 bg-app-surface-2 text-app-text rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Delete {deleteModal.serviceName}?</h3>
-            <p className="text-gray-500 mb-8">Are you sure? This action cannot be undone and may affect existing appointments.</p>
+            <h3 className="text-xl font-bold text-app-text mb-2">Delete {deleteModal.serviceName}?</h3>
+            <p className="text-app-muted mb-8">Are you sure? This action cannot be undone and may affect existing appointments.</p>
             
             <div className="flex gap-3">
                 <button 
-                    onClick={() => setDeleteModal({ ...deleteModal, isOpen: false })}
-                    className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition"
+                  onClick={() => setDeleteModal({ ...deleteModal, isOpen: false })}
+                  className="flex-1 px-6 py-3 bg-app-surface-2 hover:bg-app-surface text-app-text font-bold rounded-[12px] transition"
                 >
-                    Cancel
+                  Cancel
                 </button>
                 <button 
-                    onClick={() => {
-                        dispatch(deleteService(deleteModal.serviceId));
-                        setDeleteModal({ ...deleteModal, isOpen: false });
-                    }}
-                    className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition shadow-lg shadow-red-200"
+                  onClick={() => {
+                    dispatch(deleteService(deleteModal.serviceId));
+                    setDeleteModal({ ...deleteModal, isOpen: false });
+                  }}
+                  className="flex-1 px-6 py-3 bg-app-accent hover:bg-app-accent-dark text-white font-bold rounded-[12px] transition shadow-lg"
                 >
-                    Delete Now
+                  Delete Now
                 </button>
             </div>
         </div>

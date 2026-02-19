@@ -88,7 +88,7 @@ export default function ConversationsPage() {
   };
 
   return (
-    <div className="h-[calc(100dvh-15rem)] md:h-[calc(100vh-11rem)] bg-app-bg rounded-3xl border border-app-border shadow-sm overflow-hidden flex flex-col md:flex-row">
+    <div className="h-[calc(100dvh-15rem)] md:h-[calc(100vh-11rem)] bg-app-bg rounded-[25px] border border-app-border shadow-sm overflow-hidden flex flex-col md:flex-row">
       <aside className="w-full md:w-[320px] border-r-0 md:border-r border-b md:border-b-0 border-app-border bg-app-surface">
         <div className="p-4 border-b border-app-border bg-app-surface">
           <h1 className="text-lg font-black text-app-text">Conversations</h1>
@@ -103,7 +103,7 @@ export default function ConversationsPage() {
                 key={conv.Id}
                 type="button"
                 onClick={() => handleSelectConversation(conv)}
-                className={`w-full text-left rounded-2xl p-3 border transition ${
+                className={`w-full text-left rounded-[12px] p-3 border transition ${
                   isActive ? "bg-app-surface-2 border-app-border" : "bg-app-surface border-app-border hover:border-app-border"
                 }`}
               >
@@ -134,7 +134,7 @@ export default function ConversationsPage() {
               return (
                 <div key={msg.id || msg.Id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                   <div
-                    className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm font-medium ${
+                    className={`max-w-[75%] rounded-[12px] px-4 py-2 text-sm font-medium ${
                       isMe ? "bg-app-primary-solid text-app-text" : "bg-app-surface text-app-text border border-app-border"
                     }`}
                   >
@@ -154,10 +154,10 @@ export default function ConversationsPage() {
             onChange={(e) => setInput(e.target.value)}
             disabled={!activeConversationId}
             placeholder={activeConversationId ? "Write your message here..." : "Select a conversation first"}
-            className="flex-1 rounded-xl bg-app-surface-2 border border-app-border px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-app-primary outline-none disabled:opacity-60"
+            className="flex-1 rounded-[12px] bg-app-surface-2 border border-app-border px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-app-primary outline-none disabled:opacity-60"
             aria-label="Write your message"
           />
-          <button type="submit" disabled={!activeConversationId || !input.trim()} className="px-4 py-3 rounded-xl bg-app-primary-solid text-app-text font-bold text-sm disabled:opacity-50">
+          <button type="submit" disabled={!activeConversationId || !input.trim()} className="px-4 py-3 rounded-[12px] bg-app-primary-solid text-app-text font-bold text-sm disabled:opacity-50">
             Send
           </button>
         </form>

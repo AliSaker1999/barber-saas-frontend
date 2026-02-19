@@ -117,13 +117,13 @@ export default function Appointments() {
 
   const getStatusBadge = (status) => {
     const badges = {
-      SCHEDULED: { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", icon: "📅" },
-      PENDING: { bg: "bg-indigo-50", border: "border-indigo-200", text: "text-indigo-700", icon: "⏳" },
-      COMPLETED: { bg: "bg-green-50", border: "border-green-200", text: "text-green-700", icon: "✅" },
-      CANCELLED: { bg: "bg-red-50", border: "border-red-200", text: "text-red-700", icon: "❌" },
-      DECLINED: { bg: "bg-gray-50", border: "border-gray-200", text: "text-gray-700", icon: "🚫" },
-      NO_SHOW: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", icon: "⚠️" },
-      AWAITING_PAYMENT: { bg: "bg-amber-100", border: "border-amber-300", text: "text-amber-800", icon: "💲" }
+      SCHEDULED: { bg: "bg-app-surface-2", border: "border-app-border", text: "text-app-text", icon: "📅" },
+      PENDING: { bg: "bg-app-surface-2", border: "border-app-border", text: "text-app-text", icon: "⏳" },
+      COMPLETED: { bg: "bg-app-surface-2", border: "border-app-border", text: "text-app-accent", icon: "✅" },
+      CANCELLED: { bg: "bg-app-surface-2", border: "border-app-border", text: "text-app-text", icon: "❌" },
+      DECLINED: { bg: "bg-app-surface-2", border: "border-app-border", text: "text-app-text", icon: "🚫" },
+      NO_SHOW: { bg: "bg-app-surface-2", border: "border-app-border", text: "text-app-accent", icon: "⚠️" },
+      AWAITING_PAYMENT: { bg: "bg-app-surface-2", border: "border-app-border", text: "text-app-accent", icon: "💲" }
     };
     return badges[status] || { bg: "bg-gray-50", border: "border-gray-200", text: "text-gray-700", icon: "❓" };
   };
@@ -261,15 +261,15 @@ export default function Appointments() {
       />
       {/* Header */}
       <div className="mb-5 sm:mb-8">
-        <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-1.5">📅 My Appointments</h1>
-        <p className="text-xs sm:text-base text-gray-600 mb-1.5">View, manage, and reschedule your bookings</p>
+        <h1 className="text-2xl sm:text-4xl font-bold text-app-text mb-1.5">📅 My Appointments</h1>
+        <p className="text-xs sm:text-base text-app-muted mb-1.5">View, manage, and reschedule your bookings</p>
         {lastFetchedAt && (
-          <p className="text-xs text-gray-400 font-bold">
+          <p className="text-xs text-app-muted font-bold">
             Last updated {new Date(lastFetchedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </p>
         )}
         {isStale && (
-          <p className="text-xs text-amber-600 font-bold mt-1">Offline: showing cached data</p>
+          <p className="text-xs text-app-accent font-bold mt-1">Offline: showing cached data</p>
         )}
       </div>
 
@@ -278,39 +278,39 @@ export default function Appointments() {
         <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-7 gap-2 sm:gap-3 mb-6 sm:mb-10">
           <button 
             onClick={() => setFilter("TOTAL")}
-            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "TOTAL" ? "bg-blue-600 border-blue-600 text-white shadow" : "bg-white border-blue-100 text-gray-700 hover:border-blue-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "TOTAL" ? "bg-app-accent border-app-accent text-app-text shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
           >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "TOTAL" ? "text-blue-100" : "text-gray-500"}`}>Total</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "TOTAL" ? "text-app-text" : "text-app-muted"}`}>Total</p>
             <p className="text-2xl sm:text-3xl font-bold mt-1">{items.length}</p>
           </button>
           
           <button 
             onClick={() => setFilter("SCHEDULED")}
-            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "SCHEDULED" ? "bg-blue-500 border-blue-500 text-white shadow" : "bg-white border-blue-100 text-gray-700 hover:border-blue-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "SCHEDULED" ? "bg-app-accent border-app-accent text-app-text shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
           >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "SCHEDULED" ? "text-blue-100" : "text-gray-500"}`}>Scheduled</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "SCHEDULED" ? "text-app-text" : "text-app-muted"}`}>Scheduled</p>
             <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'SCHEDULED').length}</p>
           </button>
 
           <button 
             onClick={() => setFilter("PENDING")}
-            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "PENDING" ? "bg-indigo-600 border-indigo-600 text-white shadow" : "bg-white border-indigo-100 text-gray-700 hover:border-indigo-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "PENDING" ? "bg-app-accent border-app-accent text-app-text shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
           >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "PENDING" ? "text-indigo-100" : "text-gray-500"}`}>Pending</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "PENDING" ? "text-app-text" : "text-app-muted"}`}>Pending</p>
             <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'PENDING').length}</p>
           </button>
 
           <button 
             onClick={() => setFilter("COMPLETED")}
-            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "COMPLETED" ? "bg-green-600 border-green-600 text-white shadow" : "bg-white border-green-100 text-gray-700 hover:border-green-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "COMPLETED" ? "bg-app-accent border-app-accent text-app-text shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
           >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "COMPLETED" ? "text-green-100" : "text-gray-500"}`}>Completed</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "COMPLETED" ? "text-app-text" : "text-app-muted"}`}>Completed</p>
             <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'COMPLETED').length}</p>
           </button>
 
           <button 
             onClick={() => setFilter("CANCELLED")}
-            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "CANCELLED" ? "bg-red-600 border-red-600 text-white shadow" : "bg-white border-red-100 text-gray-700 hover:border-red-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "CANCELLED" ? "bg-app-accent border-app-accent text-app-text shadow" : "bg-app-surface border-app-border text-app-muted hover:border-app-accent shadow-sm"}`}
           >
             <p className={`text-xs sm:text-sm font-semibold ${filter === "CANCELLED" ? "text-red-100" : "text-gray-500"}`}>Cancelled</p>
             <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'CANCELLED').length}</p>
@@ -318,25 +318,25 @@ export default function Appointments() {
 
           <button 
             onClick={() => setFilter("DECLINED")}
-            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "DECLINED" ? "bg-gray-600 border-gray-600 text-white shadow" : "bg-white border-gray-100 text-gray-700 hover:border-gray-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "DECLINED" ? "bg-app-accent border-app-accent text-white shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
           >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "DECLINED" ? "text-gray-100" : "text-gray-500"}`}>Declined</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "DECLINED" ? "text-white" : "text-app-muted"}`}>Declined</p>
             <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'DECLINED').length}</p>
           </button>
 
           <button 
             onClick={() => setFilter("NO_SHOW")}
-            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "NO_SHOW" ? "bg-amber-600 border-amber-600 text-white shadow" : "bg-white border-amber-100 text-gray-700 hover:border-amber-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "NO_SHOW" ? "bg-app-accent border-app-accent text-white shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
           >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "NO_SHOW" ? "text-amber-100" : "text-gray-500"}`}>No Show</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "NO_SHOW" ? "text-white" : "text-app-muted"}`}>No Show</p>
             <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'NO_SHOW').length}</p>
           </button>
 
           <button 
             onClick={() => setFilter("AWAITING_PAYMENT")}
-            className={`transition-all duration-200 rounded-xl border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "AWAITING_PAYMENT" ? "bg-amber-500 border-amber-500 text-white shadow" : "bg-white border-amber-100 text-gray-700 hover:border-amber-300 shadow-sm"}`}
+            className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "AWAITING_PAYMENT" ? "bg-app-accent border-app-accent text-white shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
           >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "AWAITING_PAYMENT" ? "text-white" : "text-gray-500"}`}>To Pay</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "AWAITING_PAYMENT" ? "text-white" : "text-app-muted"}`}>To Pay</p>
             <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'AWAITING_PAYMENT').length}</p>
           </button>
         </div>
@@ -370,24 +370,24 @@ export default function Appointments() {
               <div
                   key={appointment.Id}
                   id={`appointment-${appointment.Id}`}
-                  className="group relative bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-2xl hover:scale-[1.01] hover:z-10 transition-all duration-300 cursor-default overflow-hidden"
+                    className="group relative bg-app-surface rounded-[12px] border border-app-border shadow-sm hover:shadow-2xl hover:scale-[1.01] hover:z-10 transition-all duration-300 cursor-default overflow-hidden"
               >
-                  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-600 transform scale-y-0 group-hover:scale-y-100 transition-transform origin-top duration-300" />
+                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-app-accent transform scale-y-0 group-hover:scale-y-100 transition-transform origin-top duration-300" />
                 
                   <div className="p-3 sm:p-4 md:p-6 flex flex-col md:flex-row md:items-center gap-4 sm:gap-5 md:gap-6">
                   {/* Time Column */}
                     <div className="min-w-[110px] sm:min-w-[140px]">
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Time</p>
-                    <p className="text-sm font-bold text-gray-900">{date}</p>
-                      <p className="text-indigo-600 font-black text-base sm:text-lg">⏰ {time}</p>
+                    <p className="text-xs text-app-muted font-bold uppercase tracking-wider mb-1">Time</p>
+                    <p className="text-sm font-bold text-app-text">{date}</p>
+                      <p className="text-app-accent font-black text-base sm:text-lg">⏰ {time}</p>
                   </div>
 
                   {/* Details Column */}
                   <div className="flex-1">
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">
-                       Services at <button onClick={() => openProfile(appointment.BarberId)} className="hover:underline hover:text-indigo-600 font-bold text-gray-500 uppercase">{appointment.BarberName}</button>
-                    </p>
-                      <p className="text-base sm:text-lg font-bold text-gray-900">{appointment.Services}</p>
+                      <p className="text-xs text-app-muted font-bold uppercase tracking-wider mb-1">
+                        Services at <button onClick={() => openProfile(appointment.BarberId)} className="hover:underline hover:text-app-accent font-bold text-app-muted uppercase">{appointment.BarberName}</button>
+                      </p>
+                       <p className="text-base sm:text-lg font-bold text-app-text">{appointment.Services}</p>
                     {appointment.Status === "DECLINED" && appointment.DeclineReason && (
                         <p className="mt-2 text-sm text-red-600 font-medium italic border-l-2 border-red-200 pl-3">
                             <span className="font-bold uppercase text-[10px] block not-italic mb-0.5">Reason for decline:</span>
@@ -414,7 +414,7 @@ export default function Appointments() {
                     {appointment.Status === "COMPLETED" && (
                         <button
                             onClick={() => openRateModal(appointment)}
-                          className="bg-yellow-50 hover:bg-yellow-600 hover:text-white text-yellow-600 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-bold text-[10px] sm:text-xs transition-all border border-yellow-100 uppercase tap-target"
+                          className="bg-app-surface-2 hover:bg-app-accent hover:text-white text-app-accent px-3 py-1.5 sm:px-4 sm:py-2 rounded-[12px] font-bold text-[10px] sm:text-xs transition-all border border-app-border uppercase tap-target"
                         >
                             Rate ★
                         </button>
@@ -430,7 +430,7 @@ export default function Appointments() {
                             }));
                             navigate("/customer/conversations");
                           }}
-                          className="bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-bold text-[10px] sm:text-xs transition-all border border-blue-100 uppercase tap-target"
+                          className="bg-app-surface-2 hover:bg-app-accent hover:text-white text-app-accent px-3 py-1.5 sm:px-4 sm:py-2 rounded-[12px] font-bold text-[10px] sm:text-xs transition-all border border-app-border uppercase tap-target"
                         >
                           Chat
                         </button>
@@ -438,7 +438,7 @@ export default function Appointments() {
                          ((appointment.IsWhishPaymentEnabled && appointment.WhishPhoneNumber) || (appointment.LoyaltyEnabled && appointment.LoyaltyAllowRedemption)) && (
                           <button
                             onClick={() => openPayModal(appointment)}
-                            className="bg-green-50 hover:bg-green-600 hover:text-white text-green-600 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-bold text-[10px] sm:text-xs transition-all border border-green-100 uppercase flex items-center gap-1 tap-target"
+                            className="bg-app-surface-2 hover:bg-app-accent hover:text-white text-app-accent px-3 py-1.5 sm:px-4 sm:py-2 rounded-[12px] font-bold text-[10px] sm:text-xs transition-all border border-app-border uppercase flex items-center gap-1 tap-target"
                           >
                             <span>💸</span> Pay
                           </button>
@@ -446,7 +446,7 @@ export default function Appointments() {
                         {appointment.Status !== "AWAITING_PAYMENT" && (
                             <button
                               onClick={() => handleReschedule(appointment)}
-                              className="bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-600 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-bold text-[10px] sm:text-xs transition-all border border-indigo-100 uppercase tap-target"
+                              className="bg-app-surface-2 hover:bg-app-accent hover:text-white text-app-accent px-3 py-1.5 sm:px-4 sm:py-2 rounded-[12px] font-bold text-[10px] sm:text-xs transition-all border border-app-border uppercase tap-target"
                             >
                               Reschedule
                             </button>
@@ -457,7 +457,7 @@ export default function Appointments() {
                             setCancelModalOpen(true);
                             setActionError(null);
                           }}
-                          className="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-bold text-[10px] sm:text-xs transition-all border border-red-100 uppercase tap-target"
+                          className="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[12px] font-bold text-[10px] sm:text-xs transition-all border border-red-100 uppercase tap-target"
                         >
                           Cancel
                         </button>
@@ -489,29 +489,29 @@ export default function Appointments() {
       >
         <div className="space-y-6">
           {payDetails?.phone && (
-            <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl">
-              <p className="text-indigo-900 font-medium text-sm mb-1">Send Payment To:</p>
-              <p className="text-2xl font-black text-indigo-600 tracking-tight select-all">{payDetails?.phone}</p>
+            <div className="bg-app-surface-2 border border-app-border p-4 rounded-[25px]">
+              <p className="text-app-accent font-medium text-sm mb-1">Send Payment To:</p>
+              <p className="text-2xl font-black text-app-accent tracking-tight select-all">{payDetails?.phone}</p>
             </div>
           )}
           
-          <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+          <div className="bg-app-surface-2 p-4 rounded-[25px] border border-app-border">
              <div className="flex justify-between items-center mb-2">
-                <span className="text-gray-500 font-bold text-xs uppercase">Amount Due</span>
-                <span className="text-gray-900 font-black text-xl">${payDetails?.amount}</span>
+                <span className="text-app-muted font-bold text-xs uppercase">Amount Due</span>
+                <span className="text-app-text font-black text-xl">${payDetails?.amount}</span>
              </div>
-             <p className="text-xs text-gray-400 leading-relaxed">
+             <p className="text-xs text-app-muted leading-relaxed">
                Open your Whish app, select "Transfer", enter the number above, and send the exact amount.
              </p>
           </div>
 
           <div>
-             <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Transaction ID / Reference</label>
+             <label className="block text-xs font-black text-app-muted uppercase tracking-widest mb-2">Transaction ID / Reference</label>
              <input 
                 type="text" 
                 value={transactionId}
                 onChange={e => setTransactionId(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-50 border-2 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 font-bold text-gray-900"
+                className="w-full px-4 py-3 bg-app-surface-2 border-app-border rounded-[12px] focus:bg-app-surface focus:border-app-accent font-bold text-app-text"
                 placeholder="Enter the transaction ID from Whish"
              />
           </div>
@@ -520,34 +520,34 @@ export default function Appointments() {
             <button
               onClick={handleReportPayment}
               disabled={payLoading}
-              className="w-full bg-indigo-600 text-white rounded-xl py-3 font-bold hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-indigo-200"
+              className="w-full bg-app-accent text-white rounded-[12px] py-3 font-bold hover:bg-app-accent-dark transition-all active:scale-95 disabled:opacity-50 shadow-lg"
             >
               {payLoading ? "Verifying..." : "Confirm Transfer"}
             </button>
           )}
 
           {loyaltyLoading && (
-            <div className="bg-gray-50 border border-gray-100 p-4 rounded-2xl text-gray-500 font-semibold">
+            <div className="bg-app-surface-2 border border-app-border p-4 rounded-[25px] text-app-muted font-semibold">
               Loading loyalty rewards...
             </div>
           )}
 
           {loyaltyError && (
-            <div className="bg-red-50 border border-red-200 p-4 rounded-2xl text-red-600 font-semibold">
+            <div className="bg-app-surface-2 border border-app-border p-4 rounded-[25px] text-app-error font-semibold">
               {loyaltyError}
             </div>
           )}
 
           {loyaltyInfo?.settings?.loyaltyEnabled && loyaltyInfo?.settings?.loyaltyAllowRedemption && (
-            <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl space-y-3">
+            <div className="bg-app-surface-2 border border-app-border p-4 rounded-[25px] space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-amber-900 font-bold">Pay with Loyalty Points</p>
-                <span className="text-amber-700 font-black">{loyaltyInfo?.points ?? 0} pts</span>
+                <p className="text-app-accent font-bold">Pay with Loyalty Points</p>
+                <span className="text-app-accent font-black">{loyaltyInfo?.points ?? 0} pts</span>
               </div>
               <select
                 value={selectedRewardId}
                 onChange={(e) => setSelectedRewardId(e.target.value)}
-                className="w-full px-4 py-3 bg-white border-2 border-transparent rounded-xl focus:border-amber-500 font-bold text-gray-900"
+                className="w-full px-4 py-3 bg-app-surface border-app-border rounded-[12px] focus:border-app-accent font-bold text-app-text"
               >
                 <option value="">Select a reward</option>
                 {rewardOptions.map(reward => (
@@ -559,7 +559,7 @@ export default function Appointments() {
               <button
                 onClick={handlePayWithLoyalty}
                 disabled={payLoading || !selectedRewardId}
-                className="w-full bg-amber-600 text-white rounded-xl py-3 font-bold hover:bg-amber-700 transition-all disabled:opacity-50"
+                className="w-full bg-app-accent text-white rounded-[12px] py-3 font-bold hover:bg-app-accent-dark transition-all disabled:opacity-50"
               >
                 {payLoading ? "Processing..." : "Redeem Points"}
               </button>
@@ -584,8 +584,8 @@ export default function Appointments() {
             <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Are you sure?</h3>
-            <p className="text-gray-500 mb-6">This action cannot be undone. You will lose this time slot.</p>
+            <h3 className="text-xl font-bold text-app-text mb-2">Are you sure?</h3>
+            <p className="text-app-muted mb-6">This action cannot be undone. You will lose this time slot.</p>
 
             {actionError && (
                 <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm font-bold">
@@ -595,16 +595,16 @@ export default function Appointments() {
 
             <div className="flex gap-3">
                 <button 
-                    onClick={() => setCancelModalOpen(false)}
-                    className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition"
+                  onClick={() => setCancelModalOpen(false)}
+                  className="flex-1 px-6 py-3 bg-app-surface-2 hover:bg-app-surface text-app-text font-bold rounded-[12px] transition"
                 >
-                    Keep It
+                  Keep It
                 </button>
                 <button 
-                    onClick={confirmCancel}
-                    className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition shadow-lg shadow-red-200"
+                  onClick={confirmCancel}
+                  className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-[12px] transition shadow-lg shadow-red-200"
                 >
-                    Cancel it
+                  Cancel it
                 </button>
             </div>
         </div>
@@ -620,13 +620,13 @@ export default function Appointments() {
             <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Details Missing</h3>
-            <p className="text-gray-500 mb-6">We couldn't load the necessary details to reschedule this appointment automatically. Please contact the barbershop.</p>
+            <h3 className="text-xl font-bold text-app-text mb-2">Details Missing</h3>
+            <p className="text-app-muted mb-6">We couldn't load the necessary details to reschedule this appointment automatically. Please contact the barbershop.</p>
             <button 
-                onClick={() => setRescheduleErrorModalOpen(false)}
-                className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-200"
+              onClick={() => setRescheduleErrorModalOpen(false)}
+              className="w-full px-6 py-3 bg-app-accent hover:bg-app-accent-dark text-white font-bold rounded-[12px] transition shadow-lg"
             >
-                Understood
+              Understood
             </button>
         </div>
       </Modal>

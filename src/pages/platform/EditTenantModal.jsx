@@ -64,10 +64,10 @@ export default function EditTenantModal({ tenant, isOpen, onClose }) {
         
         {/* Basic Info */}
         <section>
-          <div className="flex items-center gap-2 mb-4">
-             <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center font-bold">1</div>
-             <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Basic Identification</h3>
-          </div>
+           <div className="flex items-center gap-2 mb-4">
+             <div className="w-8 h-8 bg-app-surface-2 text-app-accent rounded-[12px] flex items-center justify-center font-bold">1</div>
+             <h3 className="text-lg font-black text-app-text uppercase tracking-tight">Basic Identification</h3>
+           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Business Name" name="name" value={formData.name} onChange={handleChange} required />
             <Field label="URL Slug" name="slug" value={formData.slug} onChange={handleChange} required />
@@ -76,10 +76,10 @@ export default function EditTenantModal({ tenant, isOpen, onClose }) {
 
         {/* Contact Info */}
         <section>
-          <div className="flex items-center gap-2 mb-4">
-             <div className="w-8 h-8 bg-green-100 text-green-600 rounded-lg flex items-center justify-center font-bold">2</div>
-             <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Contact & Social</h3>
-          </div>
+           <div className="flex items-center gap-2 mb-4">
+             <div className="w-8 h-8 bg-app-surface-2 text-app-accent rounded-[12px] flex items-center justify-center font-bold">2</div>
+             <h3 className="text-lg font-black text-app-text uppercase tracking-tight">Contact & Social</h3>
+           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Landline Phone" name="phone" value={formData.phone} onChange={handleChange} />
             <Field label="WhatsApp Number" name="whatsappNumber" value={formData.whatsappNumber} onChange={handleChange} />
@@ -91,8 +91,8 @@ export default function EditTenantModal({ tenant, isOpen, onClose }) {
         {/* Location */}
         <section>
            <div className="flex items-center gap-2 mb-4">
-             <div className="w-8 h-8 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center font-bold">3</div>
-             <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Physical Location</h3>
+             <div className="w-8 h-8 bg-app-surface-2 text-app-accent rounded-[12px] flex items-center justify-center font-bold">3</div>
+             <h3 className="text-lg font-black text-app-text uppercase tracking-tight">Physical Location</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="City" name="city" value={formData.city} onChange={handleChange} />
@@ -108,8 +108,8 @@ export default function EditTenantModal({ tenant, isOpen, onClose }) {
         {/* Booking Policy */}
         <section>
            <div className="flex items-center gap-2 mb-4">
-             <div className="w-8 h-8 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center font-bold">4</div>
-             <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Booking Policy</h3>
+             <div className="w-8 h-8 bg-app-surface-2 text-app-accent rounded-[12px] flex items-center justify-center font-bold">4</div>
+             <h3 className="text-lg font-black text-app-text uppercase tracking-tight">Booking Policy</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Field label="Max Advance Days" name="maxAdvanceBookingDays" value={formData.maxAdvanceBookingDays} onChange={handleChange} type="number" />
@@ -132,8 +132,8 @@ export default function EditTenantModal({ tenant, isOpen, onClose }) {
         {/* Legal/Official */}
         <section>
            <div className="flex items-center gap-2 mb-4">
-             <div className="w-8 h-8 bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center font-bold">5</div>
-             <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Business Registration</h3>
+             <div className="w-8 h-8 bg-app-surface-2 text-app-muted rounded-[12px] flex items-center justify-center font-bold">5</div>
+             <h3 className="text-lg font-black text-app-text uppercase tracking-tight">Business Registration</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Tax Number (VAT/TRN)" name="taxNumber" value={formData.taxNumber} onChange={handleChange} />
@@ -141,18 +141,18 @@ export default function EditTenantModal({ tenant, isOpen, onClose }) {
           </div>
         </section>
 
-        <div className="sticky bottom-0 bg-white pt-6 border-t flex justify-end gap-3 mt-8">
+        <div className="sticky bottom-0 bg-app-surface pt-6 border-t border-app-border flex justify-end gap-3 mt-8">
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-2.5 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors"
+            className="px-6 py-2.5 rounded-[12px] font-bold text-app-muted hover:bg-app-surface-2 transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="px-8 py-2.5 rounded-xl font-black bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+            className="px-8 py-2.5 rounded-[12px] font-black bg-app-accent text-white hover:bg-app-accent-dark shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
           >
             {saving ? "Saving Changes..." : "Save All Settings"}
           </button>
@@ -167,7 +167,7 @@ function Field({ label, ...props }) {
     <div className="space-y-1.5">
       <label className="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1">{label}</label>
       <input
-        className="w-full px-4 py-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all text-gray-900 font-bold placeholder:text-gray-300"
+        className="w-full px-4 py-2.5 bg-app-surface border-2 border-app-border rounded-[12px] focus:border-app-accent focus:bg-app-surface-2 focus:outline-none transition-all text-app-text font-bold placeholder:text-app-muted"
         {...props}
       />
     </div>

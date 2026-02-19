@@ -42,48 +42,47 @@
     font-size: 15px;
     color-scheme: light;
 
-    /* Light Mode Palette (Premium Gold) */
-    --app-primary: #c99a2f;
-    --app-primary-2: #f2d57a;
+    /* Light Mode Palette */
+    --app-primary: #D4AF37;
+    --app-primary-2: #D4AF37;
     --app-primary-hover: #b28320;
-    --app-primary-gradient: linear-gradient(135deg, #c99a2f 0%, #f2d57a 55%, #fde9a6 100%);
-    --app-bg: #fbfbfc; /* Very light neutral */
-    --app-surface: #ffffff; /* Card surface */
-    --app-surface-2: #f6f7f9; /* Secondary surface */
-    --app-border: rgba(183,131,48,0.18); /* Subtle gold-tinted border */
+    --app-primary-gradient: linear-gradient(135deg, #D4AF37 0%, #FFE082 100%);
+    --app-bg: #F9FAFB;
+    --app-surface: #FFFFFF;
+    --app-surface-2: #F5F5F7;
+    --app-border: rgba(212,175,55,0.18);
 
     /* Text */
-    --app-text: #0f1720; /* Deep charcoal for crisp contrast */
-    --app-muted: #6b7280; /* Muted gray */
-    --app-accent: var(--app-primary-2);
+    --app-text: #1A1A1B;
+    --app-muted: #A3A3A3;
+    --app-accent: #D4AF37;
 
     /* Functional Colors */
     --app-success: #28a745;
     --app-warning: #ffc107;
     --app-error: #dc3545;
     --app-info: #17a2b8;
-    /* Legacy mappings for existing code */
     --app-danger: var(--app-error);
-}
+  }
 
   /*
      Dark Mode: Gold on deep black/grey
   */
   :root.dark {
     color-scheme: dark;
-    --app-primary: #f5d76e; /* Bright Gold */
-    --app-primary-2: #d4af37;
-    --app-primary-hover: #c99a2f;
-    --app-primary-gradient: linear-gradient(135deg, #2b2b2f 0%, #c99a2f 20%, #f5d76e 60%);
-    --app-bg: #0f0f10; /* Deep Black */
-    --app-surface: #141414; /* Card dark surface */
-    --app-surface-2: #1b1b1b; /* Secondary surface */
-    --app-border: rgba(201,154,47,0.18); /* Soft gold border */
+    --app-primary: #D4AF37;
+    --app-primary-2: #D4AF37;
+    --app-primary-hover: #FFE082;
+    --app-primary-gradient: linear-gradient(135deg, #D4AF37 0%, #FFE082 100%);
+    --app-bg: #0F1012;
+    --app-surface: #1C1E22;
+    --app-surface-2: #23262A;
+    --app-border: rgba(212,175,55,0.18);
 
     /* Text */
-    --app-text: #fffdf2; /* Warm white */
-    --app-muted: #bfae6f; /* Muted gold */
-    --app-accent: var(--app-primary-2);
+    --app-text: #FFFFFF;
+    --app-muted: #A3A3A3;
+    --app-accent: #D4AF37;
 }
 
 /* 
@@ -209,16 +208,16 @@
 
 /* Light-mode remap (legacy classes -> semantic variables) */
 .bg-white,
-.bg-white/95,
-.bg-white/90,
-.bg-white/80,
-.bg-white/70,
-.bg-white/60,
-.bg-white/50,
-.bg-white/40,
-.bg-white/30,
-.bg-white/20,
-.bg-white/10 {
+.bg-white-95,
+.bg-white-90,
+.bg-white-80,
+.bg-white-70,
+.bg-white-60,
+.bg-white-50,
+.bg-white-40,
+.bg-white-30,
+.bg-white-20,
+.bg-white-10 {
   background-color: var(--app-surface) !important;
 }
 
@@ -462,7 +461,7 @@ html, body {
   justify-content: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  border-radius: 12px;
+  border-radius: 25px;
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
@@ -471,7 +470,7 @@ html, body {
 .btn-primary {
   background: var(--app-primary-gradient);
   color: var(--app-text);
-  box-shadow: 0 8px 20px -8px rgba(201,154,47,0.45), inset 0 -2px 0 rgba(0,0,0,0.12);
+  box-shadow: 0 8px 20px -8px rgba(212,175,55,0.45), inset 0 -2px 0 rgba(0,0,0,0.12);
 }
 .btn-primary:hover { transform: translateY(-2px); }
 
@@ -483,10 +482,10 @@ html, body {
 
 .card {
   background: var(--app-surface);
-  border-radius: 18px;
+  border-radius: 12px;
   padding: 1rem;
   border: 1px solid var(--app-border);
-  box-shadow: 0 8px 30px -12px rgba(0,0,0,0.6);
+  box-shadow: 0 8px 30px -12px rgba(0,0,0,0.08);
 }
 
 .card-ghost {

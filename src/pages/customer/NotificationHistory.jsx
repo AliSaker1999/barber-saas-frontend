@@ -41,7 +41,7 @@ export default function NotificationHistory() {
     };
 
     return (
-        <div className="max-w-4xl mx-auto py-6 px-4">
+        <div className="max-w-4xl mx-auto py-6 px-4 bg-app-bg text-app-text">
             <MobileHeader title="Notifications" />
             <div className="flex justify-between items-center mb-6">
                 <div>

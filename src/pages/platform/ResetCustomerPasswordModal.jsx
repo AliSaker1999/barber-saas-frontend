@@ -39,12 +39,12 @@ export default function ResetCustomerPasswordModal({
   return (
     <Modal open={open} onClose={onClose}>
       <div className="w-96 p-6">
-        <h3 className="text-xl font-semibold mb-4">
+        <h3 className="text-xl font-semibold mb-4 text-app-text">
           Reset Customer Password
         </h3>
 
         {error && (
-            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded text-sm font-semibold">
+            <div className="mb-4 p-3 bg-app-surface-2 text-red-600 rounded-[12px] text-sm font-semibold border border-red-100">
                 {error}
             </div>
         )}
@@ -56,14 +56,14 @@ export default function ResetCustomerPasswordModal({
             value={password}
             onChange={e => setPassword(e.target.value)}
             required
-            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 bg-app-surface border-2 border-app-border rounded-[12px] focus:outline-none focus:ring-2 focus:ring-app-accent"
           />
 
           <div className="flex justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border rounded hover:bg-gray-100"
+              className="px-4 py-2 rounded-[12px] text-app-muted bg-app-surface border-app-border hover:bg-app-surface-2"
               disabled={loading}
             >
               Cancel
@@ -72,7 +72,7 @@ export default function ResetCustomerPasswordModal({
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60"
+              className="px-4 py-2 bg-app-accent text-white rounded-[12px] hover:bg-app-accent-dark disabled:opacity-60"
             >
               {loading ? "Resetting..." : "Reset Password"}
             </button>

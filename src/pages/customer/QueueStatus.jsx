@@ -40,11 +40,15 @@ export default function QueueStatus() {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const [lastFinishedQueue, setLastFinishedQueue] = useState(null);
+    const [joinLoading, setJoinLoading] = useState(false);
+    const [leaveLoading, setLeaveLoading] = useState(false);
 
   const [selectedBarberForJoin, setSelectedBarberForJoin] = useState(null);
   const [selectedServiceIds, setSelectedServiceIds] = useState([]);
   const [paymentReference, setPaymentReference] = useState("");
         const [selectedRewardId, setSelectedRewardId] = useState("");
+    const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+    const [reportedPayment, setReportedPayment] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
   const [serviceError, setServiceError] = useState("");
@@ -57,7 +61,13 @@ export default function QueueStatus() {
     const loyaltyLoading = loyaltyState.loading && loyaltyState.tenantId === tenantId;
     const loyaltyError = loyaltyState.tenantId === tenantId ? loyaltyState.error : null;
 
-  const openProfile = (id) => {
+    // ...existing code...
+    // UI palette and radius update
+    // Replace hardcoded colors with semantic classes: bg-app-bg, text-app-text, border-app-border, bg-app-surface, text-app-muted
+    // Use border-radius-[12px] for cards, border-radius-[25px] for buttons
+    // Example: <div className="bg-app-bg text-app-text rounded-[12px] ...">
+    // Example: <button className="bg-app-surface text-app-text rounded-[25px] ...">
+    const openProfile = (id) => {
       setViewProfileId(id);
       setProfileModalOpen(true);
   };
@@ -209,6 +219,7 @@ export default function QueueStatus() {
   };
 
   const confirmJoin = async () => {
+            setJoinLoading(true);
       try {
           setServiceError("");
           if (!selectedBarberForJoin) return;
@@ -262,6 +273,9 @@ export default function QueueStatus() {
           }
           toast.error(toFriendlyMessage(err, "Unable to join queue. Please try again."));
       }
+      finally {
+          setJoinLoading(false);
+      }
   };
 
   const goToActiveQueue = () => {
@@ -280,6 +294,7 @@ export default function QueueStatus() {
   };
 
   const confirmLeave = async () => {
+        setLeaveLoading(true);
     try {
       setServiceError("");
       await dispatch(leaveQueue(tenantId)).unwrap();
@@ -290,9 +305,13 @@ export default function QueueStatus() {
             setServiceError(friendly);
             toast.error(friendly);
     }
+        finally {
+            setLeaveLoading(false);
+        }
   };
 
   const confirmReportPayment = async () => {
+    setPaymentSubmitting(true);
     try {
         if (!paymentReference.trim()) return;
         if (!myPosition?.queueId) return;
@@ -301,16 +320,24 @@ export default function QueueStatus() {
             queueId: myPosition.queueId,
             reference: paymentReference
         })).unwrap();
-        
+
         dispatch(fetchMyQueuePosition(tenantId));
         setPaymentModalOpen(false);
+        setReportedPayment(true);
         toast.success("Payment reported");
     } catch (err) {
         const errMsg = toFriendlyMessage(err, "Failed to report payment.");
         setServiceError(errMsg);
         toast.error(errMsg);
+    } finally {
+        setPaymentSubmitting(false);
     }
   };
+
+    // Reset local reported flag if server indicates no payment reference
+    useEffect(() => {
+        if (!myPosition?.paymentReference) setReportedPayment(false);
+    }, [myPosition?.paymentReference]);
 
     const confirmPayWithLoyalty = async () => {
         try {
@@ -359,12 +386,12 @@ export default function QueueStatus() {
                     description="Select a barbershop first, then return to queue."
                 />
         <button
-          onClick={() => navigate("/customer")}
-          className="mt-4 text-indigo-600 hover:text-indigo-700 font-semibold"
-        >
-          Back to Barbershops
-        </button>
-      </div>
+                    onClick={() => navigate("/customer")}
+                    className="mt-4 text-indigo-600 hover:text-indigo-700 font-semibold"
+                >
+                    Back to Barbershops
+                </button>
+            </div>
     );
   }
 
@@ -377,7 +404,7 @@ export default function QueueStatus() {
           
           return (
             <div className="max-w-md mx-auto p-4 pb-20">
-              <div className="bg-amber-50 rounded-3xl shadow-xl p-8 text-center border-2 border-amber-200">
+            <div className="bg-amber-50 rounded-[25px] shadow-xl p-8 text-center border-2 border-amber-200">
                   <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-6">
                       <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                   </div>
@@ -392,26 +419,26 @@ export default function QueueStatus() {
                       }
                   </p>
 
-                  <div className="bg-app-surface p-6 rounded-2xl border border-amber-100 mb-8 text-left shadow-sm">
+                  <div className="bg-app-surface p-6 rounded-[12px] border border-amber-100 mb-8 text-left shadow-sm">
                       <p className="text-xs font-black text-amber-500 uppercase tracking-widest mb-2">Whish Transfer Info</p>
                       <p className="text-2xl font-black text-app-text mb-1">{myPosition.whishPhoneNumber || "Contact Support"}</p>
                       <p className="text-xs text-amber-600 font-bold">*Transfer exactly the service amount</p>
                   </div>
 
                                     {loyaltyLoading && (
-                                        <div className="bg-gray-50 border border-gray-100 p-4 rounded-2xl text-gray-500 font-semibold mb-4">
+                                        <div className="bg-app-surface-2 border border-app-border p-4 rounded-[12px] text-app-muted font-semibold mb-4">
                                             Loading loyalty rewards...
                                         </div>
                                     )}
 
                                     {loyaltyError && (
-                                        <div className="bg-red-50 border border-red-200 p-4 rounded-2xl text-red-600 font-semibold mb-4">
+                                        <div className="bg-red-50 border border-red-200 p-4 rounded-[12px] text-red-600 font-semibold mb-4">
                                             {loyaltyError}
                                         </div>
                                     )}
 
                                     {loyaltyInfo?.settings?.loyaltyEnabled && loyaltyInfo?.settings?.loyaltyAllowRedemption && (
-                                        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-4 text-left">
+                                        <div className="bg-amber-50 border border-amber-100 rounded-[12px] p-4 mb-4 text-left">
                                             <div className="flex items-center justify-between mb-3">
                                                 <p className="font-bold text-amber-900">Pay with Loyalty Points</p>
                                                 <span className="font-black text-amber-700">{loyaltyInfo?.points ?? 0} pts</span>
@@ -419,7 +446,7 @@ export default function QueueStatus() {
                                             <select
                                                 value={selectedRewardId}
                                                 onChange={(e) => setSelectedRewardId(e.target.value)}
-                                                className="w-full px-4 py-3 bg-white border-2 border-transparent rounded-xl focus:border-amber-500 font-bold text-gray-900"
+                                                className="w-full px-4 py-3 bg-app-surface border-2 border-transparent rounded-[12px] focus:border-amber-500 font-bold text-app-text"
                                             >
                                                 <option value="">Select a reward</option>
                                                 {rewardOptions.map(reward => (
@@ -431,20 +458,20 @@ export default function QueueStatus() {
                                             <button
                                                 onClick={confirmPayWithLoyalty}
                                                 disabled={!selectedRewardId}
-                                                className="w-full mt-3 bg-amber-600 hover:bg-amber-700 text-white font-black py-3 rounded-2xl transition disabled:opacity-50 tap-target"
+                                                className="w-full mt-3 bg-amber-600 hover:bg-amber-700 text-white font-black py-3 rounded-[12px] transition disabled:opacity-50 tap-target"
                                             >
                                                 Redeem Points
                                             </button>
                                         </div>
                                     )}
 
-                  {!isPendingVerification && (
-                                            <button
-                        onClick={() => setPaymentModalOpen(true)}
-                                                className="w-full bg-amber-600 hover:bg-amber-700 text-white font-black py-4 rounded-2xl transition shadow-lg shadow-amber-200 mb-4 tap-target"
-                      >
-                         I HAVE PAID VIA WHISH
-                      </button>
+                  {!isPendingVerification && !reportedPayment && (
+                                                          <button
+                                onClick={() => setPaymentModalOpen(true)}
+                                                                className="w-full bg-amber-600 hover:bg-amber-700 text-white font-black py-4 rounded-[12px] transition shadow-lg shadow-amber-200 mb-4 tap-target"
+                             >
+                                 I HAVE PAID VIA WHISH
+                             </button>
                   )}
                   
                   {isPendingVerification && (
@@ -454,12 +481,12 @@ export default function QueueStatus() {
                       </div>
                   )}
 
-                                    <button
-                    onClick={handleLeaveQueue}
-                                        className="w-full bg-white border-2 border-amber-100 text-amber-600 font-black py-4 rounded-2xl hover:bg-amber-50 transition tap-target"
-                  >
-                     CANCEL REQUEST
-                  </button>
+                                      <button
+                                      onClick={handleLeaveQueue}
+                                                                 className="w-full bg-app-surface border-2 border-amber-100 text-amber-600 font-black py-4 rounded-[12px] hover:bg-amber-50 transition tap-target"
+                                    >
+                                        CANCEL REQUEST
+                                    </button>
               </div>
             </div>
           );
@@ -469,7 +496,7 @@ export default function QueueStatus() {
       if (myPosition.statusId === 7) {
         return (
           <div className="max-w-md mx-auto p-4 pb-20">
-            <div className="bg-yellow-50 rounded-3xl shadow-xl p-8 text-center border-2 border-yellow-200">
+            <div className="bg-yellow-50 rounded-[25px] shadow-xl p-8 text-center border-2 border-yellow-200">
                 <div className="w-20 h-20 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-6">
                     <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
@@ -497,31 +524,31 @@ export default function QueueStatus() {
       return (
         <div className="max-w-md mx-auto p-4 pb-20">
           {/* Queue Position Card */}
-            <div className="bg-gradient-to-br from-blue-700 to-indigo-800 rounded-3xl shadow-2xl p-8 text-center text-white mb-8 relative overflow-hidden">
+              <div className="bg-app-accent rounded-[25px] shadow-2xl p-8 text-center text-white mb-8 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 -mr-16 -mt-16 rounded-full"></div>
                 
                 <div className="mb-4 relative">
-                    <p className="text-blue-200 text-xs uppercase tracking-widest font-bold mb-1">Your Barber</p>
-                    <h2 onClick={() => openProfile(barberId)} className="text-2xl font-black cursor-pointer hover:text-blue-200 transition-colors drop-shadow-md">{barberName}</h2>
+                    <p className="text-app-muted text-xs uppercase tracking-widest font-bold mb-1">Your Barber</p>
+                    <h2 onClick={() => openProfile(barberId)} className="text-2xl font-black cursor-pointer hover:text-app-muted transition-colors drop-shadow-md">{barberName}</h2>
                 </div>
 
                 {position === 0 ? (
                     <div className="mb-8 animate-bounce py-4">
                         <div className="text-5xl font-black mb-2 tracking-tighter">NOW SERVING</div>
-                        <p className="text-blue-100 text-lg font-medium opacity-90">Please head to the chair!</p>
+                        <p className="text-app-muted text-lg font-medium opacity-90">Please head to the chair!</p>
                     </div>
                 ) : (
                     <div className="mb-8 py-4">
                         <div className="text-7xl font-black mb-2 tracking-tighter drop-shadow-lg">{position}</div>
                         <p className="text-blue-100 text-sm uppercase tracking-widest font-bold opacity-80">Queue Number</p>
-                        <div className="flex items-center justify-center gap-2 mt-3 bg-black bg-opacity-20 py-1.5 px-4 rounded-full w-max mx-auto border border-white border-opacity-10 backdrop-blur-sm">
+                                <div className="flex items-center justify-center gap-2 mt-3 bg-black bg-opacity-20 py-1.5 px-4 rounded-full w-max mx-auto border border-app-border backdrop-blur-sm">
                            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                           <p className="text-xs text-blue-100 font-bold uppercase">{peopleAhead} {peopleAhead === 1 ? 'person' : 'people'} ahead</p>
+                                    <p className="text-xs text-app-muted font-bold uppercase">{peopleAhead} {peopleAhead === 1 ? 'person' : 'people'} ahead</p>
                         </div>
                     </div>
                 )}
 
-                <div className="bg-white bg-opacity-10 rounded-2xl p-6 border border-white border-opacity-10 backdrop-blur-md mb-6">
+                <div className="bg-app-surface bg-opacity-10 rounded-[12px] p-6 border border-app-border backdrop-blur-md mb-6">
                   <div className="flex justify-between items-center mb-4 border-b border-white border-opacity-10 pb-4">
                       <div className="text-left">
                          <p className="text-xs text-blue-200 uppercase font-bold mb-1">Wait Estimate</p>
@@ -536,20 +563,20 @@ export default function QueueStatus() {
                   </div>
 
                   <div className="text-left">
-                      <p className="text-xs text-blue-200 uppercase font-bold mb-3 flex justify-between items-center">
+                      <p className="text-xs text-app-muted uppercase font-bold mb-3 flex justify-between items-center">
                         Selected Services ({totalDuration} min)
-                        {position !== 0 && (
-                                                     <button 
-                            onClick={handleEditServices}
-                                                        className="text-[10px] bg-white text-indigo-900 px-2 py-0.5 rounded uppercase font-black hover:bg-blue-100 transition-colors tap-target"
-                          >
-                            Edit
-                          </button>
-                        )}
+                                                {position !== 0 && (
+                                                                                                         <button 
+                                                        onClick={handleEditServices}
+                                                                                                                className="text-[10px] bg-app-surface text-app-text px-2 py-0.5 rounded uppercase font-black hover:bg-app-surface-2 transition-colors tap-target"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                )}
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {services?.map(s => (
-                          <span key={s.id} className="text-[11px] font-bold bg-white bg-opacity-10 py-1 px-3 rounded-full border border-white border-opacity-10">
+                                                    <span key={s.id} className="text-[11px] font-bold bg-app-surface-2 py-1 px-3 rounded-full border border-app-border">
                             {s.name}
                           </span>
                         ))}
@@ -563,17 +590,17 @@ export default function QueueStatus() {
                 </div>
             </div>
 
-                        <button
-              onClick={handleLeaveQueue}
-                            className="w-full bg-white hover:bg-red-50 text-red-600 font-black py-4 px-6 rounded-2xl transition-all duration-300 shadow-lg border-2 border-red-100 hover:border-red-200 flex items-center justify-center gap-2 tap-target"
-            >
+                                                <button
+                            onClick={handleLeaveQueue}
+                                                        className="w-full bg-app-surface hover:bg-red-50 text-red-600 font-black py-4 px-6 rounded-[12px] transition-all duration-300 shadow-lg border-2 border-red-100 hover:border-red-200 flex items-center justify-center gap-2 tap-target"
+                        >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
               Leave Queue
             </button>
             
-            <div className="mt-8 text-center bg-app-surface-2 border-2 border-app-border p-6 rounded-3xl relative">
-                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-indigo-600 text-white text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-tighter">Support</div>
-                 <p className="text-gray-500 text-sm font-bold">Need to talk to {barberName}?</p>
+            <div className="mt-8 text-center bg-app-surface-2 border-2 border-app-border p-6 rounded-[25px] relative">
+                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-app-accent text-white text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-tighter">Support</div>
+                 <p className="text-app-muted text-sm font-bold">Need to talk to {barberName}?</p>
                                  <button 
                                     onClick={() => {
                                         dispatch(openChatWindow({
@@ -583,7 +610,7 @@ export default function QueueStatus() {
                                         }));
                                         navigate("/customer/conversations");
                                     }}
-                                    className="mt-2 text-indigo-600 font-black hover:text-indigo-700 transition-colors flex items-center justify-center gap-2 mx-auto tap-target"
+                                    className="mt-2 text-app-accent font-black hover:text-app-accent-dark transition-colors flex items-center justify-center gap-2 mx-auto tap-target"
                  >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                     Chat with Barber
@@ -818,10 +845,17 @@ export default function QueueStatus() {
                     </div>
                     <button
                         onClick={confirmJoin}
-                        disabled={selectedServiceIds.length === 0}
-                        className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all"
+                        disabled={selectedServiceIds.length === 0 || joinLoading}
+                        className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all flex items-center justify-center gap-2"
                     >
-                        Confirm Join
+                        {joinLoading ? (
+                            <>
+                                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                <span>Joining...</span>
+                            </>
+                        ) : (
+                            'Confirm Join'
+                        )}
                     </button>
                 </div>
             </div>
@@ -856,10 +890,17 @@ export default function QueueStatus() {
                     </button>
                     <button 
                         onClick={confirmReportPayment}
-                        disabled={!paymentReference.trim()}
-                        className="flex-1 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-lg disabled:opacity-50"
+                        disabled={!paymentReference.trim() || paymentSubmitting}
+                        className="flex-1 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                        Submit
+                        {paymentSubmitting ? (
+                            <>
+                                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                <span>Submitting...</span>
+                            </>
+                        ) : (
+                            'Submit'
+                        )}
                     </button>
                 </div>
             </div>
@@ -938,9 +979,17 @@ export default function QueueStatus() {
                 <div className="flex flex-col gap-3">
                     <button
                         onClick={confirmLeave}
-                        className="w-full bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-700 transition-all shadow-lg shadow-red-200"
+                        disabled={leaveLoading}
+                        className="w-full bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-700 transition-all shadow-lg shadow-red-200 flex items-center justify-center gap-2 disabled:opacity-60"
                     >
-                        Confirm Leave
+                        {leaveLoading ? (
+                            <>
+                                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                <span>Leaving...</span>
+                            </>
+                        ) : (
+                            'Confirm Leave'
+                        )}
                     </button>
                     <button
                         onClick={() => setLeaveModalOpen(false)}

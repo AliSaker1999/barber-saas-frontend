@@ -27,20 +27,20 @@ export default function CreateTenantAdminModal({ tenantId, open, onClose }) {
   return (
     <Modal open={open} onClose={onClose}>
       <div className="p-6 w-96">
-        <h3 className="text-xl font-semibold mb-4">
+        <h3 className="text-xl font-semibold mb-4 text-app-text">
           Create Tenant Admin
         </h3>
 
         <form onSubmit={submit} className="space-y-3">
           <input
-            className="w-full border rounded px-3 py-2"
+            className="w-full px-3 py-2 bg-app-surface border-2 border-app-border rounded-[12px]"
             placeholder="Full name"
             value={fullName}
             onChange={e => setFullName(e.target.value)}
             required
           />
           <input
-            className="w-full border rounded px-3 py-2"
+            className="w-full px-3 py-2 bg-app-surface border-2 border-app-border rounded-[12px]"
             placeholder="Email"
             type="email"
             value={email}
@@ -48,7 +48,7 @@ export default function CreateTenantAdminModal({ tenantId, open, onClose }) {
             required
           />
           <input
-            className="w-full border rounded px-3 py-2"
+            className="w-full px-3 py-2 bg-app-surface border-2 border-app-border rounded-[12px]"
             placeholder="Password"
             type="password"
             value={password}
@@ -60,12 +60,12 @@ export default function CreateTenantAdminModal({ tenantId, open, onClose }) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border rounded"
+              className="px-4 py-2 rounded-[12px] text-app-muted bg-app-surface border-app-border"
             >
               Cancel
             </button>
             <button
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="px-4 py-2 bg-app-accent text-white rounded-[12px] hover:bg-app-accent-dark"
             >
               Create Admin
             </button>

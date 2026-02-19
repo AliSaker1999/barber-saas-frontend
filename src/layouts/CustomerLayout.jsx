@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, Link, NavLink } from "react-router-dom";
-import { useAppSelector, useAppDispatch } from "../app/hooks";
+import {  useAppDispatch } from "../app/hooks";
 import { logout } from "../features/auth/authSlice";
 import {  useState } from "react";
 import PhoneVerificationModal from "../components/PhoneVerificationModal";
@@ -23,8 +23,8 @@ export default function CustomerLayout() {
 
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const user = useAppSelector(state => state.auth.user);
-  const { isOnline } = useAppSelector(state => state.ui);
+  // const user = useAppSelector(state => state.auth.user);
+  // const { isOnline } = useAppSelector(state => state.ui);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
@@ -62,7 +62,7 @@ export default function CustomerLayout() {
             </div>
 
             <div className="hidden lg:flex flex-1 justify-center px-4">
-              <nav className="flex items-center gap-3">
+              <nav className="flex items-center gap-3 border-b border-app-border">
                 {desktopNavItems.map((item) => (
                   <HeaderLink key={item.to} to={item.to} label={item.label} icon={item.icon} end={item.end} />
                 ))}

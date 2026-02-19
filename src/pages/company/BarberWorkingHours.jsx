@@ -62,21 +62,19 @@ useEffect(() => {
 
   return (
     <div className="mt-6">
-      <h3 className="font-semibold mb-3">
-        Working Hours
-      </h3>
+      <h3 className="font-semibold mb-3 text-app-text">Working Hours</h3>
 
-      <div className="bg-gray-50 border rounded overflow-hidden">
+      <div className="bg-app-surface border border-app-border rounded-[12px] overflow-hidden">
         {DAYS.map((dayName, dayIndex) => {
           const day = draft[dayIndex] || {};
 
           return (
             <div
               key={dayIndex}
-              className="flex flex-col sm:grid sm:grid-cols-12 gap-2 sm:gap-4 items-start sm:items-center p-4 border-b last:border-b-0 hover:bg-white transition-colors"
+              className="flex flex-col sm:grid sm:grid-cols-12 gap-2 sm:gap-4 items-start sm:items-center p-4 border-b last:border-b-0 hover:bg-app-surface-2 transition-colors"
             >
               {/* DAY NAME */}
-              <div className="sm:col-span-3 font-bold text-gray-700 text-sm sm:text-base mb-1 sm:mb-0">
+                <div className="sm:col-span-3 font-bold text-app-text text-sm sm:text-base mb-1 sm:mb-0">
                 {dayName}
               </div>
 
@@ -97,9 +95,9 @@ useEffect(() => {
                             }
                         }))
                         }
-                        className="flex-1 border-2 border-gray-100 rounded-xl px-3 py-2 text-sm focus:border-blue-500 focus:outline-none transition-all"
+                        className="flex-1 border-2 border-app-border rounded-[12px] px-3 py-2 text-sm focus:border-app-accent focus:outline-none transition-all text-app-text"
                     />
-                    <span className="text-gray-400 font-bold">to</span>
+                    <span className="text-app-muted font-bold">to</span>
                     <input
                         type="time"
                         value={day.end || ""}
@@ -113,20 +111,20 @@ useEffect(() => {
                             }
                         }))
                         }
-                        className="flex-1 border-2 border-gray-100 rounded-xl px-3 py-2 text-sm focus:border-blue-500 focus:outline-none transition-all"
+                        className="flex-1 border-2 border-app-border rounded-[12px] px-3 py-2 text-sm focus:border-app-accent focus:outline-none transition-all text-app-text"
                     />
                   </div>
 
                   <button
                     onClick={() => saveDay(dayIndex)}
-                    className="sm:col-span-3 w-full sm:w-auto px-6 py-2 text-sm font-black bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-md shadow-blue-100 transition-all hover:scale-105 active:scale-95"
+                    className="sm:col-span-3 w-full sm:w-auto px-6 py-2 text-sm font-black bg-app-accent text-white rounded-[12px] hover:bg-app-accent-dark shadow-lg transition-all hover:scale-105 active:scale-95"
                   >
                     Save Changes
                   </button>
                 </>
               ) : (
                 <>
-                  <div className="sm:col-span-6 text-sm text-gray-400 font-bold italic py-2">
+                  <div className="sm:col-span-6 text-sm text-app-muted font-bold italic py-2">
                     Not working this day
                   </div>
                   <button
@@ -136,7 +134,7 @@ useEffect(() => {
                         [dayIndex]: { active: true }
                       }))
                     }
-                    className="sm:col-span-3 w-full sm:w-auto px-6 py-2 text-sm font-bold border-2 border-dashed border-gray-200 text-gray-500 rounded-xl hover:bg-white hover:border-blue-400 hover:text-blue-600 transition-all"
+                    className="sm:col-span-3 w-full sm:w-auto px-6 py-2 text-sm font-bold border-2 border-dashed border-app-border text-app-muted rounded-[12px] hover:bg-app-surface hover:border-app-accent hover:text-app-accent transition-all"
                   >
                     Enable Day
                   </button>
