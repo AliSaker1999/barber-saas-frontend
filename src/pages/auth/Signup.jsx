@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { registerCustomer } from "../../features/auth/authSlice";
@@ -128,7 +129,19 @@ export default function Signup() {
     return colors[passwordStrength];
   };
 
+  // Google login success handler
+  const handleGoogleSuccess = async (credentialResponse) => {
+    // TODO: Send credentialResponse.credential to backend for verification and login/register
+    // Example: await dispatch(loginWithGoogle(credentialResponse.credential));
+    alert("Google login successful! (Integrate backend call)");
+  };
+
+  const handleGoogleError = () => {
+    setError("Google login failed. Please try again.");
+  };
+
   return (
+    <GoogleOAuthProvider clientId="YOUR_GOOGLE_CLIENT_ID">
     <div className="min-h-screen bg-app-bg flex flex-col justify-center px-4 py-6 sm:py-12 relative">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
@@ -153,8 +166,24 @@ export default function Signup() {
             <p className="text-app-muted text-sm">Create your account to book appointments</p>
           </div>
 
+          {/* Google Login Button */}
+          <div className="px-8 pt-8">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              width="100%"
+              shape="pill"
+              text="signup_with"
+              useOneTap
+            />
+            <div className="my-6 flex items-center justify-center">
+              <span className="h-px flex-1 bg-app-border"></span>
+              <span className="px-3 text-app-muted text-xs font-semibold uppercase">or</span>
+              <span className="h-px flex-1 bg-app-border"></span>
+            </div>
+          </div>
           {/* Form */}
-          <form onSubmit={handleSubmit} className="px-8 py-8">
+          <form onSubmit={handleSubmit} className="px-8 pb-8">
             {/* Error Alert */}
             {error && (
               <div className="mb-6">
@@ -471,5 +500,6 @@ export default function Signup() {
       <PrivacyPolicyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />
       <TermsOfServiceModal isOpen={isTermsOpen} onClose={() => setIsTermsOpen(false)} />
     </div>
+    </GoogleOAuthProvider>
   );
 }

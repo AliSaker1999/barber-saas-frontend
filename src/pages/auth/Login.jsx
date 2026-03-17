@@ -87,6 +87,7 @@ export default function Login() {
   };
 
   return (
+    
     <div className="min-h-screen bg-app-bg flex flex-col justify-center px-4 py-6 sm:py-12 relative">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
@@ -101,6 +102,7 @@ export default function Login() {
           <div className="bg-app-accent px-8 py-12 text-center">
             <div className="mb-4 flex justify-center">
               <div className="w-16 h-16 bg-app-surface rounded-full flex items-center justify-center shadow-lg">
+                
                 <svg className="w-8 h-8 text-app-accent" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10.5 1.5H5.75A2.75 2.75 0 003 4.25v11.5A2.75 2.75 0 005.75 18.5h8.5A2.75 2.75 0 0017 15.75V4.25A2.75 2.75 0 0014.25 1.5h-3.75v2h3.75a.75.75 0 01.75.75v11.5a.75.75 0 01-.75.75h-8.5a.75.75 0 01-.75-.75V4.25a.75.75 0 01.75-.75h3.75v-2z" clipRule="evenodd" />
                   <path d="M10 6a1 1 0 100 2 1 1 0 000-2z" />
@@ -375,5 +377,6 @@ export default function Login() {
         </div>
       </Modal>
     </div>
+    
   );
 }

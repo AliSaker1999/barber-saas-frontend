@@ -19,6 +19,7 @@ import Pagination from "../../components/Pagination";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import usePagination from "../../hooks/usePagination";
 import { runBackgroundJob } from "../../utils/backgroundJob";
+import { useI18n } from "../../i18n";
 
 /* Enhanced Dropdown Component */
 function Dropdown({ value, onChange, options = [], icon = null, placeholder = null }) {
@@ -62,6 +63,7 @@ const TenantLogo = memo(function TenantLogo({ tenant }) {
 function Tenants() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const { t, isRTL } = useI18n();
   const { tenants, loading } = useAppSelector(state => state.tenants);
   const activeQueue = useAppSelector(state => state.queue.activeQueue);
   const locationState = useAppSelector(state => state.location);
@@ -220,10 +222,10 @@ function Tenants() {
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 bg-app-bg text-app-text">
       <MobileHeader
-        title="Barbershops"
+        title={t("barbershops_title")}
         onBack={() => navigate("/customer")}
-        primaryAction={activeQueue ? { label: "Queue", onClick: goToActiveQueue } : null}
-        subtitle="Discover & book"
+        primaryAction={activeQueue ? { label: t("nav_queue"), onClick: goToActiveQueue } : null}
+        subtitle={t("discover_and_book")}
       />
       {/* Active Queue Banner */}
       {activeQueue && (
@@ -236,7 +238,7 @@ function Tenants() {
                 </svg>
               </div>
               <div>
-                <p className="font-extrabold text-sm sm:text-xl tracking-tight line-clamp-1 text-app-text">In line at {activeQueue.tenantName}</p>
+                <p className="font-extrabold text-sm sm:text-xl tracking-tight line-clamp-1 text-app-text">{t("in_line_at")} {activeQueue.tenantName}</p>
                 <p className="text-app-muted text-[10px] sm:text-base font-medium opacity-90 truncate">Barber: {activeQueue.barberName}</p>
               </div>
             </div>
@@ -244,7 +246,7 @@ function Tenants() {
               onClick={goToActiveQueue}
               className="w-full sm:w-auto bg-app-primary-gradient text-app-text px-4 py-2 sm:px-8 sm:py-3 rounded-[25px] font-bold hover:bg-app-primary-gradient transition-all active:scale-95 text-xs sm:text-base"
             >
-              Go to Queue →
+              {t("go_to_queue")} →
             </button>
           </div>
         </div>
@@ -255,19 +257,19 @@ function Tenants() {
         <div className="absolute inset-0 rounded-[12px] bg-app-primary-gradient pointer-events-none" />
         <div className="relative text-center px-1 sm:px-4 pt-1 sm:pt-4">
           <h1 className="text-2xl sm:text-5xl md:text-6xl font-black text-app-text tracking-tight mb-1.5 sm:mb-5 leading-[1.05]">
-            Your Next Cut,
-            <span className="block sm:inline bg-app-primary-gradient bg-clip-text "> Perfectly Matched.</span>
+            {t("hero_title_1")}
+            <span className="block sm:inline bg-app-primary-gradient bg-clip-text "> {t("hero_title_2")}</span>
           </h1>
           <p className="hidden sm:block text-sm sm:text-lg text-app-muted max-w-2xl mx-auto mb-3 sm:mb-7 leading-relaxed">
-            Search, compare, and book trusted barbershops in seconds with smart filters that adapt to your location.
+            {t("hero_subtitle")}
           </p>
 
           <div className="hidden sm:flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
             <span className="px-3 py-1.5 rounded-full bg-app-surface border border-app-border text-[11px] sm:text-sm font-bold text-app-primary">
-              {totalVisible} shops available
+              {totalVisible} {t("shops_available")}
             </span>
             <span className="px-3 py-1.5 rounded-full bg-app-surface border border-app-border text-[11px] sm:text-sm font-bold text-app-success">
-              {topRatedCount} top-rated 4.5+
+              {topRatedCount} {t("top_rated_suffix")}
             </span>
             {locationState.coords && (
               <span className="px-3 py-1.5 rounded-full bg-app-surface border border-app-border text-[11px] sm:text-sm font-bold text-app-primary">
@@ -301,7 +303,7 @@ function Tenants() {
               onClick={() => setMobileFiltersOpen(prev => !prev)}
               className="sm:hidden w-full py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs font-bold text-gray-700"
             >
-              {mobileFiltersOpen ? "Hide filters" : "Show filters"}
+              {mobileFiltersOpen ? t("hide_filters") : t("show_filters")}
             </button>
             
             {/* Filters Row */}
@@ -359,17 +361,17 @@ function Tenants() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zm7.5-2.5a7.5 7.5 0 11-15 0 7.5 7.5 0 0115 0z" />
                 </svg>
               )}
-              Use My Location
+              {t("use_my_location")}
             </button>
 
             <div className="flex-1 hidden sm:block">
               {locationState.coords ? (
                 <div className="text-sm text-gray-600 font-semibold">
-                  Location enabled • Accuracy ~{Math.round(locationState.accuracy || 0)}m
+                  {t("location_enabled_msg")} • Accuracy ~{Math.round(locationState.accuracy || 0)}m
                 </div>
               ) : (
                 <div className="text-sm text-gray-500">
-                  Enable location to see the closest barbershops.
+                  {t("enable_location_msg")}
                 </div>
               )}
               {locationState.error && (
@@ -395,7 +397,7 @@ function Tenants() {
                   onChange={(e) => setNearMeOnly(e.target.checked)}
                   disabled={!locationState.coords}
                 />
-                Near me only
+                {t("near_me_only")}
               </label>
             </div>
           </div>
@@ -407,11 +409,11 @@ function Tenants() {
         <div>
           <p className="hidden sm:block text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide">Discover</p>
           <h2 className="text-base sm:text-2xl font-black text-gray-900">
-            Showing {totalVisible} of {tenants.length} barbershops
+            {t("showing")} {totalVisible} {t("of_text")} {tenants.length} {t("barbershops_count")}
           </h2>
           {featuredTenant && (
             <p className="hidden sm:block text-xs sm:text-sm text-gray-500 mt-1">
-              Featured right now: <span className="font-bold text-gray-700">{featuredTenant.Name}</span>
+              {t("featured_now")}: <span className="font-bold text-gray-700">{featuredTenant.Name}</span>
             </p>
           )}
         </div>
@@ -421,7 +423,7 @@ function Tenants() {
             onClick={clearFilters}
             className="self-start sm:self-auto px-4 py-2 rounded-xl bg-white border border-gray-200 text-xs sm:text-sm font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition"
           >
-            Reset filters
+            {t("reset_filters")}
           </button>
         )}
       </div>
@@ -518,7 +520,7 @@ function Tenants() {
                   {tenant.Name}
                 </h3>
                 <p className="text-[9px] sm:text-sm text-gray-500 flex items-center gap-1 truncate">
-                  {tenant.Area || "Premium"}
+                  {tenant.Area || t("premium_label")}
                 </p>
                 <p className="hidden sm:block text-[11px] sm:text-sm text-gray-400 truncate mt-1">
                   {tenant.City || "Lebanon"}
@@ -566,7 +568,7 @@ function Tenants() {
                   <svg className="w-2.5 h-2.5 sm:w-5 sm:h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.6} d="M8 7V3m8 4V3m-9 8h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  <span className="truncate">Book</span>
+                  <span className="truncate">{t("book_now")}</span>
                 </button>
                 
                 <button
@@ -577,7 +579,7 @@ function Tenants() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.6} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.6} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
-                  <span className="truncate">Details</span>
+                  <span className="truncate">{t("view_details")}</span>
                 </button>
               </div>
             </div>

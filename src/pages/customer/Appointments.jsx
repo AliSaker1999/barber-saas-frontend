@@ -26,10 +26,12 @@ import LoadingState from "../../components/LoadingState";
 import EmptyState from "../../components/EmptyState";
 import ErrorState from "../../components/ErrorState";
 import { getFriendlyErrorMessage } from "../../utils/errorMessages";
+import { useI18n } from "../../i18n";
 
 export default function Appointments() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const { t } = useI18n();
   const { items, loading, error, lastFetchedAt, isStale } = useAppSelector(s => s.appointments);
   const { user } = useAppSelector(s => s.auth);
   const [filter, setFilter] = useState("SCHEDULED");
@@ -175,7 +177,7 @@ export default function Appointments() {
     try {
         await dispatch(cancelAppointment(selectedAppointmentId)).unwrap();
         setCancelModalOpen(false);
-        toast.success("Appointment canceled");
+        toast.success(t("appointment_canceled"));
     } catch (err) {
         setActionError(err);
         toast.error("Failed to cancel appointment");
@@ -214,7 +216,7 @@ export default function Appointments() {
       setPayModalOpen(false);
       setTransactionId("");
       dispatch(fetchCustomerAppointments());
-      toast.success("Payment reported");
+      toast.success(t("payment_reported"));
     } catch (err) {
       alert(getFriendlyErrorMessage(err, "Failed to report payment"));
       toast.error("Failed to report payment");
@@ -237,7 +239,7 @@ export default function Appointments() {
       })).unwrap();
       setPayModalOpen(false);
       setSelectedRewardId("");
-      toast.success("Paid with loyalty points");
+      toast.success(t("paid_loyalty"));
     } catch (err) {
       setActionError(err);
       toast.error("Failed to redeem loyalty points");
@@ -255,32 +257,34 @@ export default function Appointments() {
   return (
     <div>
       <MobileHeader
-        title="My Appointments"
+        title={t("my_appointments")}
         onBack={() => navigate("/customer")}
-        primaryAction={{ label: "Book", onClick: () => navigate("/customer") }}
+        primaryAction={{ label: t("book_now"), onClick: () => navigate("/customer") }}
       />
       {/* Header */}
-      <div className="mb-5 sm:mb-8">
-        <h1 className="text-2xl sm:text-4xl font-bold text-app-text mb-1.5">📅 My Appointments</h1>
-        <p className="text-xs sm:text-base text-app-muted mb-1.5">View, manage, and reschedule your bookings</p>
-        {lastFetchedAt && (
-          <p className="text-xs text-app-muted font-bold">
-            Last updated {new Date(lastFetchedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-          </p>
-        )}
-        {isStale && (
-          <p className="text-xs text-app-accent font-bold mt-1">Offline: showing cached data</p>
-        )}
+      <div className="mb-5 sm:mb-8 bg-app-surface rounded-2xl border border-app-border p-4 sm:p-6">
+        <h1 className="text-xl sm:text-3xl font-black text-app-text mb-1">📅 {t("my_appointments")}</h1>
+        <p className="text-xs sm:text-sm text-app-muted mb-2">{t("view_manage_bookings")}</p>
+        <div className="flex items-center gap-3 flex-wrap">
+          {lastFetchedAt && (
+            <span className="text-[10px] sm:text-xs text-app-muted font-bold bg-app-surface-2 px-2.5 py-1 rounded-full">
+              {t("last_updated")} {new Date(lastFetchedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          )}
+          {isStale && (
+            <span className="text-[10px] sm:text-xs text-app-accent font-bold bg-app-accent/10 px-2.5 py-1 rounded-full">{t("offline_cached")}</span>
+          )}
+        </div>
       </div>
 
       {/* Stats Cards / Filters */}
       {!loading && (
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-7 gap-2 sm:gap-3 mb-6 sm:mb-10">
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3 mb-6 sm:mb-10">
           <button 
             onClick={() => setFilter("TOTAL")}
             className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "TOTAL" ? "bg-app-accent border-app-accent text-app-text shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
           >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "TOTAL" ? "text-app-text" : "text-app-muted"}`}>Total</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "TOTAL" ? "text-app-text" : "text-app-muted"}`}>{t("all_statuses")}</p>
             <p className="text-2xl sm:text-3xl font-bold mt-1">{items.length}</p>
           </button>
           
@@ -288,7 +292,7 @@ export default function Appointments() {
             onClick={() => setFilter("SCHEDULED")}
             className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "SCHEDULED" ? "bg-app-accent border-app-accent text-app-text shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
           >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "SCHEDULED" ? "text-app-text" : "text-app-muted"}`}>Scheduled</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "SCHEDULED" ? "text-app-text" : "text-app-muted"}`}>{t("status_scheduled")}</p>
             <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'SCHEDULED').length}</p>
           </button>
 
@@ -296,7 +300,7 @@ export default function Appointments() {
             onClick={() => setFilter("PENDING")}
             className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "PENDING" ? "bg-app-accent border-app-accent text-app-text shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
           >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "PENDING" ? "text-app-text" : "text-app-muted"}`}>Pending</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "PENDING" ? "text-app-text" : "text-app-muted"}`}>{t("status_pending")}</p>
             <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'PENDING').length}</p>
           </button>
 
@@ -304,7 +308,7 @@ export default function Appointments() {
             onClick={() => setFilter("COMPLETED")}
             className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "COMPLETED" ? "bg-app-accent border-app-accent text-app-text shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
           >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "COMPLETED" ? "text-app-text" : "text-app-muted"}`}>Completed</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "COMPLETED" ? "text-app-text" : "text-app-muted"}`}>{t("status_completed")}</p>
             <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'COMPLETED').length}</p>
           </button>
 
@@ -312,7 +316,7 @@ export default function Appointments() {
             onClick={() => setFilter("CANCELLED")}
             className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "CANCELLED" ? "bg-app-accent border-app-accent text-app-text shadow" : "bg-app-surface border-app-border text-app-muted hover:border-app-accent shadow-sm"}`}
           >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "CANCELLED" ? "text-red-100" : "text-gray-500"}`}>Cancelled</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "CANCELLED" ? "text-red-100" : "text-gray-500"}`}>{t("status_cancelled")}</p>
             <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'CANCELLED').length}</p>
           </button>
 
@@ -320,7 +324,7 @@ export default function Appointments() {
             onClick={() => setFilter("DECLINED")}
             className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "DECLINED" ? "bg-app-accent border-app-accent text-white shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
           >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "DECLINED" ? "text-white" : "text-app-muted"}`}>Declined</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "DECLINED" ? "text-white" : "text-app-muted"}`}>{t("status_declined")}</p>
             <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'DECLINED').length}</p>
           </button>
 
@@ -328,7 +332,7 @@ export default function Appointments() {
             onClick={() => setFilter("NO_SHOW")}
             className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "NO_SHOW" ? "bg-app-accent border-app-accent text-white shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
           >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "NO_SHOW" ? "text-white" : "text-app-muted"}`}>No Show</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "NO_SHOW" ? "text-white" : "text-app-muted"}`}>{t("status_no_show")}</p>
             <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'NO_SHOW').length}</p>
           </button>
 
@@ -336,7 +340,7 @@ export default function Appointments() {
             onClick={() => setFilter("AWAITING_PAYMENT")}
             className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "AWAITING_PAYMENT" ? "bg-app-accent border-app-accent text-white shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
           >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "AWAITING_PAYMENT" ? "text-white" : "text-app-muted"}`}>To Pay</p>
+            <p className={`text-xs sm:text-sm font-semibold ${filter === "AWAITING_PAYMENT" ? "text-white" : "text-app-muted"}`}>{t("status_awaiting_payment")}</p>
             <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'AWAITING_PAYMENT').length}</p>
           </button>
         </div>
@@ -356,7 +360,7 @@ export default function Appointments() {
 
       {/* Empty State */}
       {!loading && filteredItems.length === 0 && (
-        <EmptyState title="No appointments found" description={`No ${filter.toLowerCase()} appointments right now.`} />
+        <EmptyState title={t("no_filter_appointments")} description={`${t("no_filter_appointments")}`} />
       )}
 
       {/* Appointments List */}
@@ -370,14 +374,14 @@ export default function Appointments() {
               <div
                   key={appointment.Id}
                   id={`appointment-${appointment.Id}`}
-                    className="group relative bg-app-surface rounded-[12px] border border-app-border shadow-sm hover:shadow-2xl hover:scale-[1.01] hover:z-10 transition-all duration-300 cursor-default overflow-hidden"
+                    className="group relative bg-app-surface rounded-2xl border border-app-border shadow-sm hover:shadow-lg hover:scale-[1.005] transition-all duration-300 cursor-default overflow-hidden"
               >
-                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-app-accent transform scale-y-0 group-hover:scale-y-100 transition-transform origin-top duration-300" />
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-app-accent rounded-l-2xl" />
                 
                   <div className="p-3 sm:p-4 md:p-6 flex flex-col md:flex-row md:items-center gap-4 sm:gap-5 md:gap-6">
                   {/* Time Column */}
                     <div className="min-w-[110px] sm:min-w-[140px]">
-                    <p className="text-xs text-app-muted font-bold uppercase tracking-wider mb-1">Time</p>
+                    <p className="text-xs text-app-muted font-bold uppercase tracking-wider mb-1">{t("time_label")}</p>
                     <p className="text-sm font-bold text-app-text">{date}</p>
                       <p className="text-app-accent font-black text-base sm:text-lg">⏰ {time}</p>
                   </div>
@@ -385,12 +389,12 @@ export default function Appointments() {
                   {/* Details Column */}
                   <div className="flex-1">
                       <p className="text-xs text-app-muted font-bold uppercase tracking-wider mb-1">
-                        Services at <button onClick={() => openProfile(appointment.BarberId)} className="hover:underline hover:text-app-accent font-bold text-app-muted uppercase">{appointment.BarberName}</button>
+                        {t("services_at")} <button onClick={() => openProfile(appointment.BarberId)} className="hover:underline hover:text-app-accent font-bold text-app-muted uppercase">{appointment.BarberName}</button>
                       </p>
                        <p className="text-base sm:text-lg font-bold text-app-text">{appointment.Services}</p>
                     {appointment.Status === "DECLINED" && appointment.DeclineReason && (
                         <p className="mt-2 text-sm text-red-600 font-medium italic border-l-2 border-red-200 pl-3">
-                            <span className="font-bold uppercase text-[10px] block not-italic mb-0.5">Reason for decline:</span>
+                            <span className="font-bold uppercase text-[10px] block not-italic mb-0.5">{t("reason_decline")}:</span>
                             "{appointment.DeclineReason}"
                         </p>
                     )}
@@ -399,10 +403,10 @@ export default function Appointments() {
                   {/* Status */}
                   <div className="flex items-center gap-2">
                     {appointment.PaymentStatus === 'PAID' && (
-                        <div className="px-3 py-1 bg-green-500 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">Paid</div>
+                        <div className="px-3 py-1 bg-green-500 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">{t("paid_label")}</div>
                     )}
                     {appointment.PaymentStatus === 'PENDING' && (
-                        <div className="px-3 py-1 bg-amber-500 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">Verifying</div>
+                        <div className="px-3 py-1 bg-amber-500 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">{t("verifying_label")}</div>
                     )}
                     <div className={`px-3 py-1 rounded-full font-bold text-[11px] sm:text-xs flex items-center gap-1.5 ${statusBadge.bg} border ${statusBadge.border} ${statusBadge.text}`}>
                       <span className="text-sm">{statusBadge.icon}</span> {appointment.Status}
@@ -416,7 +420,7 @@ export default function Appointments() {
                             onClick={() => openRateModal(appointment)}
                           className="bg-app-surface-2 hover:bg-app-accent hover:text-white text-app-accent px-3 py-1.5 sm:px-4 sm:py-2 rounded-[12px] font-bold text-[10px] sm:text-xs transition-all border border-app-border uppercase tap-target"
                         >
-                            Rate ★
+                            {t("rate_star")} ★
                         </button>
                     )}
                     {(appointment.Status === "SCHEDULED" || appointment.Status === "PENDING" || appointment.Status === "AWAITING_PAYMENT") && (
@@ -432,7 +436,7 @@ export default function Appointments() {
                           }}
                           className="bg-app-surface-2 hover:bg-app-accent hover:text-white text-app-accent px-3 py-1.5 sm:px-4 sm:py-2 rounded-[12px] font-bold text-[10px] sm:text-xs transition-all border border-app-border uppercase tap-target"
                         >
-                          Chat
+                          {t("chat")}
                         </button>
                         {appointment.PaymentStatus === 'UNPAID' && 
                          ((appointment.IsWhishPaymentEnabled && appointment.WhishPhoneNumber) || (appointment.LoyaltyEnabled && appointment.LoyaltyAllowRedemption)) && (
@@ -440,7 +444,7 @@ export default function Appointments() {
                             onClick={() => openPayModal(appointment)}
                             className="bg-app-surface-2 hover:bg-app-accent hover:text-white text-app-accent px-3 py-1.5 sm:px-4 sm:py-2 rounded-[12px] font-bold text-[10px] sm:text-xs transition-all border border-app-border uppercase flex items-center gap-1 tap-target"
                           >
-                            <span>💸</span> Pay
+                            <span>💸</span> {t("pay_now")}
                           </button>
                         )}
                         {appointment.Status !== "AWAITING_PAYMENT" && (
@@ -448,7 +452,7 @@ export default function Appointments() {
                               onClick={() => handleReschedule(appointment)}
                               className="bg-app-surface-2 hover:bg-app-accent hover:text-white text-app-accent px-3 py-1.5 sm:px-4 sm:py-2 rounded-[12px] font-bold text-[10px] sm:text-xs transition-all border border-app-border uppercase tap-target"
                             >
-                              Reschedule
+                              {t("reschedule")}
                             </button>
                         )}
                         <button
@@ -459,7 +463,7 @@ export default function Appointments() {
                           }}
                           className="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[12px] font-bold text-[10px] sm:text-xs transition-all border border-red-100 uppercase tap-target"
                         >
-                          Cancel
+                          {t("cancel")}
                         </button>
                       </>
                     )}
@@ -478,41 +482,41 @@ export default function Appointments() {
         appointmentId={selectedAppointmentId}
         onSuccess={() => {
           setRateModalOpen(false);
-          toast.success("Thank you for your rating!");
+          toast.success(t("thank_you_rating"));
         }}
       />
       
       <Modal
         isOpen={payModalOpen}
         onClose={() => setPayModalOpen(false)}
-        title="Payment Options"
+        title={t("payment_options")}
       >
         <div className="space-y-6">
           {payDetails?.phone && (
             <div className="bg-app-surface-2 border border-app-border p-4 rounded-[25px]">
-              <p className="text-app-accent font-medium text-sm mb-1">Send Payment To:</p>
+              <p className="text-app-accent font-medium text-sm mb-1">{t("send_payment_to")}:</p>
               <p className="text-2xl font-black text-app-accent tracking-tight select-all">{payDetails?.phone}</p>
             </div>
           )}
           
           <div className="bg-app-surface-2 p-4 rounded-[25px] border border-app-border">
              <div className="flex justify-between items-center mb-2">
-                <span className="text-app-muted font-bold text-xs uppercase">Amount Due</span>
+                <span className="text-app-muted font-bold text-xs uppercase">{t("amount_due")}</span>
                 <span className="text-app-text font-black text-xl">${payDetails?.amount}</span>
              </div>
              <p className="text-xs text-app-muted leading-relaxed">
-               Open your Whish app, select "Transfer", enter the number above, and send the exact amount.
+               {t("whish_instructions")}
              </p>
           </div>
 
           <div>
-             <label className="block text-xs font-black text-app-muted uppercase tracking-widest mb-2">Transaction ID / Reference</label>
+             <label className="block text-xs font-black text-app-muted uppercase tracking-widest mb-2">{t("transaction_id_label")}</label>
              <input 
                 type="text" 
                 value={transactionId}
                 onChange={e => setTransactionId(e.target.value)}
                 className="w-full px-4 py-3 bg-app-surface-2 border-app-border rounded-[12px] focus:bg-app-surface focus:border-app-accent font-bold text-app-text"
-                placeholder="Enter the transaction ID from Whish"
+                placeholder={t("enter_transaction_id")}
              />
           </div>
 
@@ -522,13 +526,13 @@ export default function Appointments() {
               disabled={payLoading}
               className="w-full bg-app-accent text-white rounded-[12px] py-3 font-bold hover:bg-app-accent-dark transition-all active:scale-95 disabled:opacity-50 shadow-lg"
             >
-              {payLoading ? "Verifying..." : "Confirm Transfer"}
+              {payLoading ? t("verifying_payment") : t("confirm_transfer")}
             </button>
           )}
 
           {loyaltyLoading && (
             <div className="bg-app-surface-2 border border-app-border p-4 rounded-[25px] text-app-muted font-semibold">
-              Loading loyalty rewards...
+              {t("loading_rewards")}
             </div>
           )}
 
@@ -541,7 +545,7 @@ export default function Appointments() {
           {loyaltyInfo?.settings?.loyaltyEnabled && loyaltyInfo?.settings?.loyaltyAllowRedemption && (
             <div className="bg-app-surface-2 border border-app-border p-4 rounded-[25px] space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-app-accent font-bold">Pay with Loyalty Points</p>
+                <p className="text-app-accent font-bold">{t("pay_with_loyalty")}</p>
                 <span className="text-app-accent font-black">{loyaltyInfo?.points ?? 0} pts</span>
               </div>
               <select
@@ -549,7 +553,7 @@ export default function Appointments() {
                 onChange={(e) => setSelectedRewardId(e.target.value)}
                 className="w-full px-4 py-3 bg-app-surface border-app-border rounded-[12px] focus:border-app-accent font-bold text-app-text"
               >
-                <option value="">Select a reward</option>
+                <option value="">{t("select_reward")}</option>
                 {rewardOptions.map(reward => (
                   <option key={reward.Id} value={reward.Id}>
                     {reward.PointsRequired} pts → {reward.ServiceName}
@@ -561,7 +565,7 @@ export default function Appointments() {
                 disabled={payLoading || !selectedRewardId}
                 className="w-full bg-app-accent text-white rounded-[12px] py-3 font-bold hover:bg-app-accent-dark transition-all disabled:opacity-50"
               >
-                {payLoading ? "Processing..." : "Redeem Points"}
+                {payLoading ? t("processing") : t("redeem_action")}
               </button>
             </div>
           )}
@@ -578,14 +582,14 @@ export default function Appointments() {
       <Modal
         isOpen={cancelModalOpen}
         onClose={() => setCancelModalOpen(false)}
-        title="Cancel Appointment"
+        title={t("cancel_appointment")}
       >
         <div className="p-6 text-center">
             <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
             </div>
-            <h3 className="text-xl font-bold text-app-text mb-2">Are you sure?</h3>
-            <p className="text-app-muted mb-6">This action cannot be undone. You will lose this time slot.</p>
+            <h3 className="text-xl font-bold text-app-text mb-2">{t("are_you_sure")}</h3>
+            <p className="text-app-muted mb-6">{t("cannot_undo")}</p>
 
             {actionError && (
                 <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm font-bold">
@@ -598,13 +602,13 @@ export default function Appointments() {
                   onClick={() => setCancelModalOpen(false)}
                   className="flex-1 px-6 py-3 bg-app-surface-2 hover:bg-app-surface text-app-text font-bold rounded-[12px] transition"
                 >
-                  Keep It
+                  {t("keep_it")}
                 </button>
                 <button 
                   onClick={confirmCancel}
                   className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-[12px] transition shadow-lg shadow-red-200"
                 >
-                  Cancel it
+                  {t("cancel_it")}
                 </button>
             </div>
         </div>
@@ -614,19 +618,19 @@ export default function Appointments() {
       <Modal
         isOpen={rescheduleErrorModalOpen}
         onClose={() => setRescheduleErrorModalOpen(false)}
-        title="Reschedule Issue"
+        title={t("reschedule_issue")}
       >
         <div className="p-6 text-center">
             <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
-            <h3 className="text-xl font-bold text-app-text mb-2">Details Missing</h3>
-            <p className="text-app-muted mb-6">We couldn't load the necessary details to reschedule this appointment automatically. Please contact the barbershop.</p>
+            <h3 className="text-xl font-bold text-app-text mb-2">{t("details_missing")}</h3>
+            <p className="text-app-muted mb-6">{t("details_missing_desc")}</p>
             <button 
               onClick={() => setRescheduleErrorModalOpen(false)}
               className="w-full px-6 py-3 bg-app-accent hover:bg-app-accent-dark text-white font-bold rounded-[12px] transition shadow-lg"
             >
-              Understood
+              {t("understood")}
             </button>
         </div>
       </Modal>
