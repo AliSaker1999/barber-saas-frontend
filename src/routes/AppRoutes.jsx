@@ -1,7 +1,8 @@
 import { lazy, Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { useAppSelector } from "../app/hooks";
 import LoadingState from "../components/LoadingState";
+import { useOnboarding } from "../hooks/useOnboarding";
 
 /* Layouts */
 import PlatformLayout from "../layouts/PlatformLayout";
@@ -27,6 +28,7 @@ const Barbers = lazy(() => import("../pages/company/Barbers"));
 const CompanyProfile = lazy(() => import("../pages/company/CompanyProfile"));
 const BarberMyProfile = lazy(() => import("../pages/company/BarberMyProfile"));
 const AdminReports = lazy(() => import("../pages/company/AdminReports"));
+const CompanyPromotions = lazy(() => import("../pages/company/Promotions"));
 const NotificationHistory = lazy(() => import("../pages/customer/NotificationHistory"));
 const ConversationsPage = lazy(() => import("../pages/shared/Conversations"));
 
@@ -39,10 +41,14 @@ const QueueStatus = lazy(() => import("../pages/customer/QueueStatus"));
 const CustomerAppointments = lazy(() => import("../pages/customer/Appointments"));
 const CustomerProfile = lazy(() => import("../pages/customer/Profile"));
 const CustomerReports = lazy(() => import("../pages/customer/CustomerReports"));
+const Favorites = lazy(() => import("../pages/customer/Favorites"));
+const Onboarding = lazy(() => import("../pages/auth/Onboarding"));
 
 
 export default function AppRoutes() {
   const user = useAppSelector(state => state.auth.user);
+  const navigate = useNavigate();
+  const { isDone: onboardingDone, completeOnboarding } = useOnboarding();
   const routeFallback = (
     <div className="p-4">
       <LoadingState label="Loading page..." blocks={2} />
@@ -54,9 +60,10 @@ export default function AppRoutes() {
     return (
       <Suspense fallback={routeFallback}>
         <Routes>
+          <Route path="/onboarding" element={<Onboarding onComplete={() => { completeOnboarding(); navigate("/login"); }} />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="*" element={<Navigate to="/login" />} />
+          <Route path="*" element={<Navigate to={onboardingDone ? "/login" : "/onboarding"} />} />
         </Routes>
       </Suspense>
     );
@@ -102,6 +109,7 @@ export default function AppRoutes() {
           <Route path="barbers" element={<Barbers />} />
           <Route path="my-profile" element={<BarberMyProfile />} />
           <Route path="reports" element={<AdminReports />} />
+          <Route path="promotions" element={<CompanyPromotions />} />
           <Route path="notifications" element={<NotificationHistory />} />
           <Route path="conversations" element={<ConversationsPage />} />
      
@@ -121,6 +129,7 @@ export default function AppRoutes() {
           <Route path="appointments" element={<CustomerAppointments />} />
           <Route path="profile" element={<CustomerProfile />} />
           <Route path="reports" element={<CustomerReports />} />
+          <Route path="favorites" element={<Favorites />} />
           <Route path="notifications" element={<NotificationHistory />} />
           <Route path="conversations" element={<ConversationsPage />} />
         </Route>

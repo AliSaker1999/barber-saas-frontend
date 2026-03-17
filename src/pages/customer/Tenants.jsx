@@ -7,7 +7,10 @@ import { selectTenant } from "../../features/booking/bookingSlice";
 import { findMyActiveQueue } from "../../features/queue/queueSlice";
 import { requestUserLocation } from "../../features/location/locationSlice";
 import { haversineDistanceKm, formatDistanceKm } from "../../utils/geo";
+import { fetchFavorites } from "../../features/favorites/favoritesSlice";
 import TenantDetailsModal from "../../components/TenantDetailsModal";
+import FavoriteButton from "../../components/FavoriteButton";
+import ShareButton from "../../components/ShareButton";
 import MobileHeader from "../../components/MobileHeader";
 import LoadingState from "../../components/LoadingState";
 import EmptyState from "../../components/EmptyState";
@@ -77,6 +80,7 @@ function Tenants() {
   useEffect(() => {
     dispatch(fetchTenants());
     dispatch(findMyActiveQueue());
+    dispatch(fetchFavorites());
   }, [dispatch]);
 
   const openDetails = useCallback((tenant) => {
@@ -479,6 +483,11 @@ function Tenants() {
               {/* Logo Overlay */}
               <div className="absolute -bottom-3 left-1.5 w-8 h-8 sm:-bottom-6 sm:left-6 sm:w-20 sm:h-20 bg-white rounded-lg sm:rounded-2xl shadow-lg p-0.5 sm:p-1 border-2 sm:border-4 border-white overflow-hidden">
                 <TenantLogo tenant={tenant} />
+              </div>
+
+              {/* Favorite Button */}
+              <div className="absolute top-1 left-1 sm:top-3 sm:left-3 z-10">
+                <FavoriteButton type="SHOP" targetId={tenant.Id} size="sm" />
               </div>
 
               {/* Badges - Hidden/Simplified on mobile */}

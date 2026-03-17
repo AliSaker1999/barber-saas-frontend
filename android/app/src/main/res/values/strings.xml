@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">BarberApp</string>
-    <string name="title_activity_main">BarberApp</string>
-    <string name="package_name">com.barber.app</string>
-    <string name="custom_url_scheme">com.barber.app</string>
+    <string name="app_name">Ajmal</string>
+    <string name="title_activity_main">Ajmal</string>
+    <string name="package_name">com.ajmal.app</string>
+    <string name="custom_url_scheme">com.ajmal.app</string>
 </resources>

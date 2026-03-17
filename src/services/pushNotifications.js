@@ -68,7 +68,7 @@ export function showClientNotification({ title, body, data, tag, onClick } = {})
   if (Notification.permission !== "granted") return;
   if (document.visibilityState === "visible") return;
 
-  const notification = new Notification(title || "BarberSaaS", {
+  const notification = new Notification(title || "Ajmal", {
     body: body || "You have a new update",
     data,
     tag

@@ -3,6 +3,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchBarberProfile } from '../features/barbers/barbersSlice';
 import Modal from './Modal';
 import OptimizedImage from './OptimizedImage';
+import BarberGallery from './BarberGallery';
+import FavoriteButton from './FavoriteButton';
+import ShareButton from './ShareButton';
 
 export default function BarberProfileModal({ barberId, isOpen, onClose }) {
   const dispatch = useDispatch();
@@ -39,6 +42,14 @@ export default function BarberProfileModal({ barberId, isOpen, onClose }) {
                    <span className="ml-1 font-bold">{selectedProfile.AverageRating ? selectedProfile.AverageRating.toFixed(1) : "N/A"}</span>
                    <span className="ml-1 text-gray-500 text-sm">({selectedProfile.ReviewsCount} reviews)</span>
                 </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <FavoriteButton type="BARBER" targetId={barberId} size="sm" />
+                  <ShareButton
+                    title={selectedProfile.DisplayName || selectedProfile.FullName}
+                    text={`Check out ${selectedProfile.DisplayName || selectedProfile.FullName} on Ajmal!`}
+                    url={`${window.location.origin}/customer?barber=${barberId}`}
+                  />
+                </div>
               </div>
             </div>
 
@@ -47,6 +58,12 @@ export default function BarberProfileModal({ barberId, isOpen, onClose }) {
                 {selectedProfile.Bio}
               </div>
             )}
+
+            {/* Gallery */}
+            <div>
+              <h4 className="font-semibold mb-2 text-sm uppercase text-gray-400 tracking-wider">Portfolio</h4>
+              <BarberGallery barberId={barberId} />
+            </div>
 
             <div>
               <h4 className="font-semibold mb-2 text-sm uppercase text-gray-400 tracking-wider">Recent Reviews</h4>

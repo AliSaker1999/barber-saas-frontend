@@ -15,7 +15,7 @@ const PrivacyPolicy = () => {
           <section>
             <h2 className="text-2xl font-bold text-app-text mb-4 dark:text-slate-100">1. Introduction</h2>
             <p>
-              BarberSaaS ("we," "our," or "us") is a multi-tenant management platform designed for barber shops and their customers. 
+              Ajmal ("we," "our," or "us") is a multi-tenant management platform designed for barber shops and their customers. 
               We are committed to protecting your personal information and your right to privacy. This policy covers the data we 
               collect via our platform, real-time queueing systems, and booking services.
             </p>

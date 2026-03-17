@@ -45,7 +45,7 @@ export default function App() {
           }
         },
         onNotification: (notification) => {
-          const title = notification?.title || "BarberSaaS";
+          const title = notification?.title || "Ajmal";
           const message = notification?.body || "You have a new notification";
           const payload = notification?.data || {};
 
@@ -95,7 +95,7 @@ export default function App() {
         dispatch(addNotification(data));
 
         showClientNotification({
-          title: data.Title || "BarberSaaS",
+          title: data.Title || "Ajmal",
           body: data.Message || "You have a new update",
           data,
           tag: `notification-${data.Id || Date.now()}`,

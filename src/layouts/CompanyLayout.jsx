@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import NotificationsMenu from "../components/NotificationsMenu";
 import ConnectionBadge from "../components/ConnectionBadge";
 import ThemeToggle from "../components/ThemeToggle";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 
 const navItems = [
   { to: "queue", label: "Queue", icon: "🚀", roles: ["ADMIN", "BARBER"] },
@@ -12,6 +13,7 @@ const navItems = [
   { to: "services", label: "Services", icon: "✂️", roles: ["ADMIN"] },
   { to: "barbers", label: "Team", icon: "👥", roles: ["ADMIN"] },
   { to: "reports", label: "Reports", icon: "📊", roles: ["ADMIN", "BARBER"] },
+  { to: "promotions", label: "Promotions", icon: "🎉", roles: ["ADMIN"] },
   { to: "conversations", label: "Messages", icon: "💬", roles: ["ADMIN", "BARBER"] },
   { to: "my-profile", label: "My Profile", icon: "👤", roles: ["BARBER"] },
   { to: "profile", label: "Shop Profile", icon: "🏢", roles: ["ADMIN"] },
@@ -46,7 +48,7 @@ export default function CompanyLayout() {
               <span className="text-xl">✂️</span>
            </div>
            <div>
-              <h1 className="text-xl font-black text-app-primary tracking-tight">BarberSaaS</h1>
+              <h1 className="text-xl font-black text-app-primary tracking-tight">Ajmal</h1>
               <p className="text-xs font-bold text-app-muted uppercase tracking-widest">{user.roles?.includes("ADMIN") ? "Admin" : "Barber"}</p>
            </div>
         </div>
@@ -109,6 +111,7 @@ export default function CompanyLayout() {
                 💬 Conversations
               </NavLink>
               <ThemeToggle className="hidden sm:inline-flex" />
+              <LanguageSwitcher compact />
                 <div className="md:hidden">
                     <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500 animate-pulse'}`}></div>
                 </div>

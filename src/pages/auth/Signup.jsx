@@ -149,7 +149,7 @@ export default function Signup() {
                 </svg>
               </div>
             </div>
-            <h1 className="text-3xl font-bold text-app-text mb-2">Join BarberSaaS</h1>
+            <h1 className="text-3xl font-bold text-app-text mb-2">Join Ajmal</h1>
             <p className="text-app-muted text-sm">Create your account to book appointments</p>
           </div>
 
@@ -447,7 +447,7 @@ export default function Signup() {
               </a>
             </p>
                <a
-                 href="https://wa.me/96170000000?text=I%20am%20interested%20in%20listing%20my%20barbershop%20on%20BarberSaas"
+                 href="https://wa.me/96170000000?text=I%20am%20interested%20in%20listing%20my%20barbershop%20on%20Ajmal"
                  target="_blank"
                  rel="noopener noreferrer"
                  className="block w-full text-center py-2 px-4 rounded-[12px] bg-app-surface-2 text-app-accent font-semibold hover:bg-app-surface transition-colors border border-app-border"
@@ -462,7 +462,7 @@ export default function Signup() {
           {/* Footer */}
           <div className="bg-app-surface-2 px-8 py-4 border-t border-app-border text-center">
             <p className="text-xs text-app-muted">
-              © 2026 BarberSaaS. All rights reserved.
+              © 2025 Ajmal. All rights reserved.
             </p>
           </div>
         </div>

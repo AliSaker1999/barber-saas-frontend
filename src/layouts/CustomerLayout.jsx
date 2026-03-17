@@ -8,9 +8,11 @@ import TermsOfServiceModal from "../components/TermsOfServiceModal";
 import NotificationsMenu from "../components/NotificationsMenu";
 import ConnectionBadge from "../components/ConnectionBadge";
 import ThemeToggle from "../components/ThemeToggle";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 
 const desktopNavItems = [
   { to: "/customer", label: "Shops", icon: "🏠", end: true },
+  { to: "/customer/favorites", label: "Favorites", icon: "❤️" },
   { to: "/customer/appointments", label: "Bookings", icon: "📅" },
   { to: "/customer/conversations", label: "Messages", icon: "💬" },
   { to: "/customer/queue", label: "Queue", icon: "⏱️" },
@@ -57,7 +59,7 @@ export default function CustomerLayout() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <h1 className="text-lg sm:text-2xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">BarberSaaS</h1>
+                <h1 className="text-lg sm:text-2xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Ajmal</h1>
               </Link>
             </div>
 
@@ -70,6 +72,7 @@ export default function CustomerLayout() {
             </div>
 
             <div className="flex items-center gap-1 sm:gap-4">
+              <LanguageSwitcher compact />
               <div className="hidden lg:block"><ThemeToggle /></div>
 
               <NavLink to="/customer/conversations" className="p-1.5 sm:p-2.5 bg-app-surface-2 text-app-muted hover:bg-app-surface-2 dark:bg-gray-800 dark:text-slate-300 dark:hover:bg-gray-700 rounded-lg transition-all">
@@ -112,9 +115,9 @@ export default function CustomerLayout() {
 
       <div className="lg:hidden fixed left-0 right-0 bg-app-surface/95 backdrop-blur-xl border-t border-app-border dark:bg-black/95 dark:border-gray-800 px-2 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 flex justify-around items-center z-[60] shadow-[0_-10px_30px_-5px_rgba(0,0,0,0.1)] min-h-[calc(env(safe-area-inset-bottom)+75px)] safe-bottom" style={{ bottom: "env(safe-area-inset-bottom)" }}>
         <BottomTab to="/customer" icon="🏪" end title="Shops" />
+        <BottomTab to="/customer/favorites" icon="❤️" title="Favorites" />
         <BottomTab to="/customer/appointments" icon="📅" title="Bookings" />
         <BottomTab to="/customer/queue" icon="⏱️" title="Queue" />
-        <BottomTab to="/customer/reports" icon="📊" title="Stats" />
       </div>
 
       <footer className="hidden sm:block bg-app-surface border-t border-app-border mt-10">
@@ -124,7 +127,7 @@ export default function CustomerLayout() {
                 <div className="w-8 h-8 bg-app-surface-2 rounded-lg flex items-center justify-center">
                 <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10.5 1.5H5.75A2.75 2.75 0 003 4.25v11.5A2.75 2.75 0 005.75 18.5h8.5A2.75 2.75 0 0017 15.75V4.25A2.75 2.75 0 0014.25 1.5h-3.75v2h3.75a.75.75 0 01.75.75v11.5a.75.75 0 01-.75.75h-8.5a.75.75 0 01-.75-.75V4.25a.75.75 0 01.75-.75h3.75v-2z" /></svg>
               </div>
-              <span className="font-bold text-gray-400">BarberSaaS © 2026</span>
+              <span className="font-bold text-gray-400">Ajmal © 2025</span>
             </div>
             <div className="flex gap-6 text-sm font-bold text-app-muted">
               <button onClick={() => setIsPrivacyOpen(true)} className="hover:text-blue-600 transition-colors">Privacy Policy</button>

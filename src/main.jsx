@@ -8,6 +8,7 @@ import App from "./App";
 import { store } from "./app/store";
 import { connectSocket } from "./services/socket";
 import { initTheme } from "./utils/theme";
+import { I18nProvider } from "./i18n";
 
 const token = localStorage.getItem("token");
 if (token) {
@@ -19,9 +20,11 @@ initTheme();
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <Provider store={store}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <I18nProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </I18nProvider>
     </Provider>
   </React.StrictMode>
 );

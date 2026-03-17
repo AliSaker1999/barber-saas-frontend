@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../services/api";
 import OptimizedImage from "./OptimizedImage";
+import FavoriteButton from "./FavoriteButton";
+import ShareButton from "./ShareButton";
 
 const DAY_NAMES = [
   "Sunday",
@@ -21,6 +23,9 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
   const [expandedBarberId, setExpandedBarberId] = useState(null);
   const [availabilityByBarber, setAvailabilityByBarber] = useState({});
   const [availabilityLoading, setAvailabilityLoading] = useState({});
+  const [promotions, setPromotions] = useState([]);
+  const [operatingHours, setOperatingHours] = useState([]);
+  const [shopIsOpen, setShopIsOpen] = useState(null);
 
   useEffect(() => {
     if (!isOpen || !tenant?.Id) return;
@@ -29,14 +34,20 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
       setLoading(true);
       setError(null);
       try {
-        const [servicesRes, barbersRes, loyaltyRes] = await Promise.all([
+        const [servicesRes, barbersRes, loyaltyRes, promoRes, hoursRes, openRes] = await Promise.all([
           api.get(`/services/tenant/${tenant.Id}`),
           api.get(`/barbers/tenants/${tenant.Id}/barbers`),
-          api.get(`/loyalty/tenant/${tenant.Id}`)
+          api.get(`/loyalty/tenant/${tenant.Id}`),
+          api.get(`/promotions/tenant/${tenant.Id}`).catch(() => ({ data: { data: [] } })),
+          api.get(`/tenants/${tenant.Id}/hours`).catch(() => ({ data: { data: [] } })),
+          api.get(`/tenants/${tenant.Id}/is-open`).catch(() => ({ data: { data: { isOpen: null } } })),
         ]);
         setServices(servicesRes.data?.data || []);
         setBarbers(barbersRes.data?.data || []);
         setLoyalty(loyaltyRes.data?.data || { settings: null, rewards: [] });
+        setPromotions(promoRes.data?.data || []);
+        setOperatingHours(hoursRes.data?.data || []);
+        setShopIsOpen(openRes.data?.data?.isOpen ?? null);
       } catch (err) {
         setError(err.response?.data?.message || "Failed to load shop details");
       } finally {
@@ -126,7 +137,13 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
                 {tenant.Area || "Premium Barbershop"}{tenant.City ? ` • ${tenant.City}` : ""}
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
+              <FavoriteButton type="SHOP" targetId={tenant.Id} size="md" />
+              <ShareButton
+                title={tenant.Name}
+                text={`Check out ${tenant.Name} on Ajmal!`}
+                url={`${window.location.origin}/customer?shop=${tenant.Id}`}
+              />
               {onBook && (
                 <button
                   onClick={onBook}
@@ -195,6 +212,69 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 rounded-2xl p-4 mb-6 font-bold">
               {error}
+            </div>
+          )}
+
+          {/* Open / Closed Badge */}
+          {!loading && shopIsOpen !== null && (
+            <div className="mb-6">
+              <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold ${
+                shopIsOpen
+                  ? "bg-green-50 text-green-700 border border-green-200"
+                  : "bg-red-50 text-red-700 border border-red-200"
+              }`}>
+                <span className={`w-2 h-2 rounded-full ${shopIsOpen ? "bg-green-500 animate-pulse" : "bg-red-500"}`} />
+                {shopIsOpen ? "Open Now" : "Closed"}
+              </span>
+            </div>
+          )}
+
+          {/* Operating Hours */}
+          {!loading && operatingHours.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-xl font-black text-gray-900 mb-3">Operating Hours</h3>
+              <div className="bg-gray-50 rounded-2xl p-4 space-y-2">
+                {DAY_NAMES.map((dayName, idx) => {
+                  const dayHours = operatingHours.find(h => h.DayOfWeek === idx);
+                  return (
+                    <div key={dayName} className="flex items-center justify-between text-sm">
+                      <span className="font-bold text-gray-700">{dayName}</span>
+                      <span className="text-gray-600">
+                        {dayHours && !dayHours.IsClosed
+                          ? `${dayHours.OpenTime} - ${dayHours.CloseTime}`
+                          : "Closed"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Active Promotions */}
+          {!loading && promotions.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-xl font-black text-gray-900 mb-3">🎉 Special Offers</h3>
+              <div className="space-y-3">
+                {promotions.map(promo => (
+                  <div key={promo.Id} className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-2xl p-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-amber-900">{promo.Title}</span>
+                      <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                        {promo.DiscountType === "PERCENTAGE" ? `${promo.DiscountValue}% OFF` : `$${promo.DiscountValue} OFF`}
+                      </span>
+                    </div>
+                    {promo.Description && (
+                      <p className="text-sm text-amber-800">{promo.Description}</p>
+                    )}
+                    {promo.ValidUntil && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        Valid until {new Date(promo.ValidUntil).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

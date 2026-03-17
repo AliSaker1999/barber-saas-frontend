@@ -107,7 +107,7 @@ export default function Login() {
                 </svg>
               </div>
             </div>
-            <h1 className="text-3xl font-bold text-app-text mb-2">BarberSaaS</h1>
+            <h1 className="text-3xl font-bold text-app-text mb-2">Ajmal</h1>
             <p className="text-app-muted text-sm">Professional Salon Management</p>
           </div>
 
@@ -241,7 +241,7 @@ export default function Login() {
                  Are you a Barber?
                </p>
                <a 
-                 href="https://wa.me/96171368470?text=I%20am%20interested%20in%20listing%20my%20barbershop%20on%20BarberSaas" 
+                 href="https://wa.me/96171368470?text=I%20am%20interested%20in%20listing%20my%20barbershop%20on%20Ajmal" 
                  target="_blank" 
                  rel="noopener noreferrer"
                  className="block w-full text-center py-2 px-4 rounded-[12px] bg-app-surface-2 text-app-accent font-semibold hover:bg-app-surface transition-colors border border-app-border"
@@ -262,7 +262,7 @@ export default function Login() {
               <button onClick={() => setIsTermsOpen(true)} className="text-app-muted hover:text-app-accent transition-colors">Terms of Service</button>
             </div>
             <p className="text-xs text-app-muted">
-              © 2026 BarberSaaS. All rights reserved.
+              © 2025 Ajmal. All rights reserved.
             </p>
           </div>
         </div>

@@ -18,6 +18,8 @@ import chatReducer from "../features/chat/chatSlice";
 import uiReducer from "../features/ui/uiSlice";
 import loyaltyReducer from "../features/loyalty/loyaltySlice";
 import locationReducer from "../features/location/locationSlice";
+import favoritesReducer from "../features/favorites/favoritesSlice";
+import promotionsReducer from "../features/promotions/promotionsSlice";
 
 export const store = configureStore({
   reducer: {
@@ -39,7 +41,9 @@ export const store = configureStore({
     chat: chatReducer,
     ui: uiReducer,
     loyalty: loyaltyReducer,
-    location: locationReducer
+    location: locationReducer,
+    favorites: favoritesReducer,
+    promotions: promotionsReducer
   }
 });
 

@@ -1,5 +1,26 @@
 {
-  "appId": "com.barber.app",
-  "appName": "BarberApp",
-  "webDir": "dist"
+  "appId": "com.ajmal.app",
+  "appName": "Ajmal",
+  "webDir": "dist",
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "launchAutoHide": true,
+      "backgroundColor": "#1a1a2e",
+      "showSpinner": false,
+      "splashFullScreen": true,
+      "splashImmersive": true
+    },
+    "StatusBar": {
+      "style": "Dark",
+      "backgroundColor": "#1a1a2e"
+    },
+    "Keyboard": {
+      "resize": "body",
+      "resizeOnFullScreen": true
+    }
+  },
+  "server": {
+    "androidScheme": "https"
+  }
 }

@@ -48,7 +48,7 @@ export default function TermsOfServiceModal({ isOpen, onClose }) {
           <section>
             <h3 className="text-xl font-bold text-gray-900 mb-3">1. Acceptance of Terms</h3>
             <p>
-              By accessing or using the BarberSaaS platform, you agree to be bound by these Terms of Service. 
+              By accessing or using the Ajmal platform, you agree to be bound by these Terms of Service. 
               Our platform facilitates management for barber shops (Tenants) and booking capabilities for end-users (Customers).
             </p>
           </section>
@@ -65,7 +65,7 @@ export default function TermsOfServiceModal({ isOpen, onClose }) {
           <section>
             <h3 className="text-xl font-bold text-gray-900 mb-3">3. Platform Usage</h3>
             <p>
-              BarberSaaS provides a real-time queueing and appointment engine. While we strive for 100% uptime, 
+              Ajmal provides a real-time queueing and appointment engine. While we strive for 100% uptime, 
               we are not liable for business interruptions caused by connectivity issues or scheduling conflicts.
             </p>
           </section>

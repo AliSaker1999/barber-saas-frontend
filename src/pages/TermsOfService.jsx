@@ -15,7 +15,7 @@ const TermsOfService = () => {
           <section>
             <h2 className="text-2xl font-bold text-app-text mb-4 dark:text-slate-100">1. Acceptance of Terms</h2>
             <p>
-              By accessing or using the BarberSaaS platform, you agree to be bound by these Terms of Service. 
+              By accessing or using the Ajmal platform, you agree to be bound by these Terms of Service. 
               Our platform facilitates management for barber shops (Tenants) and booking capabilities for end-users (Customers).
             </p>
           </section>
@@ -32,7 +32,7 @@ const TermsOfService = () => {
           <section>
             <h2 className="text-2xl font-bold text-app-text mb-4 dark:text-slate-100">3. Platform Usage</h2>
             <p>
-              BarberSaaS provides a real-time queueing and appointment engine. While we strive for 100% uptime, 
+              Ajmal provides a real-time queueing and appointment engine. While we strive for 100% uptime, 
               we are not liable for business interruptions caused by connectivity issues or scheduling conflicts.
             </p>
           </section>
