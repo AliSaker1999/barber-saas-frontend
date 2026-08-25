@@ -7,6 +7,7 @@ import TermsOfServiceModal from "../../components/TermsOfServiceModal";
 import ErrorState from "../../components/ErrorState";
 import { getFriendlyErrorMessage } from "../../utils/errorMessages";
 
+
 export default function Signup() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
