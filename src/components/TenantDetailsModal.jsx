@@ -3,6 +3,7 @@ import api from "../services/api";
 import OptimizedImage from "./OptimizedImage";
 import FavoriteButton from "./FavoriteButton";
 import ShareButton from "./ShareButton";
+import { toHHMM as parseHHMM } from "../utils/time";
 
 const DAY_NAMES = [
   "Sunday",
@@ -13,6 +14,10 @@ const DAY_NAMES = [
   "Friday",
   "Saturday"
 ];
+
+// Falls back to the raw value unchanged (rather than "--" or null) to match
+// this component's existing display behavior for an unparseable time.
+const toHHMM = (value) => parseHHMM(value, value);
 
 export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, onQueue }) {
   const [services, setServices] = useState([]);
@@ -241,7 +246,7 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
                       <span className="font-bold text-gray-700">{dayName}</span>
                       <span className="text-gray-600">
                         {dayHours && !dayHours.IsClosed
-                          ? `${dayHours.OpenTime} - ${dayHours.CloseTime}`
+                          ? `${toHHMM(dayHours.OpenTime)} - ${toHHMM(dayHours.CloseTime)}`
                           : "Closed"}
                       </span>
                     </div>
@@ -398,7 +403,7 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
                                     <span className="text-gray-600">
                                       {day.slots.length === 0
                                         ? "Closed"
-                                        : day.slots.map(s => `${s.StartTime} - ${s.EndTime}`).join(", ")}
+                                        : day.slots.map(s => `${toHHMM(s.StartTime)} - ${toHHMM(s.EndTime)}`).join(", ")}
                                     </span>
                                   </div>
                                 ))}

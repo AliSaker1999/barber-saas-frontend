@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
+import { toHHMM as parseHHMM } from "../../utils/time";
 import {
   fetchWorkingHours,
   saveWorkingHours
 } from "../../features/workingHours/workingHoursSlice";
+
+// Falls back to the raw value unchanged (rather than "--" or null) to match
+// this component's existing display behavior for an unparseable time.
+const toHHMM = (value) => parseHHMM(value, value);
 
 const DAYS = [
   "Sunday",
@@ -29,8 +34,8 @@ const initial = useMemo(() => {
   const map = {};
   hours.forEach(h => {
     map[h.DayOfWeek] = {
-      start: h.StartTime.slice(0, 5),
-      end: h.EndTime.slice(0, 5),
+      start: toHHMM(h.StartTime),
+      end: toHHMM(h.EndTime),
       active: true
     };
   });

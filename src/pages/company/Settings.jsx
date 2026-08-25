@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { useI18n } from "../../i18n";
+import { toHHMM } from "../../utils/time";
 import {
   fetchOperatingHours,
   saveOperatingHours,
@@ -22,13 +23,6 @@ const DAYS = [
 ];
 
 const DEFAULT_DAY = { openTime: "09:00", closeTime: "18:00", isClosed: false };
-
-// mssql serializes `time` columns as full ISO datetimes (e.g. "1970-01-01T09:00:00.000Z"),
-// not plain "HH:MM:SS" strings — pull just the HH:MM out regardless of which shape arrives.
-function toHHMM(value, fallback) {
-  const match = typeof value === "string" && value.match(/(\d{2}:\d{2})(?::\d{2})?/);
-  return match ? match[1] : fallback;
-}
 
 function buildDraft(operatingHours) {
   const draft = DAYS.map(() => ({ ...DEFAULT_DAY }));

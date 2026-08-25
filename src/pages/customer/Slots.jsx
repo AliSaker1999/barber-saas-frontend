@@ -22,6 +22,7 @@ import LoadingState from "../../components/LoadingState";
 import EmptyState from "../../components/EmptyState";
 import ErrorState from "../../components/ErrorState";
 import { getFriendlyErrorMessage } from "../../utils/errorMessages";
+import { toHHMM } from "../../utils/time";
 
 const getPeriodLabel = (hour) => {
   if (hour < 12) return "Morning";
@@ -39,7 +40,7 @@ const DAY_NAMES = [
   "Saturday"
 ];
 
-const formatHour = (value) => (value ? value.slice(0, 5) : "--");
+const formatHour = (value) => toHHMM(value, "--");
 const parseLocalDateString = (value) => {
   if (!value) return null;
   const [year, month, day] = value.split("-").map(Number);
