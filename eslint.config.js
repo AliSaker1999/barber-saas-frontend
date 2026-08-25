@@ -5,7 +5,11 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // android/ holds the native Capacitor project, including compiled build
+  // output (android/app/build, android/app/src/main/assets) that isn't
+  // source code at all — linting it was producing hundreds of false
+  // positives from minified bundles and drowning out real issues.
+  globalIgnores(['dist', 'android', '.copilot']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

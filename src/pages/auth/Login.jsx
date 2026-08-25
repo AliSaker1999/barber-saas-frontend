@@ -26,6 +26,7 @@ export default function Login() {
   const [forgotStep, setForgotStep] = useState(1); // 1: identity, 2: phone verification (if email), 3: code, 4: new pass
   const [forgotIdentity, setForgotIdentity] = useState("");
   const [forgotPhoneHint, setForgotPhoneHint] = useState("");
+  const [codeDeliveryMethod, setCodeDeliveryMethod] = useState("whatsapp");
   const [fullPhone, setFullPhone] = useState("");
   const [resetCode, setResetCode] = useState("");
   const [newPass, setNewPass] = useState("");
@@ -39,6 +40,7 @@ export default function Login() {
     try {
       const result = await initiateForgotPassword(forgotIdentity);
       if (result.status === "CODE_SENT") {
+        setCodeDeliveryMethod(result.method === "email" ? "email" : "whatsapp");
         setForgotStep(3);
       } else if (result.status === "NEED_PHONE") {
         setForgotPhoneHint(result.hint);
@@ -56,6 +58,7 @@ export default function Login() {
     setForgotError("");
     try {
       await verifyForgotPasswordPhone({ identity: forgotIdentity, phoneNumber: fullPhone });
+      setCodeDeliveryMethod("whatsapp");
       setForgotStep(3);
     } catch (err) {
       setForgotError(getFriendlyErrorMessage(err, "Phone number mismatch or error"));
@@ -337,7 +340,9 @@ export default function Login() {
           {forgotStep === 3 && (
             <div className="space-y-4">
               <p className="text-app-muted font-medium">Enter Verification Code</p>
-              <p className="text-app-muted text-xs">We sent a 6-digit code to your WhatsApp.</p>
+              <p className="text-app-muted text-xs">
+                We sent a 6-digit code to your {codeDeliveryMethod === "email" ? "email" : "WhatsApp"}.
+              </p>
               <input
                 type="text"
                 placeholder="6-digit code"

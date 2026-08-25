@@ -63,7 +63,7 @@ const TenantLogo = memo(function TenantLogo({ tenant }) {
 function Tenants() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { t, isRTL } = useI18n();
+  const { t } = useI18n();
   const { tenants, loading } = useAppSelector(state => state.tenants);
   const activeQueue = useAppSelector(state => state.queue.activeQueue);
   const locationState = useAppSelector(state => state.location);

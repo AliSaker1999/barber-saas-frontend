@@ -25,17 +25,75 @@ export const updateCompanyProfile = createAsyncThunk(
   }
 );
 
+export const fetchOperatingHours = createAsyncThunk(
+  "company/fetchOperatingHours",
+  async (tenantId, { rejectWithValue }) => {
+    try {
+      const res = await api.get(`/tenants/${tenantId}/hours`);
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || err.message);
+    }
+  }
+);
+
+export const saveOperatingHours = createAsyncThunk(
+  "company/saveOperatingHours",
+  async (hours, { rejectWithValue }) => {
+    try {
+      const res = await api.post("/tenants/hours", { hours });
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || err.message);
+    }
+  }
+);
+
+export const fetchAvailablePlans = createAsyncThunk(
+  "company/fetchAvailablePlans",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.get("/tenants/subscription-plans");
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || err.message);
+    }
+  }
+);
+
+export const startCheckout = createAsyncThunk(
+  "company/startCheckout",
+  async (planId, { rejectWithValue }) => {
+    try {
+      const res = await api.post("/billing/checkout-session", { planId });
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || err.message);
+    }
+  }
+);
+
 const companySlice = createSlice({
   name: "company",
   initialState: {
     profile: null,
     loading: false,
     error: null,
-    updateSuccess: false
+    updateSuccess: false,
+    operatingHours: [],
+    hoursLoading: false,
+    hoursError: null,
+    hoursSaveSuccess: false,
+    availablePlans: [],
+    checkoutLoading: false,
+    checkoutError: null
   },
   reducers: {
     resetUpdateSuccess: (state) => {
       state.updateSuccess = false;
+    },
+    resetHoursSaveSuccess: (state) => {
+      state.hoursSaveSuccess = false;
     }
   },
   extraReducers: (builder) => {
@@ -66,9 +124,51 @@ const companySlice = createSlice({
       .addCase(updateCompanyProfile.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      /* Operating hours */
+      .addCase(fetchOperatingHours.pending, (state) => {
+        state.hoursLoading = true;
+        state.hoursError = null;
+      })
+      .addCase(fetchOperatingHours.fulfilled, (state, action) => {
+        state.hoursLoading = false;
+        state.operatingHours = action.payload;
+      })
+      .addCase(fetchOperatingHours.rejected, (state, action) => {
+        state.hoursLoading = false;
+        state.hoursError = action.payload;
+      })
+      .addCase(saveOperatingHours.pending, (state) => {
+        state.hoursLoading = true;
+        state.hoursError = null;
+        state.hoursSaveSuccess = false;
+      })
+      .addCase(saveOperatingHours.fulfilled, (state, action) => {
+        state.hoursLoading = false;
+        state.operatingHours = action.payload;
+        state.hoursSaveSuccess = true;
+      })
+      .addCase(saveOperatingHours.rejected, (state, action) => {
+        state.hoursLoading = false;
+        state.hoursError = action.payload;
+      })
+      /* Billing */
+      .addCase(fetchAvailablePlans.fulfilled, (state, action) => {
+        state.availablePlans = action.payload;
+      })
+      .addCase(startCheckout.pending, (state) => {
+        state.checkoutLoading = true;
+        state.checkoutError = null;
+      })
+      .addCase(startCheckout.fulfilled, (state) => {
+        state.checkoutLoading = false;
+      })
+      .addCase(startCheckout.rejected, (state, action) => {
+        state.checkoutLoading = false;
+        state.checkoutError = action.payload;
       });
   }
 });
 
-export const { resetUpdateSuccess } = companySlice.actions;
+export const { resetUpdateSuccess, resetHoursSaveSuccess } = companySlice.actions;
 export default companySlice.reducer;

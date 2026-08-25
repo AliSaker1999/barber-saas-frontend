@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "../app/hooks";
 import { logout } from "../features/auth/authSlice";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import NotificationsMenu from "../components/NotificationsMenu";
 import ConnectionBadge from "../components/ConnectionBadge";
 import ThemeToggle from "../components/ThemeToggle";
@@ -18,6 +18,7 @@ const navItems = [
   { to: "my-profile", label: "My Profile", icon: "👤", roles: ["BARBER"] },
   { to: "profile", label: "Shop Profile", icon: "🏢", roles: ["ADMIN"] },
   { to: "notifications", label: "Notifications", icon: "🔔", roles: ["ADMIN", "BARBER"] }, // Added for easy access
+  { to: "settings", label: "Settings", icon: "⚙️", roles: ["ADMIN"] },
 ];
 
 export default function CompanyLayout() {

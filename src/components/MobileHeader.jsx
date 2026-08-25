@@ -1,9 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import ConnectionBadge from "./ConnectionBadge";
 import { useAppSelector } from "../app/hooks";
 import { useMemo } from "react";
 
-export default function MobileHeader({ title, onBack, primaryAction, subtitle, showBadge = true }) {
+export default function MobileHeader({ title, onBack, primaryAction, subtitle }) {
   const navigate = useNavigate();
   const { isOnline, lastSyncAt } = useAppSelector(state => state.ui);
   

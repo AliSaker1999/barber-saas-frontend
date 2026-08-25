@@ -19,7 +19,7 @@ export default function ConversationsPage() {
   const { conversations, activeConversationId, messages, loading, activeDetails } = useSelector((state) => state.chat);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef(null);
-  const [mobileShowMessages, setMobileShowMessages] = useState(false);
+  const mobileShowMessages = Boolean(activeConversationId);
 
   useEffect(() => {
     dispatch(fetchConversations());
@@ -47,10 +47,6 @@ export default function ConversationsPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  useEffect(() => {
-    if (activeConversationId) setMobileShowMessages(true);
-  }, [activeConversationId]);
-
   const sortedConversations = useMemo(() => {
     return [...(conversations || [])].sort((a, b) => {
       const aUnread = a.UnreadCount || 0;
@@ -75,7 +71,6 @@ export default function ConversationsPage() {
   };
 
   const handleBack = () => {
-    setMobileShowMessages(false);
     dispatch(showInbox());
   };
 

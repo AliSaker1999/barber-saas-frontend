@@ -1,8 +1,9 @@
 import axios from "axios";
 import { getFriendlyErrorMessage } from "../utils/errorMessages";
+import { resolveDevUrl } from "../utils/platformUrl";
 
 const defaultApiUrl = "https://barber-saas-backend-l4iz.onrender.com/api";
-const baseURL = import.meta.env.VITE_API_URL || defaultApiUrl;
+const baseURL = resolveDevUrl(import.meta.env.VITE_API_URL, defaultApiUrl);
 
 const api = axios.create({
   baseURL

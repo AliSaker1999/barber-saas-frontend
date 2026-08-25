@@ -5,12 +5,14 @@ import {
   createTenant,
   deactivateTenant,
   reactivateTenant,
-  fetchTenantAdmin
+  fetchTenantAdmin,
+  fetchSubscriptionPlans
 } from "../../features/platformTenants/platformTenantsSlice";
 
 import CreateTenantAdminModal from "./CreateTenantAdminModal";
 import ResetTenantAdminModal from "./ResetTenantAdminModal";
 import EditTenantModal from "./EditTenantModal";
+import ManageSubscriptionModal from "./ManageSubscriptionModal";
 import LoadingState from "../../components/LoadingState";
 import EmptyState from "../../components/EmptyState";
 import Pagination from "../../components/Pagination";
@@ -34,9 +36,11 @@ export default function PlatformTenants() {
   const [createAdminTenantId, setCreateAdminTenantId] = useState(null);
   const [resetAdminTenantId, setResetAdminTenantId] = useState(null);
   const [editingTenant, setEditingTenant] = useState(null);
+  const [subscriptionTenant, setSubscriptionTenant] = useState(null);
 
   useEffect(() => {
     dispatch(fetchPlatformTenants());
+    dispatch(fetchSubscriptionPlans());
   }, [dispatch]);
 
   useEffect(() => {
@@ -215,6 +219,34 @@ export default function PlatformTenants() {
                       )}
                     </div>
 
+                    {/* Subscription Info */}
+                    <div className="bg-app-surface rounded-[12px] p-4 mb-4 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs text-app-muted font-medium mb-1">PLAN</p>
+                        {t.PlanName ? (
+                          <p className="font-semibold text-app-text">
+                            {t.PlanName} — ${Number(t.PlanMonthlyPrice).toFixed(0)}/mo
+                            {t.SubscriptionRenewsAt && (
+                              <span className="block text-xs text-app-muted font-normal mt-0.5">
+                                {/* SubscriptionRenewsAt is a pure calendar date — read YYYY-MM-DD
+                                    directly instead of via Date/toLocaleDateString, which would
+                                    shift it a day depending on the browser's timezone. */}
+                                Renews {t.SubscriptionRenewsAt.slice(5, 7)}/{t.SubscriptionRenewsAt.slice(8, 10)}/{t.SubscriptionRenewsAt.slice(0, 4)}
+                              </span>
+                            )}
+                          </p>
+                        ) : (
+                          <p className="text-app-muted text-sm">No plan assigned</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => setSubscriptionTenant(t)}
+                        className="shrink-0 px-3 py-2 bg-app-surface-2 text-app-text hover:bg-app-border rounded-[12px] font-medium text-xs transition-colors"
+                      >
+                        Manage Plan
+                      </button>
+                    </div>
+
                     {/* Actions */}
                     <div className="flex flex-wrap gap-3">
                       <button
@@ -303,6 +335,12 @@ export default function PlatformTenants() {
           tenant={editingTenant}
           isOpen={!!editingTenant}
           onClose={() => setEditingTenant(null)}
+        />
+
+        <ManageSubscriptionModal
+          tenant={subscriptionTenant}
+          open={!!subscriptionTenant}
+          onClose={() => setSubscriptionTenant(null)}
         />
       </div>
     </div>

@@ -66,12 +66,29 @@ export const updateTenantPlatform = createAsyncThunk(
   }
 );
 
+export const fetchSubscriptionPlans = createAsyncThunk(
+  "platformTenants/fetchSubscriptionPlans",
+  async () => {
+    const res = await api.get("/tenants/subscription-plans");
+    return res.data.data;
+  }
+);
+
+export const updateTenantSubscription = createAsyncThunk(
+  "platformTenants/updateSubscription",
+  async ({ tenantId, planId, subscriptionRenewsAt }) => {
+    const res = await api.patch(`/tenants/${tenantId}/subscription`, { planId, subscriptionRenewsAt });
+    return { tenantId, data: res.data.data };
+  }
+);
+
 
 const platformTenantsSlice = createSlice({
   name: "platformTenants",
   initialState: {
   items: [],
   admins: {}, // tenantId -> admin
+  plans: [],
   loading: false
 },
   extraReducers: builder => {
@@ -105,6 +122,20 @@ const platformTenantsSlice = createSlice({
       })
       .addCase(fetchTenantAdmin.fulfilled, (s, a) => {
         s.admins[a.payload.tenantId] = a.payload.admin;
+      })
+      .addCase(fetchSubscriptionPlans.fulfilled, (s, a) => {
+        s.plans = a.payload;
+      })
+      .addCase(updateTenantSubscription.fulfilled, (s, a) => {
+        const t = s.items.find(x => x.Id === a.payload.tenantId);
+        if (!t) return;
+        const { planId, subscriptionRenewsAt, isActive } = a.payload.data;
+        const plan = s.plans.find(p => p.Id === planId);
+        t.PlanId = planId;
+        t.SubscriptionRenewsAt = subscriptionRenewsAt;
+        t.PlanName = plan ? plan.Name : null;
+        t.PlanMonthlyPrice = plan ? plan.MonthlyPrice : null;
+        if (typeof isActive === "boolean") t.IsActive = isActive;
       });
 
 

@@ -1,0 +1,13 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      # tailwindcss v4 changed its config format entirely (no more tailwind.config.js
+      # in the old form) — grouped alone so that PR gets treated as the real
+      # migration it is, not merged as a routine bump.
+      tailwind-major:
+        patterns: ["tailwindcss"]

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import {
@@ -54,10 +54,10 @@ export default function Appointments() {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
   };
 
-  const fetchCurrent = () => {
+  const fetchCurrent = useCallback(() => {
      let params = {};
      const today = toLocalDate(new Date());
-     
+
      if (dateMode === 'today') {
         params = { startDate: today, endDate: today };
       } else if (dateMode === 'future') {
@@ -68,9 +68,9 @@ export default function Appointments() {
         if (!customRange.start || !customRange.end) return;
         params = { startDate: customRange.start, endDate: customRange.end };
      }
-     
+
      dispatch(fetchAppointments(params));
-  };
+  }, [dispatch, dateMode, customRange.start, customRange.end]);
 
   useEffect(() => {
     fetchCurrent();
@@ -86,7 +86,7 @@ export default function Appointments() {
             socket.off("appointments:update");
         }
     };
-  }, [dispatch, tenantId, dateMode, customRange.start, customRange.end]);
+  }, [tenantId, fetchCurrent]);
 
   const filteredItems = (() => {
     if (filter === "TOTAL") return items;

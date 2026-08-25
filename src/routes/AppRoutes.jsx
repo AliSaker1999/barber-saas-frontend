@@ -23,7 +23,6 @@ const EnvPage = lazy(() => import("../pages/platform/EnvPage"));
 const Queue = lazy(() => import("../pages/company/Queue"));
 const Appointments = lazy(() => import("../pages/company/Appointments"));
 const Services = lazy(() => import("../pages/company/Services"));
-// import Staff from "../pages/company/Staff";
 const Barbers = lazy(() => import("../pages/company/Barbers"));
 const CompanyProfile = lazy(() => import("../pages/company/CompanyProfile"));
 const BarberMyProfile = lazy(() => import("../pages/company/BarberMyProfile"));
@@ -31,6 +30,7 @@ const AdminReports = lazy(() => import("../pages/company/AdminReports"));
 const CompanyPromotions = lazy(() => import("../pages/company/Promotions"));
 const NotificationHistory = lazy(() => import("../pages/customer/NotificationHistory"));
 const ConversationsPage = lazy(() => import("../pages/shared/Conversations"));
+const Settings = lazy(() => import("../pages/company/Settings"));
 
 /* Customer */
 const Tenants = lazy(() => import("../pages/customer/Tenants"));
@@ -112,8 +112,10 @@ export default function AppRoutes() {
           <Route path="promotions" element={<CompanyPromotions />} />
           <Route path="notifications" element={<NotificationHistory />} />
           <Route path="conversations" element={<ConversationsPage />} />
-     
-          <Route path="settings" element={<p>Settings page</p>} />
+
+          {user.roles?.includes("ADMIN") && (
+            <Route path="settings" element={<Settings />} />
+          )}
           <Route index element={<Navigate to="queue" />} />
         </Route>
       )}

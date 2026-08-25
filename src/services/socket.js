@@ -1,7 +1,8 @@
 import { io } from "socket.io-client";
+import { resolveDevUrl } from "../utils/platformUrl";
 
 const defaultSocketUrl = "https://barber-saas-backend-l4iz.onrender.com";
-const socketUrl = import.meta.env.VITE_WS_URL || defaultSocketUrl;
+const socketUrl = resolveDevUrl(import.meta.env.VITE_WS_URL, defaultSocketUrl);
 
 let socket;
 

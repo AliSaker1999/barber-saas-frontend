@@ -2,11 +2,12 @@ import { useCallback } from "react";
 
 export default function Modal({ isOpen, open, onClose, children, title }) {
   const isModalOpen = isOpen || open;
-  if (!isModalOpen) return null;
 
   const stopPropagation = useCallback((event) => {
     event.stopPropagation();
   }, []);
+
+  if (!isModalOpen) return null;
 
   return (
     <div className="app-modal-overlay" onClick={onClose}>
@@ -22,20 +23,3 @@ export default function Modal({ isOpen, open, onClose, children, title }) {
     </div>
   );
 }
-
-// Removed inline styles for overlay
-
-
-// Removed inline styles for modal
-
-
-// Removed inline styles for header
-
-
-// Removed inline styles for title
-
-
-// Removed inline styles for content
-
-
-// Removed inline styles for close button

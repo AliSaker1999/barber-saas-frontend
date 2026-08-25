@@ -13,6 +13,18 @@ export const fetchTenantsReport = createAsyncThunk(
   }
 );
 
+export const fetchSubscriptionSummary = createAsyncThunk(
+  "reports/fetchSubscriptionSummary",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get("/reports/subscription-summary");
+      return response.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response.data);
+    }
+  }
+);
+
 export const fetchCustomersReport = createAsyncThunk(
   "reports/fetchCustomers",
   async (_, { rejectWithValue }) => {
@@ -56,12 +68,16 @@ const reportsSlice = createSlice({
     customers: [],
     tenantDashboard: null,
     customerDashboard: null,
+    subscriptionSummary: null,
     loading: false,
     error: null
   },
   reducers: {},
   extraReducers: (builder) => {
     builder
+      .addCase(fetchSubscriptionSummary.fulfilled, (state, action) => {
+        state.subscriptionSummary = action.payload;
+      })
       .addCase(fetchTenantsReport.pending, (state) => {
         state.loading = true;
       })

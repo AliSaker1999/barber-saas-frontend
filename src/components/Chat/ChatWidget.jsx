@@ -19,6 +19,8 @@ import {
 import { getSocket } from '../../services/socket';
 import { showClientNotification } from '../../services/pushNotifications';
 
+const launcherSize = { w: 56, h: 56 };
+
 export default function ChatWidget() {
     const dispatch = useDispatch();
     const navigate = useNavigate();
@@ -55,7 +57,6 @@ export default function ChatWidget() {
     const [isDragging, setIsDragging] = useState(false);
     const dragState = useRef({ startX: 0, startY: 0, originX: 0, originY: 0, moved: false });
     const isMobile = viewport.w < 640;
-    const launcherSize = { w: 56, h: 56 };
     // const minimizedSize = { w: 260, h: 64 };
     // const fullSize = { w: isMobile ? viewport.w : 400, h: isMobile ? viewport.h : 600 };
     const widgetSize = launcherSize;
@@ -162,7 +163,9 @@ export default function ChatWidget() {
             window.removeEventListener('touchmove', onTouchMove);
             window.removeEventListener('touchend', onTouchEnd);
         };
-    }, [isDragging, dragEnabled]);
+        // handlePointerMove is recreated every render; re-running on isDragging/dragEnabled
+        // (the values that actually gate whether listeners are attached) is what we want here.
+    }, [isDragging, dragEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -174,13 +177,13 @@ export default function ChatWidget() {
              dispatch(markAsRead(activeConversationId));
              scrollToBottom();
         }
-    }, [isOpen, activeConversationId]);
+    }, [isOpen, activeConversationId, dispatch]);
 
     useEffect(() => {
         if (user?.id) {
             dispatch(fetchConversations());
         }
-    }, [user?.id]);
+    }, [user?.id, dispatch]);
 
     useEffect(() => {
         if (isOpen && activeDetails.barberId && activeDetails.customerId && !activeConversationId) {
@@ -189,7 +192,7 @@ export default function ChatWidget() {
                 customerId: activeDetails.customerId
             }));
         }
-    }, [isOpen, activeDetails, activeConversationId]);
+    }, [isOpen, activeDetails, activeConversationId, dispatch]);
     
     useEffect(() => {
         scrollToBottom();
@@ -234,7 +237,7 @@ export default function ChatWidget() {
         return () => {
             socket.off("chat:message", handleMsg);
         };
-    }, [activeConversationId, minimized, isOpen, user?.id]);
+    }, [activeConversationId, minimized, isOpen, user?.id, user?.roles, dispatch]);
 
 
     const handleSend = async (e) => {

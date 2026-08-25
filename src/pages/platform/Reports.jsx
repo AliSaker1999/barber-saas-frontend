@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { fetchTenantsReport, fetchCustomersReport } from "../../features/reports/reportsSlice";
+import { fetchTenantsReport, fetchCustomersReport, fetchSubscriptionSummary } from "../../features/reports/reportsSlice";
 import LoadingState from "../../components/LoadingState";
 import EmptyState from "../../components/EmptyState";
 import Pagination from "../../components/Pagination";
@@ -9,9 +9,9 @@ import useDebouncedValue from "../../hooks/useDebouncedValue";
 
 export default function Reports() {
   const dispatch = useAppDispatch();
-  const { tenants, customers, loading } = useAppSelector(s => s.reports);
+  const { tenants, customers, loading, subscriptionSummary } = useAppSelector(s => s.reports);
   const [activeTab, setActiveTab] = useState("TENANTS");
-  
+
   // Filters
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
@@ -25,6 +25,10 @@ export default function Reports() {
       dispatch(fetchCustomersReport());
     }
   }, [activeTab, dispatch]);
+
+  useEffect(() => {
+    dispatch(fetchSubscriptionSummary());
+  }, [dispatch]);
 
   const filteredData = useMemo(() => {
     return (activeTab === "TENANTS" ? tenants : customers).filter(item => {
@@ -78,6 +82,60 @@ export default function Reports() {
           </button>
         </div>
       </div>
+
+      {/* Subscription Summary */}
+      {subscriptionSummary && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-app-surface p-5 rounded-[12px] shadow-sm border border-app-border">
+              <p className="text-xs font-black text-app-muted uppercase tracking-widest mb-1">Projected MRR</p>
+              <p className="text-2xl font-black text-app-text">${Number(subscriptionSummary.totals.ProjectedMRR).toLocaleString()}</p>
+            </div>
+            <div className="bg-app-surface p-5 rounded-[12px] shadow-sm border border-app-border">
+              <p className="text-xs font-black text-app-muted uppercase tracking-widest mb-1">Active Shops</p>
+              <p className="text-2xl font-black text-app-text">{subscriptionSummary.totals.ActiveTenants}</p>
+            </div>
+            <div className="bg-app-surface p-5 rounded-[12px] shadow-sm border border-app-border">
+              <p className="text-xs font-black text-app-muted uppercase tracking-widest mb-1">Inactive Shops</p>
+              <p className="text-2xl font-black text-app-text">{subscriptionSummary.totals.InactiveTenants}</p>
+            </div>
+            <div className="bg-app-surface p-5 rounded-[12px] shadow-sm border border-app-border">
+              <p className="text-xs font-black text-app-muted uppercase tracking-widest mb-1">No Plan Assigned</p>
+              <p className="text-2xl font-black text-app-text">{subscriptionSummary.totals.NoPlanTenants}</p>
+            </div>
+          </div>
+
+          {subscriptionSummary.byPlan.length > 0 && (
+            <div className="bg-app-surface p-5 rounded-[12px] shadow-sm border border-app-border">
+              <p className="text-xs font-black text-app-muted uppercase tracking-widest mb-3">Active shops by plan</p>
+              <div className="flex flex-wrap gap-3">
+                {subscriptionSummary.byPlan.map(p => (
+                  <div key={p.Id} className="px-4 py-2 bg-app-surface-2 rounded-[12px]">
+                    <span className="font-bold text-app-text">{p.Name}</span>
+                    <span className="text-app-muted text-sm ml-2">${Number(p.MonthlyPrice).toFixed(0)}/mo × {p.ActiveCount}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {subscriptionSummary.renewingSoon.length > 0 && (
+            <div className="bg-app-surface p-5 rounded-[12px] shadow-sm border border-app-border">
+              <p className="text-xs font-black text-app-muted uppercase tracking-widest mb-3">Renewing within 7 days</p>
+              <div className="space-y-2">
+                {subscriptionSummary.renewingSoon.map(t => (
+                  <div key={t.Id} className="flex items-center justify-between text-sm">
+                    <span className="font-bold text-app-text">{t.Name}</span>
+                    <span className="text-app-muted">
+                      {t.PlanName} — {t.SubscriptionRenewsAt.slice(5, 7)}/{t.SubscriptionRenewsAt.slice(8, 10)}/{t.SubscriptionRenewsAt.slice(0, 4)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Filter Bar */}
       <div className="bg-app-surface p-6 rounded-[12px] shadow-sm border border-app-border grid grid-cols-1 md:grid-cols-4 gap-4">

@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 
 import App from "./App";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { store } from "./app/store";
 import { connectSocket } from "./services/socket";
 import { initTheme } from "./utils/theme";
@@ -22,7 +23,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <Provider store={store}>
       <I18nProvider>
         <BrowserRouter>
-          <App />
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
         </BrowserRouter>
       </I18nProvider>
     </Provider>

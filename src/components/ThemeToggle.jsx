@@ -1,12 +1,8 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { getInitialTheme, setTheme } from "../utils/theme";
 
 export default function ThemeToggle({ className = "" }) {
-  const [theme, setThemeState] = useState("light");
-
-  useEffect(() => {
-    setThemeState(getInitialTheme());
-  }, []);
+  const [theme, setThemeState] = useState(getInitialTheme);
 
   const isDark = theme === "dark";
 
