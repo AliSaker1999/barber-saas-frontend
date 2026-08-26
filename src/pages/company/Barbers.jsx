@@ -8,6 +8,7 @@ import {
 } from "../../features/barbers/barbersSlice";
 import { fetchServices } from "../../features/services/servicesSlice";
 import BarberWorkingHours from "./BarberWorkingHours";
+import BarberScheduleRequests from "./BarberScheduleRequests";
 import ErrorState from "../../components/ErrorState";
 import { getFriendlyErrorMessage } from "../../utils/errorMessages";
 
@@ -274,6 +275,12 @@ export default function Barbers() {
                     <div className="bg-app-surface rounded-[25px] shadow p-6">
                       <h4 className="text-lg font-bold text-app-text mb-4">⏰ Working Hours</h4>
                       <BarberWorkingHours barber={barber} />
+                    </div>
+
+                    {/* Time Off & Swap Requests */}
+                    <div className="bg-app-surface rounded-[25px] shadow p-6">
+                      <h4 className="text-lg font-bold text-app-text mb-4">🗓️ Time Off &amp; Swap Requests</h4>
+                      <BarberScheduleRequests barber={barber} />
                     </div>
                   </div>
                 )

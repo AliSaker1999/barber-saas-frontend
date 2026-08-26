@@ -155,6 +155,18 @@ export const reportAppointmentPaymentThunk = createAsyncThunk(
   }
 );
 
+export const createDepositCheckoutSessionThunk = createAsyncThunk(
+  "appointments/createDepositCheckoutSession",
+  async (id, { rejectWithValue }) => {
+    try {
+      const res = await api.post(`/appointments/${id}/deposit/checkout-session`);
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to start deposit payment");
+    }
+  }
+);
+
 export const payAppointmentWithLoyaltyThunk = createAsyncThunk(
   "appointments/payWithLoyalty",
   async ({ id, rewardId }, { rejectWithValue }) => {

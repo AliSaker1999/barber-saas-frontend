@@ -9,7 +9,9 @@ import {
   resetHoursSaveSuccess,
   fetchCompanyProfile,
   fetchAvailablePlans,
-  startCheckout
+  startCheckout,
+  fetchConnectStatus,
+  startConnectOnboarding
 } from "../../features/company/companySlice";
 
 const DAYS = [
@@ -48,10 +50,15 @@ export default function Settings() {
     profile,
     availablePlans,
     checkoutLoading,
-    checkoutError
+    checkoutError,
+    connectStatus,
+    connectStatusLoading,
+    connectOnboardingLoading,
+    connectOnboardingError
   } = useAppSelector((state) => state.company);
   const [searchParams, setSearchParams] = useSearchParams();
   const checkoutStatus = searchParams.get("checkout");
+  const connectReturnStatus = searchParams.get("connect");
 
   const [draft, setDraft] = useState(() => buildDraft([]));
   const [hydrated, setHydrated] = useState(false);
@@ -67,7 +74,14 @@ export default function Settings() {
     }
     dispatch(fetchCompanyProfile());
     dispatch(fetchAvailablePlans());
+    dispatch(fetchConnectStatus());
   }, [user?.tenantId, dispatch]);
+
+  useEffect(() => {
+    if (connectReturnStatus === "return") {
+      dispatch(fetchConnectStatus());
+    }
+  }, [connectReturnStatus, dispatch]);
 
   useEffect(() => {
     if (!hoursSaveSuccess) return;
@@ -84,6 +98,13 @@ export default function Settings() {
   const handleSubscribe = async (planId) => {
     const result = await dispatch(startCheckout(planId));
     if (startCheckout.fulfilled.match(result) && result.payload.url) {
+      window.open(result.payload.url, "_self");
+    }
+  };
+
+  const handleConnectStripe = async () => {
+    const result = await dispatch(startConnectOnboarding());
+    if (startConnectOnboarding.fulfilled.match(result) && result.payload.url) {
       window.open(result.payload.url, "_self");
     }
   };
@@ -202,6 +223,60 @@ export default function Settings() {
             })}
           </div>
         )}
+      </div>
+
+      <div className="bg-app-surface p-8 rounded-[12px] shadow-sm border border-app-border mb-6">
+        <div className="flex items-center gap-3 mb-8 pb-4 border-b border-app-border">
+          <div className="w-10 h-10 bg-app-surface-2 rounded-[12px] flex items-center justify-center text-app-text">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>
+          </div>
+          <h2 className="text-xl font-bold text-app-text">Deposit Payments</h2>
+        </div>
+
+        <p className="text-app-muted text-sm mb-4 max-w-xl">
+          Connect a Stripe account to collect booking deposits directly — deposits are paid straight to your account, not held by the platform. Configure when a deposit is required under Company Profile → Payment Methods.
+        </p>
+
+        {connectOnboardingError && (
+          <div className="bg-app-surface-2 text-red-600 p-4 mb-4 rounded-[12px] text-sm font-semibold border border-red-200">
+            {connectOnboardingError}
+          </div>
+        )}
+
+        {connectReturnStatus === "return" && connectStatus?.chargesEnabled && (
+          <div className="bg-app-surface-2 text-app-accent p-4 mb-4 rounded-[12px] text-sm font-bold border border-app-border">
+            Stripe account connected — deposits are ready to collect.
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-4 p-4 bg-app-bg rounded-[12px]">
+          <div>
+            {connectStatusLoading ? (
+              <p className="text-sm text-app-muted">Checking Stripe status...</p>
+            ) : connectStatus?.chargesEnabled ? (
+              <p className="text-sm font-bold text-app-accent flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                Stripe connected
+              </p>
+            ) : connectStatus?.connected ? (
+              <p className="text-sm font-bold text-amber-600">Stripe onboarding started — finish setup to enable deposits.</p>
+            ) : (
+              <p className="text-sm text-app-muted">Not connected yet.</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleConnectStripe}
+            disabled={connectOnboardingLoading}
+            className="bg-app-accent text-white px-6 py-2.5 rounded-[25px] font-bold text-sm hover:bg-app-accent-dark transition-all disabled:opacity-50 flex-shrink-0"
+          >
+            {connectOnboardingLoading
+              ? "Redirecting..."
+              : connectStatus?.chargesEnabled
+                ? "Manage Stripe account"
+                : "Connect with Stripe"}
+          </button>
+        </div>
       </div>
 
       <div className="bg-app-surface p-8 rounded-[12px] shadow-sm border border-app-border">

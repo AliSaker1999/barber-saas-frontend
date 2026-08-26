@@ -9,11 +9,13 @@ import {
   fetchServices,
   fetchBarbersForTenant
 } from "../../features/booking/bookingSlice";
-import { 
-  rescheduleAppointment, 
+import {
+  rescheduleAppointment,
   reportAppointmentPaymentThunk,
-  fetchCustomerAppointments 
+  fetchCustomerAppointments,
+  createDepositCheckoutSessionThunk
 } from "../../features/appointments/appointmentsSlice";
+import { joinWaitlist } from "../../features/waitlist/waitlistSlice";
 import { getSocket } from "../../services/socket";
 import BarberProfileModal from "../../components/BarberProfileModal";
 import PhoneVerificationModal from "../../components/PhoneVerificationModal";
@@ -73,6 +75,35 @@ const formatTimeOnly = (value) => {
 const formatCurrency = (value) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value || 0);
 
+function WaitlistCta({ status, error, onJoin, banner }) {
+  if (status === "joined") {
+    return (
+      <div className={`rounded-[12px] border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700 ${banner ? "" : "mt-4"}`}>
+        You're on the waitlist — we'll notify you if a spot opens up.
+      </div>
+    );
+  }
+  return (
+    <div className={`rounded-[12px] border border-app-border bg-app-surface-2 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 ${banner ? "" : "mt-4"}`}>
+      <div>
+        <p className="text-sm font-bold text-app-text">
+          {banner ? "Fully booked for this date?" : "No luck finding a time?"}
+        </p>
+        <p className="text-xs text-app-muted">We'll text and email you the moment a slot with this barber opens up.</p>
+        {error && <p className="text-xs text-red-600 font-semibold mt-1">{error}</p>}
+      </div>
+      <button
+        type="button"
+        onClick={onJoin}
+        disabled={status === "joining"}
+        className="flex-shrink-0 bg-app-accent text-white font-bold px-5 py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-60"
+      >
+        {status === "joining" ? "Joining..." : "Join Waitlist"}
+      </button>
+    </div>
+  );
+}
+
 export default function Slots() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -104,7 +135,26 @@ export default function Slots() {
   const [paymentReference, setPaymentReference] = useState("");
   const [paymentError, setPaymentError] = useState("");
   const [isPendingVerification, setIsPendingVerification] = useState(false);
-  
+  const [depositRedirecting, setDepositRedirecting] = useState(false);
+  const [depositError, setDepositError] = useState("");
+
+  const handlePayDeposit = async () => {
+    if (!confirmation?.appointmentId) return;
+    setDepositRedirecting(true);
+    setDepositError("");
+    try {
+      const result = await dispatch(createDepositCheckoutSessionThunk(confirmation.appointmentId)).unwrap();
+      if (result?.url) {
+        window.open(result.url, "_self");
+      } else {
+        setDepositRedirecting(false);
+      }
+    } catch (err) {
+      setDepositError(err || "Failed to start deposit payment. Please try again.");
+      setDepositRedirecting(false);
+    }
+  };
+
   const [prevRescheduleTime, setPrevRescheduleTime] = useState(null);
   if (reschedule?.startTime && reschedule.startTime !== prevRescheduleTime) {
     setDate(toLocalDateInput(reschedule.startTime));
@@ -265,6 +315,31 @@ export default function Slots() {
     }, {});
   }, [sortedSlots]);
 
+  const allBooked = useMemo(
+    () => sortedSlots.length > 0 && sortedSlots.every(s => !s.effectiveAvailable),
+    [sortedSlots]
+  );
+
+  const [waitlistStatus, setWaitlistStatus] = useState("idle"); // idle | joining | joined | error
+  const [waitlistError, setWaitlistError] = useState("");
+
+  const handleJoinWaitlist = async () => {
+    setWaitlistStatus("joining");
+    setWaitlistError("");
+    try {
+      await dispatch(joinWaitlist({
+        tenantId,
+        barberId: selectedBarberId,
+        serviceIds: selectedServiceIds,
+        preferredDate: date
+      })).unwrap();
+      setWaitlistStatus("joined");
+    } catch (err) {
+      setWaitlistStatus("error");
+      setWaitlistError(err || "Failed to join waitlist. Please try again.");
+    }
+  };
+
   const handleBook = async (time) => {
     if (!user?.isPhoneVerified) {
         setVerificationModalOpen(true);
@@ -310,6 +385,9 @@ export default function Slots() {
             })
           ).unwrap();
 
+      const appliedPromotions = payload.appliedPromotions || [];
+      const promoDiscount = appliedPromotions.reduce((sum, p) => sum + Number(p.discountApplied || 0), 0);
+
       setConfirmation({
         appointmentId: reschedule?.appointmentId || payload.appointmentId,
         startTime: payload.startTime || startTime,
@@ -317,12 +395,16 @@ export default function Slots() {
         totalDuration: payload.totalDuration,
         services: bookedServices,
         totalPrice,
+        appliedPromotions,
+        promoDiscount,
+        finalPrice: Math.max(0, totalPrice - promoDiscount),
         totalServiceDuration,
         barberName: selectedBarber?.fullName ?? "",
         date,
         isReschedule: Boolean(reschedule?.appointmentId),
         statusId: payload.statusId,
-        whishPhoneNumber: payload.whishPhoneNumber
+        whishPhoneNumber: payload.whishPhoneNumber,
+        depositAmount: payload.depositAmount
       });
 
       if (reschedule?.appointmentId) {
@@ -399,7 +481,7 @@ export default function Slots() {
                 className="w-[130px] bg-transparent text-base font-semibold text-app-text focus:outline-none"
                 type="date"
                 value={date}
-                onChange={e => setDate(e.target.value)}
+                onChange={e => { setDate(e.target.value); setWaitlistStatus("idle"); }}
               />
             </label>
           </div>
@@ -484,14 +566,27 @@ export default function Slots() {
               <ErrorState message={slotsError} />
             </div>
           ) : sortedSlots.length === 0 ? (
-            <div className="mt-6">
+            <div className="mt-6 space-y-4">
               <EmptyState
                 title="No slots available"
                 description="Try another date or adjust your selected services."
               />
+              <WaitlistCta
+                status={waitlistStatus}
+                error={waitlistError}
+                onJoin={handleJoinWaitlist}
+              />
             </div>
           ) : (
             <div className="mt-6 space-y-4">
+              {allBooked && (
+                <WaitlistCta
+                  status={waitlistStatus}
+                  error={waitlistError}
+                  onJoin={handleJoinWaitlist}
+                  banner
+                />
+              )}
               {Object.entries(groupedSlots).map(([period, times]) => (
                 <div key={period} className="rounded-[12px] border border-app-border bg-app-surface-2 p-4 shadow-sm">
                   <div className="flex items-center justify-between">
@@ -554,19 +649,44 @@ export default function Slots() {
                   </div>
                   <h2 className="text-2xl font-bold text-amber-900 mb-2">Payment Required</h2>
                   <p className="text-amber-800 mb-6 leading-relaxed">
-                      Due to your history of No-Shows, this appointment is pending payment. 
-                      You must pay in advance via Whish to confirm it.
+                      {confirmation.depositAmount
+                        ? "This shop requires a deposit to confirm your booking. Pay securely by card to lock in your slot."
+                        : "Due to your history of No-Shows, this appointment is pending payment. You must pay in advance via Whish to confirm it."}
                   </p>
-                  
+
                    <div className="bg-amber-50 rounded-xl p-4 mb-8 text-left border border-amber-100">
+                      {confirmation.promoDiscount > 0 && (
+                        <div className="flex justify-between items-center mb-1 text-emerald-700">
+                          <span className="text-xs font-bold uppercase tracking-widest">Promotion applied</span>
+                          <span className="text-sm font-bold">-{formatCurrency(confirmation.promoDiscount)}</span>
+                        </div>
+                      )}
                       <div className="flex justify-between items-center mb-1">
-                          <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Amount Due</span>
-                          <span className="text-lg font-bold text-amber-900">{formatCurrency(confirmation.totalPrice)}</span>
+                          <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">
+                            {confirmation.depositAmount ? "Deposit Due" : "Amount Due"}
+                          </span>
+                          <span className="text-lg font-bold text-amber-900">
+                            {formatCurrency(confirmation.depositAmount || confirmation.finalPrice || confirmation.totalPrice)}
+                          </span>
                       </div>
-                      <p className="text-xs text-amber-700">Please transfer to Whish # <b>{confirmation.whishPhoneNumber || "Contact Support"}</b></p>
+                      {!confirmation.depositAmount && (
+                        <p className="text-xs text-amber-700">Please transfer to Whish # <b>{confirmation.whishPhoneNumber || "Contact Support"}</b></p>
+                      )}
                    </div>
 
-                  {!isPendingVerification ? (
+                  {depositError && (
+                    <p className="text-sm text-red-600 font-semibold mb-3">{depositError}</p>
+                  )}
+
+                  {confirmation.depositAmount ? (
+                    <button
+                      onClick={handlePayDeposit}
+                      disabled={depositRedirecting}
+                      className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl transition shadow-lg mb-3 disabled:opacity-60"
+                    >
+                      {depositRedirecting ? "Redirecting to payment..." : "Pay deposit by card"}
+                    </button>
+                  ) : !isPendingVerification ? (
                     <button
                       onClick={() => setPaymentModalOpen(true)}
                       className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl transition shadow-lg mb-3"
@@ -679,9 +799,15 @@ export default function Slots() {
                     </div>
                   ))}
                 </div>
-                <div className="mt-4 flex flex-wrap items-center justify-between border-t border-app-border pt-4 text-sm text-app-muted">
+                {confirmation.promoDiscount > 0 && (
+                  <div className="mt-4 flex flex-wrap items-center justify-between border-t border-app-border pt-4 text-sm text-emerald-700">
+                    <span className="text-xs uppercase tracking-[0.3em]">Promotion applied</span>
+                    <span className="text-sm font-semibold">-{formatCurrency(confirmation.promoDiscount)}</span>
+                  </div>
+                )}
+                <div className={`mt-4 flex flex-wrap items-center justify-between text-sm text-app-muted ${confirmation.promoDiscount > 0 ? "" : "border-t border-app-border pt-4"}`}>
                   <span className="text-xs uppercase tracking-[0.3em] text-app-muted">Total price</span>
-                  <span className="text-lg font-semibold text-app-text">{formatCurrency(confirmation.totalPrice)}</span>
+                  <span className="text-lg font-semibold text-app-text">{formatCurrency(confirmation.finalPrice ?? confirmation.totalPrice)}</span>
                 </div>
               </div>
 

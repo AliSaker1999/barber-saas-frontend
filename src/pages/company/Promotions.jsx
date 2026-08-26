@@ -11,13 +11,13 @@ import EmptyState from "../../components/EmptyState";
 import Modal from "../../components/Modal";
 
 const EMPTY_FORM = {
-  Title: "",
-  Description: "",
-  DiscountType: "PERCENTAGE",
-  DiscountValue: "",
-  ValidFrom: "",
-  ValidUntil: "",
-  IsActive: true,
+  title: "",
+  description: "",
+  discountType: "PERCENTAGE",
+  discountValue: "",
+  startDate: "",
+  endDate: "",
+  isActive: true,
 };
 
 export default function Promotions() {
@@ -38,14 +38,15 @@ export default function Promotions() {
   };
 
   const openEdit = (promo) => {
+    const isFixed = promo.DiscountAmount !== null && promo.DiscountAmount !== undefined;
     setForm({
-      Title: promo.Title,
-      Description: promo.Description || "",
-      DiscountType: promo.DiscountType,
-      DiscountValue: promo.DiscountValue,
-      ValidFrom: promo.ValidFrom ? promo.ValidFrom.slice(0, 10) : "",
-      ValidUntil: promo.ValidUntil ? promo.ValidUntil.slice(0, 10) : "",
-      IsActive: promo.IsActive,
+      title: promo.Title,
+      description: promo.Description || "",
+      discountType: isFixed ? "FIXED" : "PERCENTAGE",
+      discountValue: isFixed ? promo.DiscountAmount : promo.DiscountPercent,
+      startDate: promo.StartDate ? promo.StartDate.slice(0, 10) : "",
+      endDate: promo.EndDate ? promo.EndDate.slice(0, 10) : "",
+      isActive: promo.IsActive,
     });
     setEditId(promo.Id);
     setModalOpen(true);
@@ -53,13 +54,17 @@ export default function Promotions() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const value = Number(form.discountValue);
     const payload = {
-      ...form,
-      DiscountValue: Number(form.DiscountValue),
-      ValidFrom: form.ValidFrom || null,
-      ValidUntil: form.ValidUntil || null,
+      title: form.title,
+      description: form.description || undefined,
+      discountPercent: form.discountType === "PERCENTAGE" ? value : null,
+      discountAmount: form.discountType === "FIXED" ? value : null,
+      startDate: form.startDate,
+      endDate: form.endDate,
     };
     if (editId) {
+      payload.isActive = form.isActive;
       await dispatch(updatePromotion({ id: editId, ...payload }));
     } else {
       await dispatch(createPromotion(payload));
@@ -130,18 +135,18 @@ export default function Promotions() {
               )}
               <div className="flex flex-wrap gap-2 text-xs font-bold">
                 <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
-                  {promo.DiscountType === "PERCENTAGE"
-                    ? `${promo.DiscountValue}% OFF`
-                    : `$${promo.DiscountValue} OFF`}
+                  {promo.DiscountAmount != null
+                    ? `$${promo.DiscountAmount} OFF`
+                    : `${promo.DiscountPercent}% OFF`}
                 </span>
-                {promo.ValidFrom && (
+                {promo.StartDate && (
                   <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">
-                    From: {new Date(promo.ValidFrom).toLocaleDateString()}
+                    From: {new Date(promo.StartDate).toLocaleDateString()}
                   </span>
                 )}
-                {promo.ValidUntil && (
+                {promo.EndDate && (
                   <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">
-                    Until: {new Date(promo.ValidUntil).toLocaleDateString()}
+                    Until: {new Date(promo.EndDate).toLocaleDateString()}
                   </span>
                 )}
               </div>
@@ -172,8 +177,8 @@ export default function Promotions() {
             <input
               type="text"
               required
-              value={form.Title}
-              onChange={(e) => handleChange("Title", e.target.value)}
+              value={form.title}
+              onChange={(e) => handleChange("title", e.target.value)}
               className="w-full px-4 py-2.5 border border-app-border rounded-xl bg-app-surface text-app-text focus:ring-2 focus:ring-app-primary"
               placeholder="e.g., Summer Special"
             />
@@ -182,8 +187,8 @@ export default function Promotions() {
           <div>
             <label className="block text-sm font-bold text-app-text mb-1">Description</label>
             <textarea
-              value={form.Description}
-              onChange={(e) => handleChange("Description", e.target.value)}
+              value={form.description}
+              onChange={(e) => handleChange("description", e.target.value)}
               className="w-full px-4 py-2.5 border border-app-border rounded-xl bg-app-surface text-app-text focus:ring-2 focus:ring-app-primary"
               rows={2}
               placeholder="Describe the offer..."
@@ -194,8 +199,8 @@ export default function Promotions() {
             <div>
               <label className="block text-sm font-bold text-app-text mb-1">Discount Type</label>
               <select
-                value={form.DiscountType}
-                onChange={(e) => handleChange("DiscountType", e.target.value)}
+                value={form.discountType}
+                onChange={(e) => handleChange("discountType", e.target.value)}
                 className="w-full px-4 py-2.5 border border-app-border rounded-xl bg-app-surface text-app-text"
               >
                 <option value="PERCENTAGE">Percentage (%)</option>
@@ -209,10 +214,10 @@ export default function Promotions() {
                 required
                 min="0"
                 step="0.01"
-                value={form.DiscountValue}
-                onChange={(e) => handleChange("DiscountValue", e.target.value)}
+                value={form.discountValue}
+                onChange={(e) => handleChange("discountValue", e.target.value)}
                 className="w-full px-4 py-2.5 border border-app-border rounded-xl bg-app-surface text-app-text focus:ring-2 focus:ring-app-primary"
-                placeholder={form.DiscountType === "PERCENTAGE" ? "e.g., 20" : "e.g., 5.00"}
+                placeholder={form.discountType === "PERCENTAGE" ? "e.g., 20" : "e.g., 5.00"}
               />
             </div>
           </div>
@@ -222,8 +227,9 @@ export default function Promotions() {
               <label className="block text-sm font-bold text-app-text mb-1">Valid From</label>
               <input
                 type="date"
-                value={form.ValidFrom}
-                onChange={(e) => handleChange("ValidFrom", e.target.value)}
+                required
+                value={form.startDate}
+                onChange={(e) => handleChange("startDate", e.target.value)}
                 className="w-full px-4 py-2.5 border border-app-border rounded-xl bg-app-surface text-app-text"
               />
             </div>
@@ -231,8 +237,9 @@ export default function Promotions() {
               <label className="block text-sm font-bold text-app-text mb-1">Valid Until</label>
               <input
                 type="date"
-                value={form.ValidUntil}
-                onChange={(e) => handleChange("ValidUntil", e.target.value)}
+                required
+                value={form.endDate}
+                onChange={(e) => handleChange("endDate", e.target.value)}
                 className="w-full px-4 py-2.5 border border-app-border rounded-xl bg-app-surface text-app-text"
               />
             </div>
@@ -242,8 +249,8 @@ export default function Promotions() {
             <label className="flex items-center gap-3 cursor-pointer">
               <input
                 type="checkbox"
-                checked={form.IsActive}
-                onChange={(e) => handleChange("IsActive", e.target.checked)}
+                checked={form.isActive}
+                onChange={(e) => handleChange("isActive", e.target.checked)}
                 className="w-5 h-5 rounded"
               />
               <span className="text-sm font-bold text-app-text">Active</span>

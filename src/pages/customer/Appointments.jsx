@@ -10,6 +10,7 @@ import {
   setCachedAppointments
 } from "../../features/appointments/appointmentsSlice";
 import { fetchCustomerLoyalty } from "../../features/loyalty/loyaltySlice";
+import { fetchMyWaitlist, leaveWaitlist } from "../../features/waitlist/waitlistSlice";
 import { openChatWindow } from "../../features/chat/chatSlice";
 import {
   selectTenant,
@@ -26,6 +27,7 @@ import LoadingState from "../../components/LoadingState";
 import EmptyState from "../../components/EmptyState";
 import ErrorState from "../../components/ErrorState";
 import { getFriendlyErrorMessage } from "../../utils/errorMessages";
+import { formatDateOnly } from "../../utils/time";
 import { useI18n } from "../../i18n";
 
 export default function Appointments() {
@@ -34,6 +36,7 @@ export default function Appointments() {
   const { t } = useI18n();
   const { items, loading, error, lastFetchedAt, isStale } = useAppSelector(s => s.appointments);
   const { user } = useAppSelector(s => s.auth);
+  const waitlistItems = useAppSelector(s => s.waitlist.items);
   const [filter, setFilter] = useState("SCHEDULED");
   const location = useLocation();
   
@@ -59,6 +62,7 @@ export default function Appointments() {
 
   useEffect(() => {
     dispatch(fetchCustomerAppointments());
+    dispatch(fetchMyWaitlist());
 
     const socket = getSocket();
     if (socket) {
@@ -276,6 +280,36 @@ export default function Appointments() {
           )}
         </div>
       </div>
+
+      {/* Waitlist */}
+      {waitlistItems.filter(w => w.Status === "WAITING" || w.Status === "NOTIFIED").length > 0 && (
+        <div className="mb-5 sm:mb-8 bg-app-surface rounded-2xl border border-app-border p-4 sm:p-6">
+          <h2 className="text-sm font-black text-app-text uppercase tracking-widest mb-3">⏳ My Waitlist</h2>
+          <div className="space-y-2">
+            {waitlistItems.filter(w => w.Status === "WAITING" || w.Status === "NOTIFIED").map(w => (
+              <div key={w.Id} className="flex items-center justify-between gap-3 bg-app-surface-2 rounded-xl p-3">
+                <div>
+                  <p className="text-sm font-bold text-app-text">
+                    {w.TenantName}{w.BarberName ? ` · ${w.BarberName}` : ""}
+                  </p>
+                  <p className="text-xs text-app-muted">
+                    {formatDateOnly(w.PreferredDate)} · {w.services?.map(s => s.name).join(", ")}
+                  </p>
+                  {w.Status === "NOTIFIED" && (
+                    <p className="text-xs font-bold text-emerald-600 mt-0.5">A slot opened up — book now!</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => dispatch(leaveWaitlist(w.Id))}
+                  className="flex-shrink-0 text-xs font-bold text-app-muted hover:text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  Leave
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards / Filters */}
       {!loading && (

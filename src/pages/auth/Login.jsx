@@ -233,6 +233,14 @@ export default function Login() {
               )}
             </button>
 
+            {/* Continue as guest */}
+            <a
+              href="/book"
+              className="mt-4 flex items-center justify-center gap-2 w-full text-center py-3 px-4 rounded-[12px] bg-app-surface-2 text-app-text font-bold hover:bg-app-surface transition-colors border border-app-border"
+            >
+              Continue as guest — just book an appointment
+            </a>
+
             {/* Signup Link */}
             <p className="text-center text-app-muted text-sm mt-6">
               Don't have an account?{' '}

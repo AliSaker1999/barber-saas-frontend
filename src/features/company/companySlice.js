@@ -73,6 +73,30 @@ export const startCheckout = createAsyncThunk(
   }
 );
 
+export const fetchConnectStatus = createAsyncThunk(
+  "company/fetchConnectStatus",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.get("/billing/connect/status");
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || err.message);
+    }
+  }
+);
+
+export const startConnectOnboarding = createAsyncThunk(
+  "company/startConnectOnboarding",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.post("/billing/connect/onboard");
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || err.message);
+    }
+  }
+);
+
 const companySlice = createSlice({
   name: "company",
   initialState: {
@@ -86,7 +110,11 @@ const companySlice = createSlice({
     hoursSaveSuccess: false,
     availablePlans: [],
     checkoutLoading: false,
-    checkoutError: null
+    checkoutError: null,
+    connectStatus: null,
+    connectStatusLoading: false,
+    connectOnboardingLoading: false,
+    connectOnboardingError: null
   },
   reducers: {
     resetUpdateSuccess: (state) => {
@@ -166,6 +194,27 @@ const companySlice = createSlice({
       .addCase(startCheckout.rejected, (state, action) => {
         state.checkoutLoading = false;
         state.checkoutError = action.payload;
+      })
+      .addCase(fetchConnectStatus.pending, (state) => {
+        state.connectStatusLoading = true;
+      })
+      .addCase(fetchConnectStatus.fulfilled, (state, action) => {
+        state.connectStatusLoading = false;
+        state.connectStatus = action.payload;
+      })
+      .addCase(fetchConnectStatus.rejected, (state) => {
+        state.connectStatusLoading = false;
+      })
+      .addCase(startConnectOnboarding.pending, (state) => {
+        state.connectOnboardingLoading = true;
+        state.connectOnboardingError = null;
+      })
+      .addCase(startConnectOnboarding.fulfilled, (state) => {
+        state.connectOnboardingLoading = false;
+      })
+      .addCase(startConnectOnboarding.rejected, (state, action) => {
+        state.connectOnboardingLoading = false;
+        state.connectOnboardingError = action.payload;
       });
   }
 });

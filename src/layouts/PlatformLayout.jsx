@@ -29,6 +29,7 @@ export default function PlatformLayout() {
           <NavItem to="tenants" label="🏬 Tenants" onClick={() => setMobileOpen(false)} />
           <NavItem to="customers" label="👥 Customers" onClick={() => setMobileOpen(false)} />
           <NavItem to="reports" label="📊 Reports" onClick={() => setMobileOpen(false)} />
+          <NavItem to="activity-log" label="📜 Activity Log" onClick={() => setMobileOpen(false)} />
           <NavItem to="env" label="🧪 Environment" onClick={() => setMobileOpen(false)} />
         </nav>
 

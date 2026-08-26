@@ -266,15 +266,15 @@ export default function TenantDetailsModal({ isOpen, onClose, tenant, onBook, on
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-amber-900">{promo.Title}</span>
                       <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
-                        {promo.DiscountType === "PERCENTAGE" ? `${promo.DiscountValue}% OFF` : `$${promo.DiscountValue} OFF`}
+                        {promo.DiscountAmount != null ? `$${promo.DiscountAmount} OFF` : `${promo.DiscountPercent}% OFF`}
                       </span>
                     </div>
                     {promo.Description && (
                       <p className="text-sm text-amber-800">{promo.Description}</p>
                     )}
-                    {promo.ValidUntil && (
+                    {promo.EndDate && (
                       <p className="text-xs text-amber-600 mt-1">
-                        Valid until {new Date(promo.ValidUntil).toLocaleDateString()}
+                        Valid until {new Date(promo.EndDate).toLocaleDateString()}
                       </p>
                     )}
                   </div>

@@ -17,6 +17,7 @@ const Signup = lazy(() => import("../pages/auth/Signup"));
 const PlatformTenants = lazy(() => import("../pages/platform/Tenants"));
 const PlatformCustomers = lazy(() => import("../pages/platform/Customers"));
 const Reports = lazy(() => import("../pages/platform/Reports"));
+const ActivityLog = lazy(() => import("../pages/platform/ActivityLog"));
 const EnvPage = lazy(() => import("../pages/platform/EnvPage"));
 
 /* Company */
@@ -31,6 +32,10 @@ const CompanyPromotions = lazy(() => import("../pages/company/Promotions"));
 const NotificationHistory = lazy(() => import("../pages/customer/NotificationHistory"));
 const ConversationsPage = lazy(() => import("../pages/shared/Conversations"));
 const Settings = lazy(() => import("../pages/company/Settings"));
+
+/* Public */
+const PublicBooking = lazy(() => import("../pages/public/PublicBooking"));
+const FindShop = lazy(() => import("../pages/public/FindShop"));
 
 /* Customer */
 const Tenants = lazy(() => import("../pages/customer/Tenants"));
@@ -63,6 +68,9 @@ export default function AppRoutes() {
           <Route path="/onboarding" element={<Onboarding onComplete={() => { completeOnboarding(); navigate("/login"); }} />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          {/* Public booking link — reachable with no account, same as Login/Signup above */}
+          <Route path="/book" element={<FindShop />} />
+          <Route path="/book/:tenantSlug" element={<PublicBooking />} />
           <Route path="*" element={<Navigate to={onboardingDone ? "/login" : "/onboarding"} />} />
         </Routes>
       </Suspense>
@@ -73,6 +81,10 @@ export default function AppRoutes() {
   return (
     <Suspense fallback={routeFallback}>
       <Routes>
+
+      {/* Public booking link — reachable even for a logged-in user (e.g. an admin previewing their own shop's link) */}
+      <Route path="/book" element={<FindShop />} />
+      <Route path="/book/:tenantSlug" element={<PublicBooking />} />
 
       {/* ✅ ROOT REDIRECT — THIS FIXES WHITE SCREEN */}
       <Route
@@ -94,6 +106,7 @@ export default function AppRoutes() {
           <Route path="tenants" element={<PlatformTenants />} />
           <Route path="customers" element={<PlatformCustomers />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="activity-log" element={<ActivityLog />} />
           <Route path="env" element={<EnvPage />} />
           <Route index element={<Navigate to="tenants" />} />
         </Route>

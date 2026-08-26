@@ -12,6 +12,7 @@ import { requestUserLocation } from "../../features/location/locationSlice";
 import { uploadImage } from "../../services/media";
 import Modal from "../../components/Modal";
 import OptimizedImage from "../../components/OptimizedImage";
+import ShareButton from "../../components/ShareButton";
 
 export default function CompanyProfile() {
   const dispatch = useDispatch();
@@ -55,6 +56,12 @@ export default function CompanyProfile() {
     isCreditCardPaymentEnabled: false,
     loyaltyEnabled: false,
     loyaltyAllowRedemption: false,
+    depositAmount: "",
+    depositRequireAll: false,
+    depositRequireAfterNoShows: false,
+    depositNoShowThreshold: "",
+    depositRequireForNewCustomers: false,
+    depositNewCustomerVisitThreshold: "",
   });
 
   const [newRewardServiceId, setNewRewardServiceId] = useState("");
@@ -95,6 +102,12 @@ export default function CompanyProfile() {
       isCreditCardPaymentEnabled: profile.IsCreditCardPaymentEnabled ?? false,
       loyaltyEnabled: profile.LoyaltyEnabled ?? false,
       loyaltyAllowRedemption: profile.LoyaltyAllowRedemption ?? false,
+      depositAmount: profile.DepositAmount ?? "",
+      depositRequireAll: !!profile.DepositRequireAll,
+      depositRequireAfterNoShows: !!profile.DepositRequireAfterNoShows,
+      depositNoShowThreshold: profile.DepositNoShowThreshold ?? "",
+      depositRequireForNewCustomers: !!profile.DepositRequireForNewCustomers,
+      depositNewCustomerVisitThreshold: profile.DepositNewCustomerVisitThreshold ?? "",
     });
     setPrevId(profile.Id);
   }
@@ -160,6 +173,12 @@ export default function CompanyProfile() {
         isCreditCardPaymentEnabled: profile.IsCreditCardPaymentEnabled ?? false,
         loyaltyEnabled: profile.LoyaltyEnabled ?? false,
         loyaltyAllowRedemption: profile.LoyaltyAllowRedemption ?? false,
+        depositAmount: profile.DepositAmount ?? "",
+        depositRequireAll: !!profile.DepositRequireAll,
+        depositRequireAfterNoShows: !!profile.DepositRequireAfterNoShows,
+        depositNoShowThreshold: profile.DepositNoShowThreshold ?? "",
+        depositRequireForNewCustomers: !!profile.DepositRequireForNewCustomers,
+        depositNewCustomerVisitThreshold: profile.DepositNewCustomerVisitThreshold ?? "",
       });
     }
     setIsEditing(false);
@@ -186,6 +205,9 @@ export default function CompanyProfile() {
       cancellationPolicyHours: Number(formData.cancellationPolicyHours),
       latitude: formData.latitude === "" ? null : Number(formData.latitude),
       longitude: formData.longitude === "" ? null : Number(formData.longitude),
+      depositAmount: formData.depositAmount === "" ? null : Number(formData.depositAmount),
+      depositNoShowThreshold: formData.depositNoShowThreshold === "" ? null : Number(formData.depositNoShowThreshold),
+      depositNewCustomerVisitThreshold: formData.depositNewCustomerVisitThreshold === "" ? null : Number(formData.depositNewCustomerVisitThreshold),
     };
     dispatch(updateCompanyProfile(payload));
   };
@@ -560,8 +582,20 @@ export default function CompanyProfile() {
                   <div>
                     <h2 className="text-2xl font-black text-app-text tracking-tight">{formData.name || "Your Company"}</h2>
                     <p className="text-app-muted font-medium">/{formData.slug}</p>
+                    {formData.slug && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <p className="text-xs text-app-muted truncate max-w-[220px]">
+                          {`${window.location.origin}/book/${formData.slug}`}
+                        </p>
+                        <ShareButton
+                          title={`Book at ${formData.name || "our shop"}`}
+                          text={`Book an appointment at ${formData.name || "our shop"} — no account needed:`}
+                          url={`${window.location.origin}/book/${formData.slug}`}
+                        />
+                      </div>
+                    )}
                   </div>
-                  
+
                   {uploadError && (
                     <div className="bg-app-surface-2 text-red-600 px-4 py-2 rounded-[12px] text-sm font-bold flex items-center gap-2 animate-shake border border-red-200">
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
@@ -709,14 +743,95 @@ export default function CompanyProfile() {
                          </p>
                        </div>
                        <div className="flex-shrink-0 ml-4">
-                           {renderFormField({ 
-                            label: "Enable Credit Card", 
-                            name: "isCreditCardPaymentEnabled", 
-                            value: formData.isCreditCardPaymentEnabled, 
-                            type: "checkbox" 
+                           {renderFormField({
+                            label: "Enable Credit Card",
+                            name: "isCreditCardPaymentEnabled",
+                            value: formData.isCreditCardPaymentEnabled,
+                            type: "checkbox"
                           })}
                        </div>
                      </div>
+                  </div>
+
+                  {/* Deposits Section */}
+                  <div className="bg-app-surface p-6 rounded-[12px] border border-app-border">
+                    <div className="mb-4">
+                      <h3 className="text-lg font-bold text-app-text flex items-center gap-2">
+                        Booking Deposits
+                        <span className="text-xs font-bold px-2 py-0.5 rounded bg-app-surface-2 text-app-text uppercase tracking-wide">Stripe</span>
+                      </h3>
+                      <p className="text-sm text-app-muted mt-1 max-w-xl">
+                        Require customers to pay a deposit online before their booking is confirmed. Connect Stripe under Settings → Billing, then choose when a deposit is required below — any rule that matches will trigger it.
+                      </p>
+                    </div>
+
+                    <div className="max-w-xs mb-6">
+                      {renderFormField({
+                        label: "Deposit Amount ($)",
+                        name: "depositAmount",
+                        value: formData.depositAmount,
+                        type: "number",
+                        placeholder: "e.g. 10"
+                      })}
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between gap-4 p-4 bg-app-bg rounded-[12px]">
+                        <div>
+                          <p className="font-bold text-app-text text-sm">Require for all bookings</p>
+                          <p className="text-xs text-app-muted">Every appointment or queue join needs the deposit paid first.</p>
+                        </div>
+                        <div className="flex-shrink-0">
+                          {renderFormField({ label: "Enable", name: "depositRequireAll", value: formData.depositRequireAll, type: "checkbox" })}
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-app-bg rounded-[12px]">
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <p className="font-bold text-app-text text-sm">Require after repeated no-shows</p>
+                            <p className="text-xs text-app-muted">Once a customer's no-show count reaches this number.</p>
+                          </div>
+                          <div className="flex-shrink-0">
+                            {renderFormField({ label: "Enable", name: "depositRequireAfterNoShows", value: formData.depositRequireAfterNoShows, type: "checkbox" })}
+                          </div>
+                        </div>
+                        {(formData.depositRequireAfterNoShows || isEditing) && (
+                          <div className="mt-3 max-w-xs">
+                            {renderFormField({
+                              label: "No-show count threshold",
+                              name: "depositNoShowThreshold",
+                              value: formData.depositNoShowThreshold,
+                              type: "number",
+                              placeholder: "e.g. 3"
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="p-4 bg-app-bg rounded-[12px]">
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <p className="font-bold text-app-text text-sm">Require for new customers</p>
+                            <p className="text-xs text-app-muted">For customers with fewer than this many completed visits at your shop.</p>
+                          </div>
+                          <div className="flex-shrink-0">
+                            {renderFormField({ label: "Enable", name: "depositRequireForNewCustomers", value: formData.depositRequireForNewCustomers, type: "checkbox" })}
+                          </div>
+                        </div>
+                        {(formData.depositRequireForNewCustomers || isEditing) && (
+                          <div className="mt-3 max-w-xs">
+                            {renderFormField({
+                              label: "Prior-visit threshold",
+                              name: "depositNewCustomerVisitThreshold",
+                              value: formData.depositNewCustomerVisitThreshold,
+                              type: "number",
+                              placeholder: "e.g. 1"
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -20,6 +20,10 @@ import loyaltyReducer from "../features/loyalty/loyaltySlice";
 import locationReducer from "../features/location/locationSlice";
 import favoritesReducer from "../features/favorites/favoritesSlice";
 import promotionsReducer from "../features/promotions/promotionsSlice";
+import publicBookingReducer from "../features/publicBooking/publicBookingSlice";
+import activityLogReducer from "../features/activityLog/activityLogSlice";
+import waitlistReducer from "../features/waitlist/waitlistSlice";
+import scheduleRequestsReducer from "../features/scheduleRequests/scheduleRequestsSlice";
 
 export const store = configureStore({
   reducer: {
@@ -43,7 +47,11 @@ export const store = configureStore({
     loyalty: loyaltyReducer,
     location: locationReducer,
     favorites: favoritesReducer,
-    promotions: promotionsReducer
+    promotions: promotionsReducer,
+    publicBooking: publicBookingReducer,
+    activityLog: activityLogReducer,
+    waitlist: waitlistReducer,
+    scheduleRequests: scheduleRequestsReducer
   }
 });
 
