@@ -5,6 +5,7 @@ import { fetchActiveTenants } from "../../features/publicBooking/publicBookingSl
 import LoadingState from "../../components/LoadingState";
 import EmptyState from "../../components/EmptyState";
 import OptimizedImage from "../../components/OptimizedImage";
+import { captureAcquisitionSource } from "../../utils/acquisition";
 
 export default function FindShop() {
   const dispatch = useAppDispatch();
@@ -13,6 +14,9 @@ export default function FindShop() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
+    /* The shop directory is also a shared entry point (an Ajmal-wide QR or
+       Instagram post), so the tag is captured here too. */
+    captureAcquisitionSource();
     dispatch(fetchActiveTenants());
   }, [dispatch]);
 

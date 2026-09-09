@@ -8,11 +8,16 @@ import {
   saveOperatingHours,
   resetHoursSaveSuccess,
   fetchCompanyProfile,
+  updateCompanyProfile,
   fetchAvailablePlans,
   startCheckout,
   fetchConnectStatus,
   startConnectOnboarding
 } from "../../features/company/companySlice";
+import { toast } from "react-hot-toast";
+import Icon from "../../components/ui/Icon";
+import Button from "../../components/ui/Button";
+import { formatMoney } from "../../utils/format";
 
 const DAYS = [
   "Sunday",
@@ -62,6 +67,7 @@ export default function Settings() {
 
   const [draft, setDraft] = useState(() => buildDraft([]));
   const [hydrated, setHydrated] = useState(false);
+  const [savingCurrency, setSavingCurrency] = useState(null);
 
   if (!hydrated && !hoursLoading && operatingHours.length) {
     setDraft(buildDraft(operatingHours));
@@ -118,6 +124,31 @@ export default function Settings() {
     setDraft((prev) =>
       prev.map((day, i) => (i === dayIndex ? { ...day, ...patch } : day))
     );
+  };
+
+  /*
+   * Pricing currency (spec 19).
+   *
+   * A Lebanese shop quotes in "fresh dollars" or in lira, and the two are not
+   * interchangeable — so this sets which currency the shop's Services.Price
+   * values are read as. Nothing anywhere converts between them; changing this
+   * relabels the prices, it does not recalculate them, which is exactly why
+   * the confirmation below spells that out.
+   */
+  const currency = profile?.Currency || "USD";
+
+  const handleCurrency = async (next) => {
+    if (next === currency) return;
+    setSavingCurrency(next);
+    try {
+      await dispatch(updateCompanyProfile({ currency: next })).unwrap();
+      await dispatch(fetchCompanyProfile());
+      toast.success(t("save"));
+    } catch (err) {
+      toast.error(typeof err === "string" ? err : t("error_generic"));
+    } finally {
+      setSavingCurrency(null);
+    }
   };
 
   const handleSave = () => {
@@ -278,6 +309,79 @@ export default function Settings() {
           </button>
         </div>
       </div>
+
+      {/* ---- pricing currency ---- */}
+      <section className="bg-surface-raised border border-line-subtle rounded-card p-5 mb-6">
+        <div className="flex items-center gap-3 mb-4">
+          <span className="w-10 h-10 rounded-control bg-surface-sunken text-content-secondary flex items-center justify-center flex-shrink-0">
+            <Icon name="wallet" size={20} />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-h2 text-content-primary">{t("currency_label")}</h2>
+            <p className="text-caption text-content-muted">{t("currency_help")}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          {[
+            { code: "USD", label: t("currency_usd"), sample: 20 },
+            { code: "LBP", label: t("currency_lbp"), sample: 1800000 }
+          ].map((option) => {
+            const active = currency === option.code;
+            return (
+              <button
+                key={option.code}
+                type="button"
+                onClick={() => handleCurrency(option.code)}
+                disabled={Boolean(savingCurrency)}
+                aria-pressed={active}
+                className={`press flex items-center gap-3 p-3.5 rounded-card border text-start transition-colors ${
+                  active
+                    ? "border-brand-gold bg-brand-gold-soft"
+                    : "border-line-subtle bg-surface-raised hover:bg-surface-sunken"
+                } ${savingCurrency ? "opacity-60 pointer-events-none" : ""}`}
+              >
+                <span className="flex-1 min-w-0">
+                  <span className="block text-body font-semibold text-content-primary truncate">
+                    {option.label}
+                  </span>
+                  {/* A worked example, so nobody has to guess how a price will
+                      read to a customer after switching. */}
+                  <span className="block text-caption text-content-muted tnum">
+                    {formatMoney(option.sample, option.code)}
+                  </span>
+                </span>
+                <span
+                  aria-hidden="true"
+                  className={`w-6 h-6 rounded-pill border-2 flex items-center justify-center flex-shrink-0 ${
+                    active
+                      ? "bg-brand-gold border-brand-gold text-content-on-gold"
+                      : "border-line-strong"
+                  }`}
+                >
+                  {active ? <Icon name="check" size={14} strokeWidth={2.75} /> : null}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ---- share & QR ---- */}
+      <section className="bg-surface-raised border border-line-subtle rounded-card p-5 mb-6">
+        <div className="flex items-center gap-3">
+          <span className="w-10 h-10 rounded-control bg-surface-sunken text-content-secondary flex items-center justify-center flex-shrink-0">
+            <Icon name="qr" size={20} />
+          </span>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-h2 text-content-primary">{t("share_booking_title")}</h2>
+            <p className="text-caption text-content-muted">{t("ready_made_copy_sub")}</p>
+          </div>
+          <Button variant="secondary" size="sm" to="/company/share" iconEnd="chevron-right">
+            {t("view")}
+          </Button>
+        </div>
+      </section>
 
       <div className="bg-app-surface p-8 rounded-[12px] shadow-sm border border-app-border">
         <div className="flex items-center gap-3 mb-8 pb-4 border-b border-app-border">

@@ -247,13 +247,16 @@ const appointmentsSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(arriveForAppointment.fulfilled, (state, action) => {
+      /*
+       * Checking a customer in converts their appointment into a walk-in queue
+       * entry (POST /appointments/:id/arrive -> convertAppointmentToQueue). It
+       * does NOT complete the service, but this reducer used to mark the row
+       * COMPLETED, so a checked-in customer disappeared from "today" and was
+       * counted in the day's completed total before their cut had started.
+       * The server owns the resulting state, so refetch rather than guess.
+       */
+      .addCase(arriveForAppointment.fulfilled, (state) => {
         state.loading = false;
-        const index = state.items.findIndex(i => i.Id === action.payload);
-        if (index !== -1) {
-          state.items[index].Status = "COMPLETED";
-          state.items[index].StatusId = 2;
-        }
       })
       .addCase(arriveForAppointment.rejected, (state, action) => {
         state.loading = false;

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import LaunchReadiness from "../../components/LaunchReadiness";
 
 const recommendedVariables = [
   {
@@ -61,6 +62,10 @@ export default function EnvPage() {
   return (
     <div className="min-h-screen bg-app-bg py-8">
       <div className="max-w-5xl mx-auto space-y-6 px-4">
+        {/* What actually blocks a public launch, checked against the live
+            backend rather than a checklist someone has to remember. */}
+        <LaunchReadiness />
+
         <div className="bg-app-surface rounded-[25px] shadow-2xl border border-app-border p-8 space-y-4">
           <h1 className="text-3xl font-black text-app-text">.env / Environment</h1>
           <p className="text-app-muted">

@@ -1,4 +1,9 @@
+import redesign from "./redesign.ar";
+
 const ar = {
+  /* Redesigned-experience vocabulary lives in ./redesign.ar.js. */
+  ...redesign,
+
   dir: "rtl",
   lang: "ar",
 

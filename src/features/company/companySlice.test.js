@@ -25,7 +25,12 @@ describe("companySlice", () => {
       hoursSaveSuccess: false,
       availablePlans: [],
       checkoutLoading: false,
-      checkoutError: null
+      checkoutError: null,
+      /* Stripe Connect onboarding state, added with the deposit feature. */
+      connectStatus: null,
+      connectStatusLoading: false,
+      connectOnboardingLoading: false,
+      connectOnboardingError: null
     });
   });
 

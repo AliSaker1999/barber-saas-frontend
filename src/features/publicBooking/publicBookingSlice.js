@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import publicApi, { setPublicAuthToken } from "../../services/publicApi";
+import { getAcquisitionSource } from "../../utils/acquisition";
 import {
   loadBookingState,
   saveBookingState,
@@ -76,7 +77,15 @@ export const registerGuest = createAsyncThunk(
   "publicBooking/registerGuest",
   async ({ slug, fullName, phoneNumber }, { rejectWithValue }) => {
     try {
-      const res = await publicApi.post(`/public/tenants/${slug}/guest`, { fullName, phoneNumber });
+      /* Account creation is the one moment the server can record which of the
+         shop's channels — counter QR, Instagram bio, WhatsApp share — brought
+         this customer in, so the tag captured on landing is attached here. */
+      const source = getAcquisitionSource();
+      const res = await publicApi.post(`/public/tenants/${slug}/guest`, {
+        fullName,
+        phoneNumber,
+        ...(source ? { source } : {})
+      });
       const result = res.data.data;
       setPublicAuthToken(result.token);
       return result;

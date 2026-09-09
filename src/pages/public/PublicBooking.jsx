@@ -18,6 +18,7 @@ import {
 } from "../../features/publicBooking/publicBookingSlice";
 import LoadingState from "../../components/LoadingState";
 import EmptyState from "../../components/EmptyState";
+import { captureAcquisitionSource } from "../../utils/acquisition";
 
 const toLocalDateInput = (value) => {
   const date = value ? new Date(value) : new Date();
@@ -72,6 +73,10 @@ export default function PublicBooking() {
   };
 
   useEffect(() => {
+    /* Record which of the shop's channels this visit came from before any
+       navigation drops the ?src= tag from the URL. */
+    captureAcquisitionSource();
+
     dispatch(resetPublicBooking());
     dispatch(fetchTenant(tenantSlug));
     dispatch(fetchServices(tenantSlug));

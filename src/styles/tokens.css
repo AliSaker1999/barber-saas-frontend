@@ -1,0 +1,156 @@
+/* ============================================================================
+   AJMAL — SEMANTIC DESIGN TOKENS
+   ----------------------------------------------------------------------------
+   The single source of truth for colour, elevation, radius and motion.
+
+   Naming follows the product design system:
+
+     brand/ink        brand/gold
+     surface/base     surface/raised     surface/elevated    surface/sunken
+     text/primary     text/secondary     text/muted          text/inverse
+     border/subtle    border/strong
+     success          warning            danger              info
+
+   Rules for consuming these:
+     • Never hardcode a hex value in a component.
+     • Never use a raw Tailwind palette class (bg-white, text-gray-500,
+       bg-blue-600 …) in new UI — use the semantic Tailwind aliases declared in
+       tailwind.config.js (bg-surface-raised, text-content-muted, …).
+     • Gold is an accent. It is never a page background and never a large
+       text colour on a gold surface.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* ---- brand ---------------------------------------------------------- */
+  --brand-ink: #111111;
+  --brand-gold: #c9a34a;
+  /* Readable gold for text/icons on light surfaces (≈5.4:1 on ivory).
+     --brand-gold itself is only ~2.3:1 as text and must not be used for copy. */
+  --brand-gold-text: #8a6a1f;
+  --brand-gold-soft: rgba(201, 163, 74, 0.12);
+  --brand-gold-softer: rgba(201, 163, 74, 0.06);
+  --brand-gold-ring: rgba(201, 163, 74, 0.28);
+
+  /* ---- surfaces (warm ivory light mode) -------------------------------- */
+  --surface-base: #f7f4ee;
+  --surface-raised: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-sunken: #efebe3;
+  --surface-inverse: #141414;
+
+  /* ---- text ------------------------------------------------------------ */
+  --text-primary: #141414;
+  --text-secondary: #4a463f;
+  --text-muted: #857f74;
+  --text-inverse: #f7f4ee;
+  /* Text that sits on a filled gold surface */
+  --text-on-gold: #1a1408;
+
+  /* ---- borders --------------------------------------------------------- */
+  --border-subtle: #e4ded2;
+  --border-strong: #d1c9b8;
+
+  /* ---- state ----------------------------------------------------------- */
+  --success: #1e7a4b;
+  --success-soft: rgba(30, 122, 75, 0.1);
+  --warning: #9a6608;
+  --warning-soft: rgba(154, 102, 8, 0.12);
+  --danger: #b3261e;
+  --danger-soft: rgba(179, 38, 30, 0.1);
+  --info: #26647f;
+  --info-soft: rgba(38, 100, 127, 0.1);
+
+  /* ---- elevation ------------------------------------------------------- */
+  --shadow-sm: 0 1px 2px rgba(20, 16, 8, 0.06);
+  --shadow-md: 0 2px 8px -2px rgba(20, 16, 8, 0.1), 0 1px 2px rgba(20, 16, 8, 0.05);
+  --shadow-lg: 0 12px 28px -12px rgba(20, 16, 8, 0.18), 0 2px 6px rgba(20, 16, 8, 0.05);
+  --shadow-sheet: 0 -12px 40px -12px rgba(20, 16, 8, 0.22);
+  --scrim: rgba(20, 18, 14, 0.5);
+
+  /* ---- typography ------------------------------------------------------ */
+  --font-sans: "Manrope", "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-arabic: "Tajawal", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  /* ---- motion ---------------------------------------------------------- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+
+  font-size: 16px;
+}
+
+/* ---------------------------------------------------------------------------
+   DARK MODE — designed, not inverted.
+   Deep charcoal ground, slightly lighter raised surfaces, ivory text,
+   muted gold accents. Gold never sits on gold.
+   ------------------------------------------------------------------------- */
+:root.dark {
+  color-scheme: dark;
+
+  --brand-ink: #f7f4ee;
+  --brand-gold: #c9a34a;
+  --brand-gold-text: #dcbd6c;
+  --brand-gold-soft: rgba(201, 163, 74, 0.16);
+  --brand-gold-softer: rgba(201, 163, 74, 0.08);
+  --brand-gold-ring: rgba(201, 163, 74, 0.34);
+
+  --surface-base: #0e0e10;
+  --surface-raised: #17171a;
+  --surface-elevated: #202024;
+  --surface-sunken: #09090b;
+  --surface-inverse: #f7f4ee;
+
+  --text-primary: #f7f4ee;
+  --text-secondary: #bdb8ae;
+  --text-muted: #8d8880;
+  --text-inverse: #141414;
+  --text-on-gold: #1a1408;
+
+  --border-subtle: rgba(247, 244, 238, 0.1);
+  --border-strong: rgba(247, 244, 238, 0.2);
+
+  --success: #56b784;
+  --success-soft: rgba(86, 183, 132, 0.14);
+  --warning: #e0a94b;
+  --warning-soft: rgba(224, 169, 75, 0.14);
+  --danger: #f0776f;
+  --danger-soft: rgba(240, 119, 111, 0.14);
+  --info: #78bcd9;
+  --info-soft: rgba(120, 188, 217, 0.14);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 2px 10px -2px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 16px 36px -16px rgba(0, 0, 0, 0.8), 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-sheet: 0 -14px 44px -14px rgba(0, 0, 0, 0.75);
+  --scrim: rgba(0, 0, 0, 0.62);
+}
+
+/* ---------------------------------------------------------------------------
+   LEGACY ALIASES
+   The pre-redesign screens (company/platform admin, older customer pages and
+   the `.bg-app-*` helper classes) read `--app-*`. Point them at the new tokens
+   so one palette drives the whole app while those screens are migrated.
+   Do not use --app-* in new code.
+   ------------------------------------------------------------------------- */
+:root,
+:root.dark {
+  --app-primary: var(--brand-gold);
+  --app-primary-2: var(--brand-gold);
+  --app-primary-hover: var(--brand-gold-text);
+  --app-primary-gradient: var(--brand-gold);
+  --app-bg: var(--surface-base);
+  --app-surface: var(--surface-raised);
+  --app-surface-2: var(--surface-sunken);
+  --app-border: var(--border-subtle);
+  --app-text: var(--text-primary);
+  --app-muted: var(--text-muted);
+  --app-accent: var(--brand-gold);
+  --app-success: var(--success);
+  --app-warning: var(--warning);
+  --app-error: var(--danger);
+  --app-danger: var(--danger);
+  --app-info: var(--info);
+}

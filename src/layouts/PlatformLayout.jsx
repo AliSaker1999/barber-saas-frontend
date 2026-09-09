@@ -1,119 +1,177 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { useAppDispatch } from "../app/hooks";
-import { logout } from "../features/auth/authSlice";
 import { useState } from "react";
-import ConnectionBadge from "../components/ConnectionBadge";
-import ThemeToggle from "../components/ThemeToggle";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "../app/hooks";
+import { logout } from "../features/auth/authSlice";
+import Icon from "../components/ui/Icon";
+import { IconButton } from "../components/ui/Button";
+import { ConfirmSheet } from "../components/ui/BottomSheet";
+import { OfflineBanner } from "../components/ui/States";
+import { useI18n } from "../i18n";
+import { getInitialTheme, setTheme } from "../utils/theme";
+
+/*
+ * Platform (internal) shell.
+ *
+ * A desktop-first internal tool, so unlike the customer and shop apps it keeps
+ * a sidebar — but on the semantic tokens rather than raw white/gray/blue, and
+ * with real icons instead of the emoji the nav labels used to carry (spec §23:
+ * emoji render differently on every Android OEM and can't take a theme colour).
+ */
+
+const NAV = [
+  { to: "tenants", labelKey: "nav_shops", icon: "pin" },
+  { to: "customers", labelKey: "nav_customers", icon: "users" },
+  { to: "reports", labelKey: "nav_reports", icon: "chart" },
+  { to: "activity-log", labelKey: "activity_log", icon: "list" },
+  { to: "env", labelKey: "environment", icon: "settings" }
+];
 
 export default function PlatformLayout() {
+  const { t } = useI18n();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const isOnline = useAppSelector((state) => state.ui.isOnline);
 
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate("/login");
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [theme, setThemeState] = useState(() => getInitialTheme());
+
+  const toggleTheme = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    setThemeState(next);
   };
 
+  const closeDrawer = () => setMobileOpen(false);
+
   return (
-    <div className="min-h-screen bg-gray-100 lg:flex">
-      {/* SIDEBAR */}
-      <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r shadow-sm transition-transform duration-300 lg:translate-x-0 lg:static ${
-        mobileOpen ? "translate-x-0" : "-translate-x-full"
-      }`}>
-        <div className="p-6 pt-[calc(env(safe-area-inset-top)+1.5rem)] text-xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent border-b">
-          Barber SaaS
+    <div className="min-h-screen bg-surface-base lg:flex">
+      {/* ---- sidebar ---- */}
+      <aside
+        className={`fixed inset-y-0 start-0 z-40 w-64 bg-surface-raised border-e border-line-subtle
+                    transition-transform duration-[var(--dur-slow)] ease-out
+                    lg:translate-x-0 lg:static lg:flex lg:flex-col ${
+                      mobileOpen ? "translate-x-0" : "-translate-x-full rtl:translate-x-full"
+                    }`}
+      >
+        <div className="h-16 flex items-center gap-2.5 px-5 border-b border-line-subtle pt-[env(safe-area-inset-top)]">
+          <span className="w-9 h-9 rounded-control bg-surface-inverse text-brand-gold flex items-center justify-center flex-shrink-0">
+            <Icon name="scissors" size={19} />
+          </span>
+          <div className="min-w-0">
+            <p className="text-h3 text-content-primary leading-tight">{t("app_name")}</p>
+            <p className="text-label uppercase text-content-muted">{t("platform_admin")}</p>
+          </div>
         </div>
 
-        <nav className="p-4 space-y-2">
-          <NavItem to="tenants" label="🏬 Tenants" onClick={() => setMobileOpen(false)} />
-          <NavItem to="customers" label="👥 Customers" onClick={() => setMobileOpen(false)} />
-          <NavItem to="reports" label="📊 Reports" onClick={() => setMobileOpen(false)} />
-          <NavItem to="activity-log" label="📜 Activity Log" onClick={() => setMobileOpen(false)} />
-          <NavItem to="env" label="🧪 Environment" onClick={() => setMobileOpen(false)} />
+        <nav aria-label="Main" className="flex-1 p-3 space-y-1 overflow-y-auto">
+          {NAV.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              onClick={closeDrawer}
+              className={({ isActive }) =>
+                [
+                  "flex items-center gap-3 px-3 h-11 rounded-control text-body-sm font-semibold transition-colors",
+                  isActive
+                    ? "bg-brand-gold-soft text-brand-gold-text"
+                    : "text-content-secondary hover:bg-surface-sunken"
+                ].join(" ")
+              }
+            >
+              <Icon name={item.icon} size={18} />
+              <span className="truncate">{t(item.labelKey)}</span>
+            </NavLink>
+          ))}
         </nav>
 
-        {/* User Info Mobile */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] border-t lg:hidden bg-gray-50">
-           <button
-             onClick={handleLogout}
-             className="w-full inline-flex items-center justify-center gap-2 px-3 py-3 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl transition-colors text-sm"
-           >
-             Sign Out
-           </button>
+        <div className="p-3 border-t border-line-subtle pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+          <button
+            type="button"
+            onClick={() => {
+              closeDrawer();
+              setLogoutOpen(true);
+            }}
+            className="w-full flex items-center gap-3 px-3 h-11 rounded-control text-body-sm font-semibold text-state-danger hover:bg-state-danger-soft"
+          >
+            <Icon name="logout" size={18} />
+            {t("logout")}
+          </button>
         </div>
       </aside>
 
-      {/* MAIN */}
+      {/* ---- main ---- */}
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="sticky top-0 z-50 bg-white/95 shadow-sm border-b border-gray-200">
-          <div className="h-[env(safe-area-inset-top)] bg-white" />
-          <header className="bg-transparent px-4 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            {/* Mobile Toggle */}
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="lg:hidden p-2 rounded-xl hover:bg-gray-100 transition-colors"
-            >
-              <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={mobileOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
-              </svg>
-            </button>
-            <h2 className="text-xl font-bold text-gray-900">
-              Platform Dashboard
-            </h2>
-            <ConnectionBadge className="hidden sm:flex" />
-          </div>
+        <header className="sticky top-0 z-30 bg-surface-base/95 backdrop-blur-lg border-b border-line-subtle pt-[env(safe-area-inset-top)]">
+          <div className="h-14 px-3 lg:px-6 flex items-center gap-2">
+            <span className="lg:hidden">
+              <IconButton
+                icon={mobileOpen ? "x" : "list"}
+                label={t("nav_more")}
+                onClick={() => setMobileOpen((open) => !open)}
+              />
+            </span>
 
-          <div className="flex items-center gap-4">
-            <ThemeToggle className="hidden sm:inline-flex" />
-            <div className="hidden sm:block text-sm font-bold text-gray-500 uppercase tracking-widest">
-              Super Admin
-            </div>
-            <button
-              onClick={handleLogout}
-              className="hidden lg:inline-flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 font-bold rounded-xl transition-colors text-sm"
+            <h1 className="flex-1 text-h3 text-content-primary truncate">
+              {t("platform_dashboard")}
+            </h1>
+
+            <span
+              className={`hidden sm:inline-flex items-center gap-1.5 text-caption font-semibold ${
+                isOnline ? "text-state-success" : "text-state-danger"
+              }`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              Sign Out
-            </button>
+              <span
+                className={`w-1.5 h-1.5 rounded-pill ${
+                  isOnline ? "bg-state-success" : "bg-state-danger"
+                }`}
+              />
+              {isOnline ? t("online") : t("offline_title")}
+            </span>
+
+            <IconButton
+              icon={theme === "dark" ? "moon" : "sun"}
+              label={t("appearance")}
+              onClick={toggleTheme}
+            />
           </div>
         </header>
-        </div>
 
-        {/* CONTENT */}
-        <main className="app-page flex-1">
+        {!isOnline ? (
+          <div className="px-4 pt-3">
+            <OfflineBanner />
+          </div>
+        ) : null}
+
+        <main className="flex-1 p-4 lg:p-6 min-w-0">
           <Outlet />
         </main>
       </div>
 
-      {/* Mobile Overlay */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
-          onClick={() => setMobileOpen(false)}
-        ></div>
-      )}
-    </div>
-  );
-}
+      {/* ---- drawer scrim ---- */}
+      {mobileOpen ? (
+        <button
+          type="button"
+          aria-label={t("close")}
+          onClick={closeDrawer}
+          className="fixed inset-0 z-30 lg:hidden animate-fade-in"
+          style={{ background: "var(--scrim)" }}
+        />
+      ) : null}
 
-function NavItem({ to, label, onClick }) {
-  return (
-    <NavLink
-      to={to}
-      onClick={onClick}
-      className={({ isActive }) =>
-        `block px-4 py-3 rounded-xl text-sm font-bold transition-all ${
-          isActive
-            ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
-            : "text-gray-700 hover:bg-gray-100"
-        }`
-      }
-    >
-      {label}
-    </NavLink>
+      <ConfirmSheet
+        open={logoutOpen}
+        onClose={() => setLogoutOpen(false)}
+        onConfirm={() => {
+          dispatch(logout());
+          navigate("/login", { replace: true });
+        }}
+        destructive={false}
+        title={t("logout_title")}
+        message={t("logout_message")}
+        confirmLabel={t("logout")}
+        cancelLabel={t("cancel")}
+      />
+    </div>
   );
 }

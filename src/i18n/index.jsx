@@ -13,9 +13,20 @@ export function I18nProvider({ children }) {
     return localStorage.getItem(LANG_KEY) || "en";
   });
 
+  /*
+   * t("wait_range", { low: 20, high: 30 }) fills {low}/{high} placeholders.
+   * The params argument is optional, so every existing single-argument call
+   * keeps working unchanged.
+   */
   const t = useCallback(
-    (key) => {
-      return translations[locale]?.[key] || translations.en[key] || key;
+    (key, params) => {
+      const template = translations[locale]?.[key] ?? translations.en[key] ?? key;
+      if (!params) return template;
+
+      return Object.keys(params).reduce(
+        (acc, name) => acc.split(`{${name}}`).join(String(params[name])),
+        template
+      );
     },
     [locale]
   );

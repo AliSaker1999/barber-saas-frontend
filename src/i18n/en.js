@@ -1,4 +1,9 @@
+import redesign from "./redesign.en";
+
 const en = {
+  /* Redesigned-experience vocabulary lives in ./redesign.en.js. */
+  ...redesign,
+
   dir: "ltr",
   lang: "en",
 

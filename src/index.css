@@ -1,541 +1,173 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
+/* ============================================================================
+   AJMAL — GLOBAL STYLESHEET
+   Load order matters:
+     1. fonts
+     2. semantic tokens              (styles/tokens.css)
+     3. tailwind base / components
+     4. app base + utilities         (this file)
+     5. tailwind utilities
+     6. legacy compatibility shim    (styles/legacy-compat.css — deprecated)
+   ========================================================================== */
 
-/* === Semantic Utility Classes for App Colors === */
-.bg-app-bg { background-color: var(--app-bg) !important; }
-.bg-app-surface { background-color: var(--app-surface) !important; }
-.bg-app-surface-2 { background-color: var(--app-surface-2) !important; }
-.bg-app-primary { background: var(--app-primary-gradient, var(--app-primary)) !important; }
-.bg-app-primary-solid { background-color: var(--app-primary) !important; }
-.bg-app-accent { background-color: var(--app-accent) !important; }
-.bg-app-success { background-color: var(--app-success) !important; }
-.bg-app-warning { background-color: var(--app-warning) !important; }
-.bg-app-error { background-color: var(--app-error) !important; }
-.bg-app-info { background-color: var(--app-info) !important; }
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap');
+@import './styles/tokens.css';
+/* Deprecated shim — imported last so it can only ever override legacy screens. */
+@import './styles/legacy-compat.css';
 
-.text-app-primary { color: var(--app-primary) !important; }
-.text-app-primary-gradient { background: var(--app-primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.text-app-bg { color: var(--app-bg) !important; }
-.text-app-surface { color: var(--app-surface) !important; }
-.text-app-accent { color: var(--app-accent) !important; }
-.text-app-success { color: var(--app-success) !important; }
-.text-app-warning { color: var(--app-warning) !important; }
-.text-app-error { color: var(--app-error) !important; }
-.text-app-info { color: var(--app-info) !important; }
-.text-app-muted { color: var(--app-muted) !important; }
-.text-app-text { color: var(--app-text) !important; }
-
-.border-app-primary { border-color: var(--app-primary) !important; }
-.border-app-bg { border-color: var(--app-bg) !important; }
-.border-app-surface { border-color: var(--app-surface) !important; }
-.border-app-accent { border-color: var(--app-accent) !important; }
-.border-app-success { border-color: var(--app-success) !important; }
-.border-app-warning { border-color: var(--app-warning) !important; }
-.border-app-error { border-color: var(--app-error) !important; }
-.border-app-info { border-color: var(--app-info) !important; }
-.border-app-muted { border-color: var(--app-muted) !important; }
-.border-app-border { border-color: var(--app-border) !important; }
-
-.gradient-app-primary { background: var(--app-primary-gradient) !important; }
 @tailwind base;
 @tailwind components;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  html,
+  body {
+    background-color: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    min-height: 100%;
+    /* Antialiasing keeps Manrope legible on low-DPI Android panels. */
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Arabic gets a real Arabic face, not a Latin font rendering Arabic glyphs. */
+  html[lang="ar"] body,
+  html[lang="ar"] input,
+  html[lang="ar"] textarea,
+  html[lang="ar"] select,
+  html[lang="ar"] button {
+    font-family: var(--font-arabic);
+  }
+
+  #root {
+    min-height: 100vh;
+    background-color: var(--surface-base);
+  }
+
+  /* A visible, brand-coloured focus ring for keyboard and switch-access users. */
+  :focus-visible {
+    outline: 2px solid var(--brand-gold);
+    outline-offset: 2px;
+  }
+
+  h1, h2, h3, h4 {
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+  }
+
+  /* Prevent iOS/Android zoom-on-focus without disabling pinch zoom. */
+  input, select, textarea {
+    font-size: 16px;
+  }
+
+  ::placeholder { color: var(--text-muted); }
+
+  /* Respect the OS reduced-motion preference — animation is decoration here. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Prices, times and queue positions must not jitter as digits change. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* Minimum comfortable touch target (44px) for icon-only controls. */
+  .tap-target {
+    min-width: 44px;
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  .safe-top { padding-top: env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+  /* Horizontal rails: momentum scroll, no visible scrollbar, snap to cards. */
+  .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+
+  .snap-rail {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+  .snap-rail > * { scroll-snap-align: start; }
+
+  /* Directional glyphs (chevrons, arrows) must point the other way in Arabic. */
+  [dir="rtl"] .flip-rtl { transform: scaleX(-1); }
+
+  /* Press feedback: the only motion on a tap. */
+  .press {
+    transition: transform var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
+  }
+  .press:active { transform: scale(0.975); }
+
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--surface-sunken) 25%,
+      var(--border-subtle) 37%,
+      var(--surface-sunken) 63%
+    );
+    background-size: 400% 100%;
+    animation: aj-shimmer 1.4s ease-in-out infinite;
+  }
+}
+
 @tailwind utilities;
 
-:root {
-    font-size: 15px;
-    color-scheme: light;
-
-    /* Light Mode Palette */
-    --app-primary: #D4AF37;
-    --app-primary-2: #D4AF37;
-    --app-primary-hover: #b28320;
-    --app-primary-gradient: linear-gradient(135deg, #D4AF37 0%, #FFE082 100%);
-    --app-bg: #F9FAFB;
-    --app-surface: #FFFFFF;
-    --app-surface-2: #F5F5F7;
-    --app-border: rgba(212,175,55,0.18);
-
-    /* Text */
-    --app-text: #1A1A1B;
-    --app-muted: #A3A3A3;
-    --app-accent: #D4AF37;
-
-    /* Functional Colors */
-    --app-success: #28a745;
-    --app-warning: #ffc107;
-    --app-error: #dc3545;
-    --app-info: #17a2b8;
-    --app-danger: var(--app-error);
-  }
-
-  /*
-     Dark Mode: Gold on deep black/grey
-  */
-  :root.dark {
-    color-scheme: dark;
-    --app-primary: #D4AF37;
-    --app-primary-2: #D4AF37;
-    --app-primary-hover: #FFE082;
-    --app-primary-gradient: linear-gradient(135deg, #D4AF37 0%, #FFE082 100%);
-    --app-bg: #0F1012;
-    --app-surface: #1C1E22;
-    --app-surface-2: #23262A;
-    --app-border: rgba(212,175,55,0.18);
-
-    /* Text */
-    --app-text: #FFFFFF;
-    --app-muted: #A3A3A3;
-    --app-accent: #D4AF37;
+/* ---------------------------------------------------------------------------
+   Keyframes — subtle, purposeful only (spec §27).
+   ------------------------------------------------------------------------- */
+@keyframes aj-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
 }
 
-/* 
-   BRAND OVERRIDES
-   Force existing blue/indigo components to use the new Brand Navy 
-   allows "changing colors" without editing every React component.
-*/
-
-/* Gold backgrounds for all blue/indigo utility classes */
-.bg-blue-600, .bg-indigo-600, 
-.bg-blue-500, .bg-indigo-500,
-.dark .bg-blue-600, .dark .bg-indigo-600,
-.dark .bg-blue-500, .dark .bg-indigo-500 {
-  background: var(--app-primary-gradient) !important;
-  color: #232323 !important;
-  border: none !important;
+@keyframes aj-sheet-in {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
 }
 
-/* Gold text for primary buttons if they were white text */
-.bg-blue-600.text-white, .bg-indigo-600.text-white {
-  color: #232323 !important;
+@keyframes aj-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-/* Gold hover states */
-.hover\:bg-blue-700:hover, .hover\:bg-indigo-700:hover {
-  background: var(--app-primary-gradient) !important;
-  filter: brightness(0.95);
+@keyframes aj-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* Text Colors */
-.text-blue-600, .text-indigo-600,
-.text-blue-500, .text-indigo-500,
-.dark .text-blue-600, .dark .text-indigo-600,
-.dark .text-blue-500, .dark .text-indigo-500 {
-    color: var(--app-primary) !important;
+@keyframes aj-check {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
-/* Remove blue hover / focus / ring visual language and replace with brand gold
-   Covers hover:bg-blue-*, hover:text-blue-*, focus:ring-blue-*, ring-blue-*, group-hover:text-blue-* etc. */
-.hover\:bg-blue-50:hover,
-.hover\:bg-blue-100:hover,
-.hover\:bg-blue-200:hover,
-.hover\:bg-blue-300:hover,
-.hover\:bg-blue-400:hover,
-.hover\:bg-blue-500:hover,
-.hover\:bg-blue-600:hover,
-.hover\:bg-blue-700:hover,
-.hover\:bg-indigo-50:hover,
-.hover\:bg-indigo-100:hover,
-.hover\:bg-indigo-200:hover,
-.hover\:bg-indigo-300:hover,
-.hover\:bg-indigo-400:hover,
-.hover\:bg-indigo-500:hover,
-.hover\:bg-indigo-600:hover,
-.hover\:bg-indigo-700:hover {
-  background: var(--app-primary-gradient) !important;
-  color: var(--app-text) !important;
+@keyframes aj-pulse-ring {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  70% { transform: scale(1.25); opacity: 0; }
+  100% { transform: scale(1.25); opacity: 0; }
 }
 
-.hover\:text-blue-600:hover,
-.hover\:text-blue-500:hover,
-.hover\:text-indigo-600:hover,
-.hover\:text-indigo-500:hover,
-.group-hover\:text-blue-600,
-.group-hover\:text-indigo-600 {
-  color: var(--app-primary) !important;
-}
-
-/* Focus / ring overrides */
-.focus\:ring-blue-500:focus,
-.ring-blue-500,
-.ring-blue-300,
-.focus\:ring-indigo-500:focus,
-.ring-indigo-500 {
-  --tw-ring-color: var(--app-primary) !important;
-  box-shadow: 0 0 0 4px rgba(212,175,55,0.12) !important;
-}
-
-/* Shadow overrides when color-specific shadow utilities are used */
-[class*="shadow-blue"],
-[class*="shadow-indigo"] {
-  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.35), 0 4px 6px -4px rgba(0,0,0,0.25) !important;
-}
-
-/* Replace explicit small blue glows used on light cards */
-.shadow-blue-200, .shadow-blue-100, .shadow-blue-50 {
-  box-shadow: 0 6px 10px -4px rgba(0,0,0,0.30) !important;
-}
-
-/* Ensure buttons using bg-blue-600 map to primary gradient (covers solid primary buttons) */
-.bg-blue-600, .bg-indigo-600, .hover\:bg-blue-700:hover, .hover\:bg-indigo-700:hover {
-  background: var(--app-primary-gradient) !important;
-  color: var(--app-text) !important;
-}
-
-/* Buttons which use text-blue for accents (e.g., secondary buttons) */
-.text-blue-600, .text-indigo-600 {
-  color: var(--app-primary) !important;
-}
-
-/* Borders */
-.border-blue-600, .border-indigo-600,
-.dark .border-blue-600, .dark .border-indigo-600 {
-    border-color: var(--app-primary) !important;
-}
-
-/* Gradients (Gold Gradient) */
-.from-blue-600, .from-indigo-600,
-.dark .from-blue-600, .dark .from-indigo-600 {
-  --tw-gradient-from: #d4af37 !important;
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
-}
-.to-blue-600, .to-indigo-600,
-.dark .to-blue-600, .dark .to-indigo-600 {
-  --tw-gradient-to: #f7ce68 !important;
-}
-
-/* 
-   LIGHT & DARK MODE COMPATIBILITY
-   Remap common Tailwind white/gray utilities to the app semantic colors so
-   pages don't need hardcoded color classes. Centralizes color control in `:root`.
-*/
-
-/* Light-mode remap (legacy classes -> semantic variables) */
-.bg-white,
-.bg-white-95,
-.bg-white-90,
-.bg-white-80,
-.bg-white-70,
-.bg-white-60,
-.bg-white-50,
-.bg-white-40,
-.bg-white-30,
-.bg-white-20,
-.bg-white-10 {
-  background-color: var(--app-surface) !important;
-}
-
-.bg-gray-50,
-.bg-gray-100,
-.bg-gray-200,
-.bg-slate-50,
-.bg-slate-100 {
-  background-color: var(--app-surface-2) !important;
-}
-
-.text-gray-900,
-.text-black,
-.text-slate-900 {
-  color: var(--app-text) !important;
-}
-
-.text-gray-700,
-.text-gray-600,
-.text-gray-500,
-.text-gray-400,
-.text-slate-500 {
-  color: var(--app-muted) !important;
-}
-
-.border-gray-100,
-.border-gray-200,
-.border-gray-300,
-.border-slate-200,
-.border-white {
-  border-color: var(--app-border) !important;
-}
-
-/* 
-   DARK MODE COMPATIBILITY 
-   Remapping hardcoded light colors to dark theme variables 
-*/
-
-:root.dark .bg-white,
-:root.dark .bg-gray-50,
-:root.dark .bg-gray-100,
-:root.dark .bg-gray-200,
-:root.dark .bg-slate-50,
-:root.dark .bg-slate-100 {
-    background-color: var(--app-surface) !important;
-}
-
-:root.dark .bg-gray-900,
-:root.dark .bg-black {
-    background-color: var(--app-bg) !important;
-}
-
-:root.dark .text-gray-900,
-:root.dark .text-gray-800,
-:root.dark .text-gray-700,
-:root.dark .text-black,
-:root.dark .text-slate-900 {
-    color: var(--app-text) !important;
-}
-
-:root.dark .text-gray-600,
-:root.dark .text-gray-500,
-:root.dark .text-gray-400,
-:root.dark .text-slate-500 {
-    color: var(--app-muted) !important;
-}
-
-:root.dark .border-gray-100,
-:root.dark .border-gray-200,
-:root.dark .border-gray-300,
-:root.dark .border-slate-200 {
-    border-color: var(--app-border) !important;
-}
-
-:root.dark .border-white {
-    border-color: var(--app-border) !important;
-}
-
-/* Form Elements in Dark Mode */
-:root.dark input,
-:root.dark textarea,
-:root.dark select {
-    color: var(--app-text);
-    background-color: var(--app-surface);
-    border-color: var(--app-border);
-}
-
-:root.dark input::placeholder,
-:root.dark textarea::placeholder {
-    color: var(--app-muted);
-}
-
-/* Broader dark-mode catches for Tailwind opacity and slash classes (bg-white/95, bg-white/10, etc.)
-   and various gray/bg variants used across components. This ensures no residual white
-   surfaces remain while `.dark` is active. */
-.dark [class*="bg-white"],
-.dark [class*="bg-gray-"],
-.dark [class*="bg-slate-"] {
-  background-color: var(--app-surface) !important;
-}
-
-/* Catch translucent white utilities like bg-white/10 which become CSS classes with a slash in markup.
-   Attribute selector [class*="bg-white"] covers them. */
-.dark [class*="bg-white/"] {
-  background-color: rgba(255,255,255,0.03) !important;
-}
-
-/* Borders and text remapping broadly for gray/border classes */
-.dark [class*="border-gray"],
-.dark [class*="border-slate"],
-.dark [class*="border-white"] {
-  border-color: var(--app-border) !important;
-}
-
-.dark [class*="text-gray"],
-.dark [class*="text-slate"],
-.dark [class*="text-black"] {
-  color: var(--app-text) !important;
-}
-
-.dark [class*="text-gray-"] {
-  color: var(--app-muted) !important;
-}
-
-
-/* Base mobile compatibility */
-html, body {
-  background-color: var(--app-bg);
-  color: var(--app-text);
-  min-height: 100%;
-}
-
-#root {
-	min-height: 100vh;
-	background-color: var(--app-bg);
-}
-
-.app-page {
-	padding: 0.75rem;
-}
-
-@media (min-width: 640px) {
-	.app-page {
-		padding: 1rem;
-	}
-}
-
-/* Safe area utilities */
-.safe-top {
-  padding-top: env(safe-area-inset-top);
-}
-.safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom);
-}
-.safe-left {
-  padding-left: env(safe-area-inset-left);
-}
-.safe-right {
-  padding-right: env(safe-area-inset-right);
-}
-
-/* Mobile App specific tweaks */
-@media (max-width: 640px) {
-  .app-modal {
-    width: 100%;
-    height: 100%;
-    max-height: 100%;
-    border-radius: 0;
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-  
-  .app-modal-content {
-    flex: 1;
-  }
-
-  /* Make sure inputs don't zoom on iOS */
-  input, select, textarea {
-    font-size: 16px !important;
-  }
-}
-
-.app-modal-overlay {
-	position: fixed;
-	inset: 0;
-	background: rgba(0, 0, 0, 0.5);
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	z-index: 9999;
-	backdrop-filter: blur(2px);
-	pointer-events: auto;
-}
-
-.app-modal {
-	background: var(--app-surface);
-	border-radius: 12px;
-	width: 90%;
-	max-width: 500px;
-	max-height: 90vh;
-	display: flex;
-	flex-direction: column;
-  box-shadow: 0 20px 35px -10px rgba(0,0,0,0.6), 0 10px 18px -12px rgba(0,0,0,0.45);
-	position: relative;
-}
-
-.app-modal-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	padding: 16px 20px;
-  border-bottom: 1px solid var(--app-border);
-}
-
-.app-modal-title {
-	font-size: 1.25rem;
-	font-weight: 700;
-	color: var(--app-text);
-	margin: 0;
-}
-
-.app-modal-content {
-	padding: 20px;
-	overflow-y: auto;
-}
-
-.app-modal-close {
-	border: none;
-	background: none;
-	font-size: 24px;
-	line-height: 1;
-	color: var(--app-muted);
-	cursor: pointer;
-	transition: color 0.2s;
-}
-
-/* --- Premium UI Utilities --- */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 25px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
-}
-
-.btn-primary {
-  background: var(--app-primary-gradient);
-  color: var(--app-text);
-  box-shadow: 0 8px 20px -8px rgba(212,175,55,0.45), inset 0 -2px 0 rgba(0,0,0,0.12);
-}
-.btn-primary:hover { transform: translateY(-2px); }
-
-.btn-ghost {
-  background: transparent;
-  color: var(--app-primary-2);
-  border: 1px solid rgba(255,255,255,0.04);
-}
-
-.card {
-  background: var(--app-surface);
-  border-radius: 12px;
-  padding: 1rem;
-  border: 1px solid var(--app-border);
-  box-shadow: 0 8px 30px -12px rgba(0,0,0,0.08);
-}
-
-.card-ghost {
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-  border-radius: 16px;
-  padding: 0.75rem;
-  border: 1px solid rgba(255,255,255,0.03);
-}
-
-.input {
-  background: var(--app-surface-2);
-  border: 1px solid var(--app-border);
-  padding: 0.65rem 0.9rem;
-  border-radius: 10px;
-  color: var(--app-text);
-}
-
-.nav-bottom {
-  background: var(--app-surface);
-  border-top: 1px solid var(--app-border);
-}
-
-.nav-item-active {
-  background: linear-gradient(180deg, rgba(201,154,47,0.12), rgba(201,154,47,0.06));
-  color: var(--app-text) !important;
-  box-shadow: 0 8px 26px -12px rgba(201,154,47,0.28);
-}
-
-/* subtle content divider */
-.divider { height: 1px; background: linear-gradient(90deg, transparent, var(--app-border), transparent); }
-
-/* Dark mode tweaks for utilities */
-.dark .card { box-shadow: 0 10px 32px -14px rgba(0,0,0,0.7); }
-.dark .btn-primary { box-shadow: 0 10px 32px -14px rgba(201,154,47,0.28); }
-
-
-.tap-target {
-	min-width: 44px;
-	min-height: 44px;
-	touch-action: manipulation;
-}
-
-/* === RTL Support === */
-[dir="rtl"] {
-  text-align: right;
-}
-
-[dir="rtl"] .flex-row { flex-direction: row-reverse; }
+/* ---------------------------------------------------------------------------
+   RTL fallbacks for screens that still use physical Tailwind spacing.
+   New components use logical utilities (ms-/me-/ps-/pe-/start-/end-) or `gap`,
+   so they need none of this.
+   ------------------------------------------------------------------------- */
+[dir="rtl"] .space-x-1 > :not([hidden]) ~ :not([hidden]) { margin-left: 0; margin-right: 0.25rem; }
 [dir="rtl"] .space-x-2 > :not([hidden]) ~ :not([hidden]) { margin-left: 0; margin-right: 0.5rem; }
 [dir="rtl"] .space-x-3 > :not([hidden]) ~ :not([hidden]) { margin-left: 0; margin-right: 0.75rem; }
 [dir="rtl"] .space-x-4 > :not([hidden]) ~ :not([hidden]) { margin-left: 0; margin-right: 1rem; }
@@ -544,31 +176,7 @@ html, body {
 [dir="rtl"] .ml-4 { margin-left: 0; margin-right: 1rem; }
 [dir="rtl"] .mr-2 { margin-right: 0; margin-left: 0.5rem; }
 [dir="rtl"] .mr-3 { margin-right: 0; margin-left: 0.75rem; }
-[dir="rtl"] .pl-4 { padding-left: 0; padding-right: 1rem; }
-[dir="rtl"] .pr-4 { padding-right: 0; padding-left: 1rem; }
 [dir="rtl"] .text-left { text-align: right; }
 [dir="rtl"] .text-right { text-align: left; }
-[dir="rtl"] .border-l-4 { border-left: 0; border-right-width: 4px; }
-[dir="rtl"] .border-l-8 { border-left: 0; border-right-width: 8px; }
-[dir="rtl"] .rounded-l-lg { border-radius: 0 0.5rem 0.5rem 0; }
-[dir="rtl"] .rounded-r-lg { border-radius: 0.5rem 0 0 0.5rem; }
-
-/* Arabic font for RTL */
-[dir="rtl"] body,
-[dir="rtl"] * {
-  font-family: "Tajawal", "Segoe UI", system-ui, -apple-system, sans-serif;
-}
-
-@media (max-width: 640px) {
-	:root {
-		font-size: 15px;
-	}
-
-	.app-modal {
-		width: 100%;
-		max-width: 100%;
-		height: 100%;
-		max-height: 100vh;
-		border-radius: 0;
-	}
-}
+[dir="rtl"] .border-l-4 { border-left-width: 0; border-right-width: 4px; }
+[dir="rtl"] .border-l-8 { border-left-width: 0; border-right-width: 8px; }
