@@ -248,10 +248,10 @@ export default function BarberMyProfile() {
             <div className="md:col-span-2 bg-app-surface border border-app-border rounded-[12px] p-6">
                <h3 className="text-lg font-bold text-app-text mb-4">Availability Settings</h3>
                <div className="flex flex-col md:flex-row gap-8">
-                  <div className="flex items-center justify-between bg-app-surface p-4 rounded-[12px] shadow-sm w-full">
+                  <div className="flex items-center justify-between bg-surface-sunken border border-line-subtle p-4 rounded-[12px] w-full">
                       <div>
-                          <p className="font-bold text-app-text">Queue Walk-Ins</p>
-                          <p className="text-xs text-app-muted">Allow customers to join your queue now</p>
+                          <p className="font-bold text-content-primary">Queue Walk-Ins</p>
+                          <p className="text-xs text-content-muted">Allow customers to join your queue now</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input 
@@ -260,14 +260,14 @@ export default function BarberMyProfile() {
                           checked={selectedProfile?.IsAvailable ?? false}
                           onChange={(e) => selectedProfile?.Id && dispatch(toggleAvailability({ barberId: selectedProfile.Id, isAvailable: e.target.checked }))}
                         />
-                        <div className="w-11 h-6 bg-app-bg peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-app-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app-surface after:border-app-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-app-accent"></div>
+                        <div className="w-11 h-6 shrink-0 rounded-full bg-line-strong transition-colors peer peer-checked:bg-brand-gold peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-brand-gold peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface-sunken after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:border after:border-line-strong after:shadow-sm after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
                       </label>
                   </div>
 
-                  <div className="flex items-center justify-between bg-app-surface p-4 rounded-[12px] shadow-sm w-full">
+                  <div className="flex items-center justify-between bg-surface-sunken border border-line-subtle p-4 rounded-[12px] w-full">
                       <div>
-                          <p className="font-bold text-app-text">Online Booking</p>
-                          <p className="text-xs text-app-muted">Accept future appointment requests</p>
+                          <p className="font-bold text-content-primary">Online Booking</p>
+                          <p className="text-xs text-content-muted">Accept future appointment requests</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input 
@@ -276,14 +276,14 @@ export default function BarberMyProfile() {
                           checked={selectedProfile?.IsAcceptingAppointments ?? false}
                           onChange={(e) => selectedProfile?.Id && dispatch(toggleAvailability({ barberId: selectedProfile.Id, isAcceptingAppointments: e.target.checked }))}
                         />
-                        <div className="w-11 h-6 bg-app-bg peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-app-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app-surface after:border-app-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-app-accent"></div>
+                        <div className="w-11 h-6 shrink-0 rounded-full bg-line-strong transition-colors peer peer-checked:bg-brand-gold peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-brand-gold peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface-sunken after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:border after:border-line-strong after:shadow-sm after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
                       </label>
                   </div>
 
-                  <div className="flex items-center justify-between bg-app-surface p-4 rounded-[12px] shadow-sm w-full">
+                  <div className="flex items-center justify-between bg-surface-sunken border border-line-subtle p-4 rounded-[12px] w-full">
                       <div>
-                          <p className="font-bold text-app-text">Auto-Accept</p>
-                          <p className="text-xs text-app-muted">Skip the "Pending" review phase</p>
+                          <p className="font-bold text-content-primary">Auto-Accept</p>
+                          <p className="text-xs text-content-muted">Skip the "Pending" review phase</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input 
@@ -292,7 +292,7 @@ export default function BarberMyProfile() {
                           checked={selectedProfile?.AutoAcceptAppointments ?? true}
                           onChange={(e) => selectedProfile?.Id && dispatch(toggleAvailability({ barberId: selectedProfile.Id, autoAcceptAppointments: e.target.checked }))}
                         />
-                        <div className="w-11 h-6 bg-app-bg peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-app-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app-surface after:border-app-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-app-accent"></div>
+                        <div className="w-11 h-6 shrink-0 rounded-full bg-line-strong transition-colors peer peer-checked:bg-brand-gold peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-brand-gold peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface-sunken after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:border after:border-line-strong after:shadow-sm after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
                       </label>
                   </div>
                </div>

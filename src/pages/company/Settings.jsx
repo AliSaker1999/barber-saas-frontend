@@ -409,7 +409,7 @@ export default function Settings() {
                       checked={!day.isClosed}
                       onChange={(e) => updateDay(dayIndex, { isClosed: !e.target.checked })}
                     />
-                    <div className="w-11 h-6 bg-app-bg peer-focus:ring-4 peer-focus:ring-app-accent rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border after:border-app-border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-app-accent"></div>
+                    <div className="w-11 h-6 shrink-0 rounded-full bg-line-strong transition-colors peer peer-checked:bg-brand-gold peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-brand-gold peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface-raised after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:border after:border-line-strong after:shadow-sm after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
                     <span className="ms-3 text-xs font-bold text-app-muted">
                       {day.isClosed ? "Closed" : "Open"}
                     </span>
