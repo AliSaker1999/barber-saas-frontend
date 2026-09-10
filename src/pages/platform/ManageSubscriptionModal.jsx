@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { updateTenantSubscription } from "../../features/platformTenants/platformTenantsSlice";
 import Modal from "../../components/Modal";
+import Select from "../../components/ui/Select";
 
 export default function ManageSubscriptionModal({ tenant, open, onClose }) {
   const dispatch = useAppDispatch();
@@ -42,18 +43,21 @@ export default function ManageSubscriptionModal({ tenant, open, onClose }) {
         <form onSubmit={submit} className="space-y-3">
           <div>
             <label className="block text-sm font-medium text-app-text mb-1">Plan</label>
-            <select
-              className="w-full px-3 py-2 bg-app-surface border-2 border-app-border rounded-[12px] focus:border-app-accent focus:outline-none text-app-text"
+            <Select
               value={planId}
               onChange={(e) => setPlanId(e.target.value)}
-            >
-              <option value="">No plan assigned</option>
-              {plans.map((p) => (
-                <option key={p.Id} value={p.Id}>
-                  {p.Name} — ${Number(p.MonthlyPrice).toFixed(0)}/mo ({p.MinBarbers}{p.MaxBarbers ? `–${p.MaxBarbers}` : "+"} barbers)
-                </option>
-              ))}
-            </select>
+              placeholder="No plan assigned"
+              searchPlaceholder="Search plans..."
+              options={[
+                { value: "", label: "No plan assigned", icon: "x" },
+                ...plans.map((p) => ({
+                  value: p.Id,
+                  label: p.Name,
+                  icon: "card",
+                  hint: `$${Number(p.MonthlyPrice).toFixed(0)}/mo · ${p.MinBarbers}${p.MaxBarbers ? `–${p.MaxBarbers}` : "+"} barbers`
+                }))
+              ]}
+            />
             {planId === "" && (
               <p className="text-xs text-red-600 mt-1">
                 Saving with no plan will also deactivate this shop — its staff won't be able to log in.

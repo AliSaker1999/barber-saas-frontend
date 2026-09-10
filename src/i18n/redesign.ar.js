@@ -23,6 +23,9 @@ const redesignAr = {
   hours_short: "{n} ساعة",
   duration_none: "—",
   not_set: "غير محدد",
+  select_placeholder: "اختر...",
+  select_search: "بحث...",
+  select_no_results: "لا نتائج",
 
   verified: "موثّق",
   loyalty_title: "الولاء",

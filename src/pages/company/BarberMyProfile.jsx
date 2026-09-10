@@ -12,6 +12,15 @@ import { uploadImage } from "../../services/media";
 import LoadingState from "../../components/LoadingState";
 import ErrorState from "../../components/ErrorState";
 import OptimizedImage from "../../components/OptimizedImage";
+import Select from "../../components/ui/Select";
+
+/* Who this barber cuts for — drives the customer-side specialty filter. */
+const GENDER_SPECIALTY_OPTIONS = [
+  { value: "Male", label: "Male", icon: "gender-male" },
+  { value: "Female", label: "Female", icon: "gender-female" },
+  { value: "Unisex", label: "Unisex", icon: "gender-unisex" },
+  { value: "Other", label: "Other", icon: "gender-other" }
+];
 import { getFriendlyErrorMessage } from "../../utils/errorMessages";
 import { formatDateOnly } from "../../utils/time";
 
@@ -312,18 +321,13 @@ export default function BarberMyProfile() {
 
             <div>
               <label className="block text-sm font-medium text-app-text mb-1">Gender / Specialty</label>
-              <select
+              <Select
                 name="gender"
                 value={formData.gender}
                 onChange={handleChange}
-                className="w-full border border-app-border bg-app-surface rounded-[12px] px-4 py-2 focus:ring-2 focus:ring-app-accent outline-none text-app-text"
-              >
-                <option value="">Select...</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Unisex">Unisex</option>
-                <option value="Other">Other</option>
-              </select>
+                placeholder="Select..."
+                options={GENDER_SPECIALTY_OPTIONS}
+              />
             </div>
 
             <div>
@@ -506,12 +510,14 @@ export default function BarberMyProfile() {
             <h3 className="text-sm font-black text-app-text uppercase tracking-widest">Propose a Swap</h3>
             <div>
               <label className="block text-xs font-bold text-app-muted mb-1">Swap with</label>
-              <select required value={swapForm.partnerBarberId}
+              <Select
+                required
+                size="sm"
+                value={swapForm.partnerBarberId}
                 onChange={e => setSwapForm(f => ({ ...f, partnerBarberId: e.target.value }))}
-                className="w-full px-3 py-2 border border-app-border rounded-lg bg-app-surface text-app-text text-sm">
-                <option value="">Select a colleague...</option>
-                {otherBarbers.map(b => <option key={b.Id} value={b.Id}>{b.FullName}</option>)}
-              </select>
+                placeholder="Select a colleague..."
+                options={otherBarbers.map(b => ({ value: b.Id, label: b.FullName, icon: "user" }))}
+              />
             </div>
             <p className="text-xs text-app-muted">You give up:</p>
             <div className="grid grid-cols-2 gap-3">

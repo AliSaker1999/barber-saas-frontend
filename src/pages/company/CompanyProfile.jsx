@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchCompanyProfile, updateCompanyProfile, resetUpdateSuccess } from "../../features/company/companySlice";
 import { fetchServices } from "../../features/services/servicesSlice";
@@ -13,11 +13,16 @@ import { uploadImage } from "../../services/media";
 import Modal from "../../components/Modal";
 import OptimizedImage from "../../components/OptimizedImage";
 import ShareButton from "../../components/ShareButton";
+import Select from "../../components/ui/Select";
 
 export default function CompanyProfile() {
   const dispatch = useDispatch();
   const { profile, loading, updateSuccess, error } = useSelector((state) => state.company);
   const services = useSelector((state) => state.services.items);
+  const serviceOptions = useMemo(
+    () => (services || []).map((service) => ({ value: service.Id, label: service.Name, icon: "scissors" })),
+    [services]
+  );
   const { items: rewards, loading: rewardsLoading, error: rewardsError } = useSelector(
     (state) => state.loyalty.rewards
   );
@@ -508,16 +513,13 @@ export default function CompanyProfile() {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         <div className="md:col-span-2">
                           <label className="block text-sm font-semibold text-app-text mb-2">Service</label>
-                          <select
+                          <Select
+                            size="lg"
                             value={newRewardServiceId}
                             onChange={(e) => setNewRewardServiceId(e.target.value)}
-                            className="w-full px-4 py-3 bg-app-surface border border-app-border rounded-[12px] focus:bg-app-surface focus:border-app-accent font-bold text-app-text"
-                          >
-                            <option value="">Select a service</option>
-                            {services.map(service => (
-                              <option key={service.Id} value={service.Id}>{service.Name}</option>
-                            ))}
-                          </select>
+                            placeholder="Select a service"
+                            options={serviceOptions}
+                          />
                         </div>
                         <div>
                           <label className="block text-sm font-semibold text-app-text mb-2">Points Required</label>
@@ -924,16 +926,13 @@ export default function CompanyProfile() {
         <div className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-semibold text-app-text mb-2">Service</label>
-            <select
+            <Select
+              size="lg"
               value={editRewardServiceId}
               onChange={(e) => setEditRewardServiceId(e.target.value)}
-              className="w-full px-4 py-3 bg-app-surface border border-app-border rounded-[12px] focus:bg-app-surface focus:border-app-accent font-bold text-app-text"
-            >
-              <option value="">Select a service</option>
-              {services.map(service => (
-                <option key={service.Id} value={service.Id}>{service.Name}</option>
-              ))}
-            </select>
+              placeholder="Select a service"
+              options={serviceOptions}
+            />
           </div>
           <div>
             <label className="block text-sm font-semibold text-app-text mb-2">Points Required</label>

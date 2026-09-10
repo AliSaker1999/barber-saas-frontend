@@ -2,6 +2,13 @@ import { useState, useEffect } from "react";
 import { useAppDispatch } from "../../app/hooks";
 import { updateCustomerPlatform } from "../../features/platformCustomers/platformCustomersSlice";
 import Modal from "../../components/Modal";
+import Select from "../../components/ui/Select";
+
+const GENDER_OPTIONS = [
+  { value: "Male", label: "Male", icon: "gender-male" },
+  { value: "Female", label: "Female", icon: "gender-female" },
+  { value: "Other", label: "Other", icon: "gender-other" }
+];
 
 export default function EditCustomerModal({ customer, isOpen, onClose }) {
   const dispatch = useAppDispatch();
@@ -63,17 +70,13 @@ export default function EditCustomerModal({ customer, isOpen, onClose }) {
             <Field label="Phone Number" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} />
             <div className="md:col-span-1">
                <label className="block text-xs font-black text-app-muted uppercase tracking-widest ml-1 mb-1.5">Gender</label>
-               <select 
-                 name="gender" 
-                 value={formData.gender} 
+               <Select
+                 name="gender"
+                 value={formData.gender}
                  onChange={handleChange}
-                 className="w-full px-4 py-2.5 bg-app-surface border-2 border-app-border rounded-[12px] focus:border-app-accent focus:bg-app-surface-2 focus:outline-none transition-all text-app-text font-bold"
-               >
-                 <option value="">Select Gender</option>
-                 <option value="Male">Male</option>
-                 <option value="Female">Female</option>
-                 <option value="Other">Other</option>
-               </select>
+                 placeholder="Select Gender"
+                 options={GENDER_OPTIONS}
+               />
             </div>
             <Field label="Birth Date" name="birthdate" value={formData.birthdate} onChange={handleChange} type="date" />
           </div>

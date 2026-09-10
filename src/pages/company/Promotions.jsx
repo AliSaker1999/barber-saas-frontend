@@ -9,6 +9,12 @@ import {
 import LoadingState from "../../components/LoadingState";
 import EmptyState from "../../components/EmptyState";
 import Modal from "../../components/Modal";
+import Select from "../../components/ui/Select";
+
+const DISCOUNT_TYPE_OPTIONS = [
+  { value: "PERCENTAGE", label: "Percentage (%)", icon: "tag" },
+  { value: "FIXED", label: "Fixed Amount ($)", icon: "wallet" }
+];
 
 const EMPTY_FORM = {
   title: "",
@@ -198,14 +204,11 @@ export default function Promotions() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-bold text-app-text mb-1">Discount Type</label>
-              <select
+              <Select
                 value={form.discountType}
                 onChange={(e) => handleChange("discountType", e.target.value)}
-                className="w-full px-4 py-2.5 border border-app-border rounded-xl bg-app-surface text-app-text"
-              >
-                <option value="PERCENTAGE">Percentage (%)</option>
-                <option value="FIXED">Fixed Amount ($)</option>
-              </select>
+                options={DISCOUNT_TYPE_OPTIONS}
+              />
             </div>
             <div>
               <label className="block text-sm font-bold text-app-text mb-1">Discount Value *</label>

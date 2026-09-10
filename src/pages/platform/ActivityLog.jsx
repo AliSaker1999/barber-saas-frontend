@@ -6,6 +6,7 @@ import LoadingState from "../../components/LoadingState";
 import EmptyState from "../../components/EmptyState";
 import Pagination from "../../components/Pagination";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
+import Select from "../../components/ui/Select";
 
 export default function ActivityLog() {
   const dispatch = useAppDispatch();
@@ -47,16 +48,16 @@ export default function ActivityLog() {
       <div className="bg-app-surface p-6 rounded-[12px] shadow-sm border border-app-border grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
           <label className="block text-xs font-black text-app-muted uppercase tracking-widest mb-2">Shop</label>
-          <select
-            className="w-full px-4 py-2.5 bg-app-surface border-2 border-app-border rounded-[12px] focus:border-app-accent focus:outline-none transition-all font-bold text-app-text"
+          <Select
             value={tenantId}
             onChange={e => { setTenantId(e.target.value); setCurrentPage(1); }}
-          >
-            <option value="">All shops</option>
-            {tenants.map(t => (
-              <option key={t.Id} value={t.Id}>{t.Name}</option>
-            ))}
-          </select>
+            placeholder="All shops"
+            searchPlaceholder="Search shops..."
+            options={[
+              { value: "", label: "All shops", icon: "globe" },
+              ...tenants.map(t => ({ value: t.Id, label: t.Name, icon: "scissors" }))
+            ]}
+          />
         </div>
         <div>
           <label className="block text-xs font-black text-app-muted uppercase tracking-widest mb-2">Action contains</label>

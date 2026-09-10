@@ -24,6 +24,9 @@ const redesignEn = {
   hours_short: "{n} h",
   duration_none: "—",
   not_set: "Not set",
+  select_placeholder: "Select...",
+  select_search: "Search...",
+  select_no_results: "No matches",
 
   verified: "Verified",
   loyalty_title: "Loyalty",

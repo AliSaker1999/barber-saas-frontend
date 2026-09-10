@@ -14,3 +14,8 @@ window.matchMedia = window.matchMedia || vi.fn().mockImplementation((query) => (
   removeEventListener: vi.fn(),
   dispatchEvent: vi.fn()
 }));
+
+// jsdom has no layout, so it implements neither of these. Select keeps the
+// highlighted option in view with scrollIntoView, and positions its panel from
+// the trigger's box — both are real browser APIs, not component fallbacks.
+Element.prototype.scrollIntoView = Element.prototype.scrollIntoView || vi.fn();

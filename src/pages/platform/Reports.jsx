@@ -6,6 +6,13 @@ import EmptyState from "../../components/EmptyState";
 import Pagination from "../../components/Pagination";
 import usePagination from "../../hooks/usePagination";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
+import Select from "../../components/ui/Select";
+
+const STATUS_OPTIONS = [
+  { value: "ALL", label: "All Statuses", icon: "list" },
+  { value: "ACTIVE", label: "Active", icon: "check" },
+  { value: "INACTIVE", label: "Inactive", icon: "x" }
+];
 
 export default function Reports() {
   const dispatch = useAppDispatch();
@@ -151,15 +158,11 @@ export default function Reports() {
         </div>
         <div>
           <label className="block text-xs font-black text-app-muted uppercase tracking-widest mb-2">Status</label>
-          <select 
-            className="w-full px-4 py-2.5 bg-app-surface border-2 border-app-border rounded-[12px] focus:border-app-accent focus:outline-none transition-all font-bold text-app-text"
+          <Select
             value={status}
             onChange={e => setStatus(e.target.value)}
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Inactive</option>
-          </select>
+            options={STATUS_OPTIONS}
+          />
         </div>
         <div>
           <label className="block text-xs font-black text-app-muted uppercase tracking-widest mb-2">Min. {activeTab === 'TENANTS' ? 'Revenue' : 'Spent'}</label>

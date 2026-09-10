@@ -18,6 +18,13 @@ import EmptyState from "../../components/EmptyState";
 import Pagination from "../../components/Pagination";
 import usePagination from "../../hooks/usePagination";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
+import Select from "../../components/ui/Select";
+
+const STATUS_OPTIONS = [
+  { value: "ALL", label: "All Statuses", icon: "list" },
+  { value: "ACTIVE", label: "Active Only", icon: "check" },
+  { value: "INACTIVE", label: "Inactive Only", icon: "x" }
+];
 
 export default function PlatformTenants() {
   const dispatch = useAppDispatch();
@@ -146,15 +153,11 @@ export default function PlatformTenants() {
             />
           </div>
           <div className="w-full md:w-48">
-            <select
-              className="w-full px-4 py-2 bg-app-surface border-2 border-app-border rounded-[12px] focus:border-app-accent focus:outline-none transition-all font-bold text-app-text"
+            <Select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
-            >
-              <option value="ALL">All Statuses</option>
-              <option value="ACTIVE">Active Only</option>
-              <option value="INACTIVE">Inactive Only</option>
-            </select>
+              options={STATUS_OPTIONS}
+            />
           </div>
         </div>
 

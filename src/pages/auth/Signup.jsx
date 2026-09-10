@@ -6,6 +6,13 @@ import PrivacyPolicyModal from "../../components/PrivacyPolicyModal";
 import TermsOfServiceModal from "../../components/TermsOfServiceModal";
 import ErrorState from "../../components/ErrorState";
 import { getFriendlyErrorMessage } from "../../utils/errorMessages";
+import Select from "../../components/ui/Select";
+
+const GENDER_OPTIONS = [
+  { value: "Male", label: "Male", icon: "gender-male" },
+  { value: "Female", label: "Female", icon: "gender-female" },
+  { value: "Unspecified", label: "Prefer not to say", icon: "gender-other" }
+];
 
 
 export default function Signup() {
@@ -235,27 +242,17 @@ export default function Signup() {
                 <label htmlFor="gender" className="block text-sm font-semibold text-app-text mb-2">
                   Gender
                 </label>
-                <div className="relative">
-                  <select
-                    id="gender"
-                    value={formData.gender}
-                    onChange={handleChange}
-                    name="gender"
-                    className="w-full px-4 py-3 pl-10 border-2 border-app-border rounded-[12px] focus:border-app-accent focus:outline-none transition-colors bg-app-surface hover:bg-app-surface-2 appearance-none text-app-text"
-                    required
-                  >
-                    <option value="" disabled>Select Gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Unspecified">Prefer not to say</option>
-                  </select>
-                  <svg className="absolute left-3 top-3.5 w-5 h-5 text-app-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-app-muted">
-                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                  </div>
-                </div>
+                <Select
+                  id="gender"
+                  name="gender"
+                  icon="user"
+                  size="lg"
+                  value={formData.gender}
+                  onChange={handleChange}
+                  placeholder="Select Gender"
+                  options={GENDER_OPTIONS}
+                  required
+                />
               </div>
 
               <div>
