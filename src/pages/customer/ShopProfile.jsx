@@ -9,32 +9,28 @@ import api from "../../services/api";
 import { getSocket } from "../../services/socket";
 
 import TopBar from "../../components/ui/TopBar";
-import Icon from "../../components/ui/Icon";
 import Button, { IconButton } from "../../components/ui/Button";
 import BottomSheet, { ConfirmSheet } from "../../components/ui/BottomSheet";
 import ServiceCard from "../../components/ui/ServiceCard";
 import BarberCard from "../../components/ui/BarberCard";
 import FavoriteButton from "../../components/FavoriteButton";
+import ShopHero from "../../components/shop/ShopHero";
+import ShopIdentity from "../../components/shop/ShopIdentity";
 import {
-  Avatar,
-  Photo,
-  Pill,
-  Rating,
-  SectionHeader,
-  LiveDot
-} from "../../components/ui/Primitives";
-import { shopAvailability, trimSeconds } from "../../utils/shopAvailability";
-import {
-  EmptyState,
-  ErrorState,
-  InlineError,
-  ListSkeleton,
-  Skeleton
-} from "../../components/ui/States";
+  ShopPromotion,
+  ShopServices,
+  ShopTeam,
+  ShopGallery,
+  ShopReviews,
+  ShopHours,
+  ShopInfoCard,
+  RatingBreakdown,
+  ReviewItem
+} from "../../components/shop/ShopSections";
+import { EmptyState, ErrorState, ListSkeleton, Skeleton } from "../../components/ui/States";
 import { useI18n } from "../../i18n";
-import { formatMoney, formatWaitRange, toDate } from "../../utils/format";
-import { toHHMM } from "../../utils/time";
-import { shopWhatsappHref, telHref } from "../../config/support";
+import { formatMoney, formatWaitRange } from "../../utils/format";
+import { mergeBarbersWithQueueStats } from "../../utils/shopAvailability";
 
 /*
  * Shop profile — the screen that has to sell the shop and then get out of the
@@ -48,9 +44,6 @@ import { shopWhatsappHref, telHref } from "../../config/support";
  * Everything below the hero loads in parallel and degrades section by section:
  * a failed gallery request must not take the price list down with it.
  */
-
-const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
-const DAY_KEYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
 const EMPTY_DETAILS = {
   tenantId: null,
@@ -139,121 +132,6 @@ function useShopDetails(tenantId) {
 }
 
 /* ---------------------------------------------------------------------------
-   Sections
-   ------------------------------------------------------------------------- */
-function RatingBreakdown({ reviews }) {
-  const { t } = useI18n();
-  const total = reviews?.reviewsCount || 0;
-  if (!total) return null;
-
-  return (
-    <div className="flex items-center gap-5">
-      <div className="text-center flex-shrink-0">
-        <p className="text-display text-content-primary tnum leading-none">
-          {reviews.averageRating?.toFixed(1)}
-        </p>
-        <Rating value={reviews.averageRating} size={13} className="mt-1.5 justify-center" />
-        <p className="mt-1 text-caption text-content-muted tnum">
-          {t("reviews_of", { n: total })}
-        </p>
-      </div>
-
-      <div className="flex-1 space-y-1" aria-hidden="true">
-        {[5, 4, 3, 2, 1].map((star) => {
-          const count = reviews.breakdown?.[star] || 0;
-          const pct = total ? Math.round((count / total) * 100) : 0;
-          return (
-            <div key={star} className="flex items-center gap-2">
-              <span className="w-3 text-caption text-content-muted tnum">{star}</span>
-              <span className="flex-1 h-1.5 rounded-pill bg-surface-sunken overflow-hidden">
-                <span
-                  className="block h-full rounded-pill bg-brand-gold"
-                  style={{ width: `${pct}%` }}
-                />
-              </span>
-              <span className="w-7 text-end text-caption text-content-muted tnum">{count}</span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function ReviewItem({ review }) {
-  const { locale } = useI18n();
-  const date = toDate(review.createdAt);
-
-  return (
-    <li className="py-3.5 flex gap-3">
-      <Avatar src={review.customerProfileImage} name={review.customerName} size={36} />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-body-sm font-bold text-content-primary truncate">
-            {review.customerName}
-          </p>
-          {date ? (
-            <span className="text-caption text-content-muted flex-shrink-0 tnum">
-              {date.toLocaleDateString(locale === "ar" ? "ar-LB" : "en-US", {
-                month: "short",
-                year: "numeric"
-              })}
-            </span>
-          ) : null}
-        </div>
-        <Rating value={review.rating} size={12} className="mt-0.5" />
-        {review.comment ? (
-          <p className="mt-1.5 text-body-sm text-content-secondary">{review.comment}</p>
-        ) : null}
-        {review.barberName ? (
-          <p className="mt-1 text-caption text-content-muted truncate">{review.barberName}</p>
-        ) : null}
-      </div>
-    </li>
-  );
-}
-
-function OpeningHours({ hours, shop }) {
-  const { t } = useI18n();
-
-  if (!hours.length) {
-    return <p className="text-body-sm text-content-muted">{t("no_hours_set")}</p>;
-  }
-
-  const byDay = new Map(hours.map((row) => [Number(row.DayOfWeek), row]));
-  const todayIndex = new Date().getDay();
-
-  return (
-    <ul className="space-y-1.5">
-      {DAY_ORDER.map((dayIndex) => {
-        const row = byDay.get(dayIndex);
-        const isToday = dayIndex === todayIndex;
-        const closed = !row || row.IsClosed;
-
-        return (
-          <li
-            key={dayIndex}
-            className={`flex items-center justify-between gap-3 text-body-sm ${
-              isToday ? "font-bold text-content-primary" : "text-content-secondary"
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              {t(DAY_KEYS[dayIndex])}
-              {isToday && shop?.IsOpenNow ? <LiveDot /> : null}
-            </span>
-            <span className="tnum">
-              {closed
-                ? t("closed_now")
-                : `${toHHMM(row.OpenTime, "—")} – ${toHHMM(row.CloseTime, "—")}`}
-            </span>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-/* ---------------------------------------------------------------------------
    Screen
    ------------------------------------------------------------------------- */
 export default function ShopProfile() {
@@ -271,7 +149,6 @@ export default function ShopProfile() {
   const shop = useMemo(() => shops.find((s) => s.Id === tenantId) || null, [shops, tenantId]);
   const details = useShopDetails(tenantId);
 
-  const [galleryIndex, setGalleryIndex] = useState(null);
   const [allReviewsOpen, setAllReviewsOpen] = useState(false);
   const [hoursOpen, setHoursOpen] = useState(false);
   const [walkInOpen, setWalkInOpen] = useState(false);
@@ -306,19 +183,10 @@ export default function ShopProfile() {
   );
 
   /* Merge the roster with live queue stats so each barber shows a real wait. */
-  const barbers = useMemo(() => {
-    const statsById = new Map((queueStats || []).map((s) => [s.barberId, s]));
-
-    return details.barbers.map((barber) => {
-      const stats = statsById.get(barber.barberId);
-      return {
-        ...barber,
-        waitMinutes: stats?.estimatedWaitMinutes ?? null,
-        isAcceptingWalkIns: Boolean(stats?.isAcceptingWalkIns && stats?.isWithinHours),
-        isAvailable: stats ? stats.isWorkingToday : barber.isAvailable
-      };
-    });
-  }, [details.barbers, queueStats]);
+  const barbers = useMemo(
+    () => mergeBarbersWithQueueStats(details.barbers, queueStats),
+    [details.barbers, queueStats]
+  );
 
   const walkInBarbers = useMemo(
     () => barbers.filter((b) => b.isAcceptingWalkIns),
@@ -329,27 +197,6 @@ export default function ShopProfile() {
     const waits = walkInBarbers.map((b) => b.waitMinutes ?? 0);
     return waits.length ? Math.min(...waits) : null;
   }, [walkInBarbers]);
-
-  const availability = shop ? shopAvailability(shop, t) : null;
-
-  const address = useMemo(() => {
-    if (!shop) return null;
-    return [shop.Street, shop.Building, shop.Area, shop.City].filter(Boolean).join(", ");
-  }, [shop]);
-
-  const mapsHref = useMemo(() => {
-    if (!shop) return null;
-    if (shop.GoogleMapLink) return shop.GoogleMapLink;
-    if (shop.Latitude != null && shop.Longitude != null) {
-      return `https://www.google.com/maps/search/?api=1&query=${shop.Latitude},${shop.Longitude}`;
-    }
-    if (address) {
-      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-        `${shop.Name} ${address}`
-      )}`;
-    }
-    return null;
-  }, [shop, address]);
 
   const startBooking = () => {
     dispatch(selectTenant(tenantId));
@@ -450,326 +297,61 @@ export default function ShopProfile() {
     );
   }
 
-  const galleryImages = details.gallery;
-
   return (
     <div className="pb-28">
-      {/* ---- hero ---- */}
-      <div className="relative">
-        <Photo
-          src={shop.CoverImageUrl || shop.LogoUrl}
-          alt={shop.Name}
-          ratio="4/3"
-          rounded="rounded-none"
-          priority
-          className="max-h-[46vh]"
-          overlay
-        />
-
-        <div className="absolute inset-x-0 top-0">
-          <TopBar
-            back
-            transparent
-            sticky={false}
-            actions={
-              <>
-                <span className="bg-surface-raised/90 backdrop-blur rounded-pill shadow-sm">
-                  <FavoriteButton type="SHOP" targetId={shop.Id} onPhoto />
-                </span>
-                <span className="bg-surface-raised/90 backdrop-blur rounded-control shadow-sm ms-1">
-                  <IconButton icon="share" label={t("share_shop_action")} onClick={share} />
-                </span>
-              </>
-            }
-          />
-        </div>
-
-        {/* Availability is legible over the photograph, before any scrolling. */}
-        {availability ? (
-          <div className="absolute bottom-3 start-4 end-4 flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-pill bg-surface-raised/95 backdrop-blur shadow-sm">
-              {shop.WalkInAvailable ? (
-                <LiveDot />
-              ) : (
-                <Icon name="clock" size={14} className="text-content-muted" />
-              )}
-              <span className="text-body-sm font-bold text-content-primary tnum">
-                {availability.label}
-              </span>
+      <ShopHero
+        shop={shop}
+        actions={
+          <>
+            <span className="bg-surface-raised/90 backdrop-blur rounded-pill shadow-sm">
+              <FavoriteButton type="SHOP" targetId={shop.Id} onPhoto />
             </span>
-            {shop.WalkInAvailable && shop.BarbersOnDutyNow ? (
-              <span className="text-caption font-semibold text-white/90 drop-shadow">
-                {t("barbers_on_now", { n: shop.BarbersOnDutyNow })}
-              </span>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-
-      {/* ---- identity ---- */}
-      <header className="px-4 pt-4">
-        <div className="flex items-start gap-2">
-          <h1 className="flex-1 text-display text-content-primary">{shop.Name}</h1>
-          {shop.IsVerified ? (
-            <span className="mt-1.5 text-brand-gold-text flex-shrink-0">
-              <Icon name="verified" size={20} title={t("verified_shop")} />
+            <span className="bg-surface-raised/90 backdrop-blur rounded-control shadow-sm ms-1">
+              <IconButton icon="share" label={t("share_shop_action")} onClick={share} />
             </span>
-          ) : null}
-        </div>
+          </>
+        }
+      />
 
-        <div className="mt-2 flex items-center gap-2 flex-wrap text-caption text-content-muted">
-          {details.reviews?.averageRating ? (
-            <button
-              type="button"
-              onClick={() => setAllReviewsOpen(true)}
-              className="inline-flex items-center gap-1"
-            >
-              <Rating value={details.reviews.averageRating} compact />
-              <span className="underline decoration-line-strong">
-                {t("reviews_of", { n: details.reviews.reviewsCount })}
-              </span>
-            </button>
-          ) : (
-            <span>{t("new_shop")}</span>
-          )}
+      <ShopIdentity
+        shop={shop}
+        reviews={details.reviews}
+        onOpenReviews={() => setAllReviewsOpen(true)}
+      />
 
-          {shop.Area || shop.City ? (
-            <>
-              <span aria-hidden="true">·</span>
-              <span>{shop.Area || shop.City}</span>
-            </>
-          ) : null}
-        </div>
+      <ShopPromotion promotion={details.promotions[0]} />
 
-        {/* Contact and directions — one row, icon buttons with labels. */}
-        <div className="mt-3.5 flex gap-2">
-          {mapsHref ? (
-            <Button variant="secondary" size="sm" icon="navigate" href={mapsHref} target="_blank" rel="noreferrer">
-              {t("get_directions")}
-            </Button>
-          ) : null}
-          {telHref(shop.Phone) ? (
-            <Button variant="secondary" size="sm" icon="phone" href={telHref(shop.Phone)}>
-              {t("call")}
-            </Button>
-          ) : null}
-          {shopWhatsappHref(shop.WhatsappNumber) ? (
-            <Button
-              variant="secondary"
-              size="sm"
-              icon="whatsapp"
-              href={shopWhatsappHref(shop.WhatsappNumber)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {t("whatsapp_support")}
-            </Button>
-          ) : null}
-        </div>
-      </header>
+      <ShopServices
+        services={activeServices}
+        currency={currency}
+        loading={details.loading}
+        error={details.error}
+        onRetry={details.reload}
+      />
 
-      {/* ---- promotions ---- */}
-      {details.promotions.length ? (
-        <section className="px-4 mt-5">
-          <div className="rounded-card bg-brand-gold-soft border border-line-subtle p-3.5 flex items-start gap-3">
-            <span className="w-9 h-9 rounded-control bg-brand-gold text-content-on-gold flex items-center justify-center flex-shrink-0">
-              <Icon name="tag" size={18} />
-            </span>
-            <div className="min-w-0">
-              <p className="text-body font-bold text-content-primary truncate">
-                {details.promotions[0].Title || details.promotions[0].Name || t("special_offers")}
-              </p>
-              {details.promotions[0].Description ? (
-                <p className="text-caption text-content-secondary">
-                  {details.promotions[0].Description}
-                </p>
-              ) : null}
-            </div>
-          </div>
-        </section>
-      ) : null}
+      <ShopTeam
+        barbers={barbers}
+        onSelectBarber={(barber) => {
+          dispatch(selectTenant(tenantId));
+          dispatch(selectBarber(barber.barberId));
+          navigate(`/customer/book?shop=${tenantId}&barber=${barber.barberId}`);
+        }}
+      />
 
-      {/* ---- services ---- */}
-      <section className="px-4 mt-7">
-        <SectionHeader title={t("shop_services")} />
+      <ShopGallery images={details.gallery} />
 
-        {details.loading ? (
-          <ListSkeleton count={3} height="h-[68px]" />
-        ) : details.error ? (
-          <InlineError onRetry={details.reload} />
-        ) : !activeServices.length ? (
-          <EmptyState
-            icon="scissors"
-            title={t("no_services_title")}
-            description={t("no_services_body")}
-          />
-        ) : (
-          <div className="space-y-2.5">
-            {activeServices.map((service) => (
-              <ServiceCard key={service.Id} service={service} currency={currency} />
-            ))}
-          </div>
-        )}
-      </section>
+      <ShopReviews
+        reviews={details.reviews}
+        error={details.reviewsError}
+        onRetry={details.reload}
+        onSeeAll={() => setAllReviewsOpen(true)}
+      />
 
-      {/* ---- team ---- */}
-      {barbers.length ? (
-        <section className="mt-7">
-          <div className="px-4">
-            <SectionHeader title={t("shop_team")} />
-          </div>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar snap-rail px-4 pb-1">
-            {barbers.map((barber) => (
-              <BarberCard
-                key={barber.barberId}
-                barber={barber}
-                onSelect={() => {
-                  dispatch(selectTenant(tenantId));
-                  dispatch(selectBarber(barber.barberId));
-                  navigate(`/customer/book?shop=${tenantId}&barber=${barber.barberId}`);
-                }}
-              />
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {/* ---- portfolio ---- */}
-      {galleryImages.length ? (
-        <section className="px-4 mt-7">
-          <SectionHeader title={t("shop_gallery")} />
-          <div className="grid grid-cols-3 gap-1.5">
-            {galleryImages.slice(0, 9).map((image, index) => (
-              <button
-                key={image.id}
-                type="button"
-                onClick={() => setGalleryIndex(index)}
-                className="press block"
-                aria-label={image.caption || t("shop_gallery")}
-              >
-                <Photo
-                  src={image.imageUrl}
-                  alt={image.caption || ""}
-                  ratio="1/1"
-                  rounded="rounded-control"
-                />
-              </button>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {/* ---- reviews ---- */}
-      <section className="px-4 mt-7">
-        <SectionHeader
-          title={t("shop_reviews")}
-          action={details.reviews?.reviews?.length > 3 ? t("see_all_reviews") : null}
-          onAction={() => setAllReviewsOpen(true)}
-        />
-
-        {details.reviewsError ? (
-          <InlineError onRetry={details.reload} />
-        ) : !details.reviews?.reviewsCount ? (
-          <EmptyState
-            icon="star"
-            title={t("no_reviews_title")}
-            description={t("no_reviews_body")}
-          />
-        ) : (
-          <div className="bg-surface-raised border border-line-subtle rounded-card p-4">
-            <RatingBreakdown reviews={details.reviews} />
-            <ul className="mt-2 divide-y divide-line-subtle">
-              {details.reviews.reviews.slice(0, 3).map((review) => (
-                <ReviewItem key={review.id} review={review} />
-              ))}
-            </ul>
-          </div>
-        )}
-      </section>
-
-      {/* ---- practical details ---- */}
-      <section className="px-4 mt-7">
-        <SectionHeader title={t("shop_info")} />
-
-        <div className="bg-surface-raised border border-line-subtle rounded-card divide-y divide-line-subtle">
-          <button
-            type="button"
-            onClick={() => setHoursOpen(true)}
-            className="w-full flex items-center gap-3 p-4 text-start"
-          >
-            <Icon name="clock" size={18} className="text-content-muted flex-shrink-0" />
-            <span className="flex-1 min-w-0">
-              <span className="block text-body font-medium text-content-primary">
-                {t("shop_hours")}
-              </span>
-              <span className="block text-caption text-content-muted tnum">
-                {shop.IsOpenNow && shop.ClosesAt
-                  ? t("until_time", { time: trimSeconds(shop.ClosesAt) })
-                  : shop.IsClosedToday
-                  ? t("closed_today")
-                  : shop.OpensAt
-                  ? t("opens_at", { time: trimSeconds(shop.OpensAt) })
-                  : t("no_hours_set")}
-              </span>
-            </span>
-            <Icon name="chevron-right" size={18} className="text-content-muted flex-shrink-0" />
-          </button>
-
-          {address ? (
-            <div className="flex items-start gap-3 p-4">
-              <Icon name="pin" size={18} className="text-content-muted flex-shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <p className="text-body font-medium text-content-primary">{t("shop_location")}</p>
-                <p className="text-caption text-content-secondary">{address}</p>
-              </div>
-              {mapsHref ? (
-                <a
-                  href={mapsHref}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-caption font-semibold text-brand-gold-text flex-shrink-0 py-1"
-                >
-                  {t("get_directions")}
-                </a>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div className="flex items-start gap-3 p-4">
-            <Icon name="wallet" size={18} className="text-content-muted flex-shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0">
-              <p className="text-body font-medium text-content-primary">{t("shop_payment")}</p>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                {/* Cash is always accepted; the rest reflect the shop's toggles. */}
-                <Pill>{t("pay_cash_note")}</Pill>
-                {shop.IsWhishPaymentEnabled ? <Pill>{t("pay_whish_note")}</Pill> : null}
-                {shop.IsCreditCardPaymentEnabled ? <Pill>{t("pay_card_note")}</Pill> : null}
-              </div>
-            </div>
-          </div>
-
-          {shop.CancellationPolicyHours || shop.DepositAmount ? (
-            <div className="flex items-start gap-3 p-4">
-              <Icon name="info" size={18} className="text-content-muted flex-shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0 space-y-1">
-                <p className="text-body font-medium text-content-primary">{t("shop_policies")}</p>
-                {shop.CancellationPolicyHours ? (
-                  <p className="text-caption text-content-secondary">
-                    {t("cancellation_policy", { hours: shop.CancellationPolicyHours })}
-                  </p>
-                ) : null}
-                {shop.DepositAmount ? (
-                  <p className="text-caption text-content-secondary">
-                    {t("deposit_policy", {
-                      amount: formatMoney(shop.DepositAmount, currency)
-                    })}
-                  </p>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-        </div>
-      </section>
+      <ShopInfoCard
+        shop={shop}
+        currency={currency}
+        onOpenHours={() => setHoursOpen(true)}
+      />
 
       {/* ---- sticky actions ---- */}
       <div
@@ -798,7 +380,7 @@ export default function ShopProfile() {
 
       {/* ---- sheets ---- */}
       <BottomSheet open={hoursOpen} onClose={() => setHoursOpen(false)} title={t("shop_hours")}>
-        <OpeningHours hours={details.hours} shop={shop} />
+        <ShopHours hours={details.hours} shop={shop} />
       </BottomSheet>
 
       <BottomSheet
@@ -914,64 +496,6 @@ export default function ShopProfile() {
         cancelLabel={t("close")}
       />
 
-      {/* ---- lightbox ---- */}
-      {galleryIndex != null && galleryImages[galleryIndex] ? (
-        <div
-          className="fixed inset-0 z-[320] flex items-center justify-center animate-fade-in"
-          style={{ background: "var(--scrim)" }}
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setGalleryIndex(null)}
-        >
-          <button
-            type="button"
-            onClick={() => setGalleryIndex(null)}
-            aria-label={t("close")}
-            className="absolute top-[calc(env(safe-area-inset-top)+0.75rem)] end-3 tap-target rounded-pill
-                       bg-surface-raised/90 text-content-primary flex items-center justify-center"
-          >
-            <Icon name="x" size={22} />
-          </button>
-
-          <div className="w-full px-4" onClick={(event) => event.stopPropagation()}>
-            <img
-              src={galleryImages[galleryIndex].imageUrl}
-              alt={galleryImages[galleryIndex].caption || ""}
-              className="w-full max-h-[72vh] object-contain rounded-card"
-            />
-            <div className="mt-3 flex items-center justify-between gap-3">
-              <p className="text-body-sm text-white/90 truncate">
-                {galleryImages[galleryIndex].caption || galleryImages[galleryIndex].barberName}
-              </p>
-              <span className="text-caption text-white/70 tnum flex-shrink-0">
-                {galleryIndex + 1} / {galleryImages.length}
-              </span>
-            </div>
-            <div className="mt-3 flex gap-2">
-              <Button
-                variant="secondary"
-                block
-                icon="chevron-left"
-                disabled={galleryIndex === 0}
-                onClick={() => setGalleryIndex((i) => Math.max(0, i - 1))}
-              >
-                {t("back")}
-              </Button>
-              <Button
-                variant="secondary"
-                block
-                iconEnd="chevron-right"
-                disabled={galleryIndex === galleryImages.length - 1}
-                onClick={() =>
-                  setGalleryIndex((i) => Math.min(galleryImages.length - 1, i + 1))
-                }
-              >
-                {t("next")}
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

@@ -55,3 +55,30 @@ export function shopAvailability(shop, t) {
 export function trimSeconds(time) {
   return typeof time === "string" ? time.slice(0, 5) : time;
 }
+
+/*
+ * Overlays live queue stats onto a shop's barber roster.
+ *
+ * The roster says who works here; queue stats say who is on the floor right
+ * now and how long their line is. Both the in-app profile and the public
+ * landing page need the combination, and they must agree — a barber shown as
+ * "20 min wait" on one screen and "not in today" on the other is the kind of
+ * inconsistency that loses a customer's trust in the whole number.
+ *
+ * `isAcceptingWalkIns` deliberately requires BOTH the barber's own toggle and
+ * their being inside working hours: a barber who forgot to switch off at 8pm
+ * is not actually taking walk-ins.
+ */
+export function mergeBarbersWithQueueStats(barbers, queueStats) {
+  const statsById = new Map((queueStats || []).map((stat) => [stat.barberId, stat]));
+
+  return (barbers || []).map((barber) => {
+    const stats = statsById.get(barber.barberId);
+    return {
+      ...barber,
+      waitMinutes: stats?.estimatedWaitMinutes ?? null,
+      isAcceptingWalkIns: Boolean(stats?.isAcceptingWalkIns && stats?.isWithinHours),
+      isAvailable: stats ? stats.isWorkingToday : barber.isAvailable
+    };
+  });
+}

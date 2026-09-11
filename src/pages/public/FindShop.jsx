@@ -1,93 +1,165 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { fetchActiveTenants } from "../../features/publicBooking/publicBookingSlice";
-import LoadingState from "../../components/LoadingState";
-import EmptyState from "../../components/EmptyState";
-import OptimizedImage from "../../components/OptimizedImage";
+
+import TopBar from "../../components/ui/TopBar";
+import Icon from "../../components/ui/Icon";
+import ShopCard from "../../components/ui/ShopCard";
+import { FilterChip } from "../../components/ui/Primitives";
+import { EmptyState, ErrorState, ShopListSkeleton } from "../../components/ui/States";
+import useDebouncedValue from "../../hooks/useDebouncedValue";
+import { useI18n } from "../../i18n";
 import { captureAcquisitionSource } from "../../utils/acquisition";
 
+/*
+ * Public shop directory — /book with no slug.
+ *
+ * `GET /public/tenants` is backed by the same query as the authenticated
+ * Explore screen, so every shop already arrives with its live availability:
+ * open now, barbers on the floor, shortest walk-in wait, price band, rating.
+ * This page used to render a logo, a name and a rating and throw the rest
+ * away; handing the same objects to `ui/ShopCard` means an anonymous visitor
+ * sees exactly what a signed-in customer sees.
+ *
+ * Availability-first ordering, for the same reason Explore uses it: a shop
+ * that can take you now is more useful than a slightly better-rated shop that
+ * cannot.
+ */
 export default function FindShop() {
+  const { t } = useI18n();
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
-  const { activeTenants, activeTenantsLoading, activeTenantsError } = useAppSelector(s => s.publicBooking);
-  const [search, setSearch] = useState("");
+
+  const { activeTenants, activeTenantsLoading, activeTenantsError } = useAppSelector(
+    (state) => state.publicBooking
+  );
+
+  const [rawQuery, setRawQuery] = useState("");
+  const query = useDebouncedValue(rawQuery, 250).trim().toLowerCase();
+  const [area, setArea] = useState("");
 
   useEffect(() => {
-    /* The shop directory is also a shared entry point (an Ajmal-wide QR or
-       Instagram post), so the tag is captured here too. */
+    /* A shared directory link can carry a channel tag too. */
     captureAcquisitionSource();
     dispatch(fetchActiveTenants());
   }, [dispatch]);
 
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) return activeTenants;
-    return activeTenants.filter(t =>
-      t.Name?.toLowerCase().includes(term) ||
-      t.City?.toLowerCase().includes(term) ||
-      t.Area?.toLowerCase().includes(term)
-    );
-  }, [activeTenants, search]);
+  /* Neighbourhoods come from the shops that exist, so a chip never advertises
+     an area with nothing in it. */
+  const areas = useMemo(() => {
+    const counts = new Map();
+    activeTenants.forEach((shop) => {
+      const name = shop.Area || shop.City;
+      if (!name) return;
+      counts.set(name, (counts.get(name) || 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([name, count]) => ({ name, count }));
+  }, [activeTenants]);
+
+  const results = useMemo(() => {
+    const matches = activeTenants.filter((shop) => {
+      if (area && (shop.Area || shop.City) !== area) return false;
+      if (!query) return true;
+
+      return [shop.Name, shop.NameAr, shop.Area, shop.City, shop.Street]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
+    });
+
+    return [...matches].sort((a, b) => {
+      const score = (shop) =>
+        (shop.WalkInAvailable ? 4 : 0) +
+        (shop.IsOpenNow ? 2 : 0) +
+        (shop.AppointmentsAvailableToday ? 1 : 0);
+
+      const byScore = score(b) - score(a);
+      if (byScore) return byScore;
+
+      return (b.AverageRating ?? 0) - (a.AverageRating ?? 0);
+    });
+  }, [activeTenants, query, area]);
+
+  const narrowed = Boolean(query || area);
 
   return (
-    <div className="min-h-screen bg-app-bg">
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-black text-app-text">Find a shop</h1>
-          <p className="text-sm text-app-muted mt-1">Book an appointment without an account — just pick a shop to get started.</p>
-        </div>
+    <div className="min-h-screen bg-surface-base pb-8">
+      <TopBar title={t("app_name")} subtitle={t("app_tagline")} />
 
-        <div className="relative mb-6">
-          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-app-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+      <div className="px-4 pt-1">
+        <div className="relative">
+          <span className="absolute start-3.5 top-1/2 -translate-y-1/2 text-content-muted pointer-events-none">
+            <Icon name="search" size={18} />
+          </span>
           <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search by shop name, city, or area..."
-            className="w-full pl-12 pr-4 py-3 border border-app-border rounded-xl bg-app-surface text-app-text focus:ring-2 focus:ring-app-primary"
+            type="search"
+            value={rawQuery}
+            onChange={(event) => setRawQuery(event.target.value)}
+            placeholder={t("search_placeholder")}
+            aria-label={t("search_placeholder")}
+            className="w-full h-12 ps-11 pe-11 rounded-control bg-surface-raised border border-line-subtle
+                       text-body text-content-primary placeholder:text-content-muted
+                       focus:border-brand-gold focus:outline-none"
           />
-        </div>
-
-        {activeTenantsLoading && <LoadingState label="Loading shops..." blocks={4} />}
-
-        {activeTenantsError && !activeTenantsLoading && (
-          <EmptyState title="Couldn't load shops" description={activeTenantsError} />
-        )}
-
-        {!activeTenantsLoading && !activeTenantsError && filtered.length === 0 && (
-          <EmptyState title="No shops found" description="Try a different search term." />
-        )}
-
-        <div className="space-y-3">
-          {filtered.map(tenant => (
+          {rawQuery ? (
             <button
-              key={tenant.Id}
-              onClick={() => navigate(`/book/${tenant.Slug}`)}
-              className="w-full flex items-center gap-4 p-4 rounded-2xl border border-app-border bg-app-surface text-left hover:border-blue-400 transition-colors"
+              type="button"
+              onClick={() => setRawQuery("")}
+              aria-label={t("close")}
+              className="absolute end-1 top-1/2 -translate-y-1/2 tap-target flex items-center justify-center text-content-muted"
             >
-              <div className="w-14 h-14 rounded-xl bg-app-surface-2 overflow-hidden flex items-center justify-center flex-shrink-0">
-                {tenant.LogoUrl ? (
-                  <OptimizedImage src={tenant.LogoUrl} alt={tenant.Name} className="w-full h-full object-cover" />
-                ) : (
-                  <span className="font-bold text-lg text-blue-600">{tenant.Name?.[0] || "?"}</span>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-app-text truncate">{tenant.Name}</p>
-                <p className="text-sm text-app-muted truncate">
-                  {tenant.Area || tenant.City || "Lebanon"}
-                  {tenant.AverageRating > 0 ? ` · ⭐ ${tenant.AverageRating}` : ""}
-                </p>
-              </div>
-              <svg className="w-5 h-5 text-app-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              <Icon name="x" size={18} />
             </button>
+          ) : null}
+        </div>
+      </div>
+
+      {areas.length > 1 ? (
+        <div className="flex gap-2 overflow-x-auto no-scrollbar px-4 pt-3">
+          <FilterChip active={!area} onClick={() => setArea("")}>
+            {t("all_areas")}
+          </FilterChip>
+          {areas.map((entry) => (
+            <FilterChip
+              key={entry.name}
+              active={area === entry.name}
+              onClick={() => setArea(area === entry.name ? "" : entry.name)}
+              count={entry.count}
+            >
+              {entry.name}
+            </FilterChip>
           ))}
         </div>
+      ) : null}
+
+      <p className="px-4 pt-3.5 text-caption text-content-muted tnum">
+        {t("results_count", { n: results.length })}
+      </p>
+
+      <div className="px-4 pt-3 space-y-3">
+        {activeTenantsLoading && !activeTenants.length ? (
+          <ShopListSkeleton />
+        ) : activeTenantsError && !activeTenants.length ? (
+          <ErrorState message={activeTenantsError} onRetry={() => dispatch(fetchActiveTenants())} />
+        ) : !results.length ? (
+          <EmptyState
+            icon="search"
+            title={t("no_results_title")}
+            description={t("no_results_body")}
+            actionLabel={narrowed ? t("clear_filters") : null}
+            onAction={() => {
+              setRawQuery("");
+              setArea("");
+            }}
+          />
+        ) : (
+          results.map((shop) => (
+            /* Public links are by slug, not id — the id route needs an account. */
+            <ShopCard key={shop.Id} shop={shop} to={`/book/${shop.Slug}`} />
+          ))
+        )}
       </div>
     </div>
   );

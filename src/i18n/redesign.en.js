@@ -294,6 +294,28 @@ const redesignEn = {
   currency_usd: "US Dollar (USD)",
   currency_lbp: "Lebanese Pound (LBP)",
 
+  /* ---- public booking (QR / Instagram landing) --------------------------- */
+  shop_not_found_title: "We can't find this shop",
+  shop_not_found_body: "This link may be out of date, or the shop may have closed.",
+  powered_by_ajmal: "Find more barbers on Ajmal",
+  guest_queue_resume: "You're in the queue here",
+  choose_barber_queue_sub: "Only barbers taking walk-ins right now are shown.",
+  guest_details_title: "Last step — who's coming?",
+  guest_details_sub: "Your name and number, so the shop knows to expect you.",
+  queue_expected_wait: "Expected wait",
+  otp_sent_to: "We sent a code to {phone}.",
+  otp_code_label: "6-digit code",
+  otp_resend: "Send it again",
+  booked_sub_guest: "The shop has your booking. Save it to your calendar so you don't forget.",
+  guest_no_account_note: "You booked as a guest. Get the Ajmal app to keep your bookings, track the queue and rebook in one tap.",
+  back_to_shop: "Back to the shop",
+  guest_whish_note: "Send the transfer and show the shop your confirmation when you arrive.",
+  guest_session_expired_title: "This link has expired",
+  guest_session_expired_body: "For your security a guest session only lasts while the tab is open. Open the shop page to start again.",
+  guest_queue_finished_title: "You're no longer in the line",
+  guest_queue_finished_body: "Your turn came, or the queue was closed. Speak to the shop if this looks wrong.",
+  queue_last_checked: "Last checked {time}",
+
   /* ---- shop owner / barber --------------------------------------------- */
   nav_today: "Today",
   nav_calendar: "Calendar",

@@ -43,8 +43,10 @@ const NotificationHistory = lazy(() => import("../pages/customer/NotificationHis
 const ConversationsPage = lazy(() => import("../pages/shared/Conversations"));
 
 /* Public */
-const PublicBooking = lazy(() => import("../pages/public/PublicBooking"));
 const FindShop = lazy(() => import("../pages/public/FindShop"));
+const PublicShop = lazy(() => import("../pages/public/PublicShop"));
+const PublicReserve = lazy(() => import("../pages/public/PublicReserve"));
+const PublicQueue = lazy(() => import("../pages/public/PublicQueue"));
 
 /* Customer */
 const Home = lazy(() => import("../pages/customer/Home"));
@@ -105,9 +107,13 @@ export default function AppRoutes() {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
 
-          {/* Public booking link — the QR/Instagram entry point. */}
+          {/* The QR / Instagram / WhatsApp entry point. /book/:slug is the
+              canonical printed target, so it must keep working forever — the
+              sub-routes are only ever reached by tapping through it. */}
           <Route path="/book" element={<FindShop />} />
-          <Route path="/book/:tenantSlug" element={<PublicBooking />} />
+          <Route path="/book/:tenantSlug" element={<PublicShop />} />
+          <Route path="/book/:tenantSlug/reserve" element={<PublicReserve />} />
+          <Route path="/book/:tenantSlug/queue" element={<PublicQueue />} />
 
           <Route path="*" element={<Navigate to={onboardingDone ? "/login" : "/onboarding"} />} />
         </Routes>
@@ -122,10 +128,13 @@ export default function AppRoutes() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
 
-        {/* Public booking link, also reachable signed in (an owner previewing
-            their own shop's link). */}
+        {/* Also reachable signed in — an owner previewing their own shop's
+            link, or a customer who followed a share. The public flow uses its
+            own axios instance and never touches the real session. */}
         <Route path="/book" element={<FindShop />} />
-        <Route path="/book/:tenantSlug" element={<PublicBooking />} />
+        <Route path="/book/:tenantSlug" element={<PublicShop />} />
+        <Route path="/book/:tenantSlug/reserve" element={<PublicReserve />} />
+        <Route path="/book/:tenantSlug/queue" element={<PublicQueue />} />
 
         <Route path="/" element={<Navigate to={homeFor(user.roles)} />} />
 

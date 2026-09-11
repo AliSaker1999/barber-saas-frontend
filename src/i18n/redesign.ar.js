@@ -293,6 +293,28 @@ const redesignAr = {
   currency_usd: "دولار أميركي (USD)",
   currency_lbp: "ليرة لبنانية (LBP)",
 
+  /* ---- public booking (QR / Instagram landing) --------------------------- */
+  shop_not_found_title: "لم نجد هذا الصالون",
+  shop_not_found_body: "قد يكون الرابط قديماً، أو أن الصالون أُغلق.",
+  powered_by_ajmal: "اكتشف حلاقين آخرين على أجمل",
+  guest_queue_resume: "أنت في الدور هنا",
+  choose_barber_queue_sub: "نعرض فقط الحلاقين الذين يستقبلون بدون موعد الآن.",
+  guest_details_title: "الخطوة الأخيرة — مين جايي؟",
+  guest_details_sub: "اسمك ورقمك، ليعرف الصالون أنك قادم.",
+  queue_expected_wait: "الانتظار المتوقع",
+  otp_sent_to: "أرسلنا رمزاً إلى {phone}.",
+  otp_code_label: "الرمز المكوّن من 6 أرقام",
+  otp_resend: "أعد الإرسال",
+  booked_sub_guest: "الصالون استلم حجزك. أضفه إلى تقويمك حتى لا تنساه.",
+  guest_no_account_note: "حجزت كزائر. حمّل تطبيق أجمل لتحفظ حجوزاتك، وتتابع الدور، وتعيد الحجز بلمسة واحدة.",
+  back_to_shop: "عودة إلى الصالون",
+  guest_whish_note: "أرسل التحويل وأظهر التأكيد للصالون عند وصولك.",
+  guest_session_expired_title: "انتهت صلاحية هذا الرابط",
+  guest_session_expired_body: "لأمانك، جلسة الزائر تبقى فقط ما دامت النافذة مفتوحة. افتح صفحة الصالون للبدء من جديد.",
+  guest_queue_finished_title: "لم تعد في الدور",
+  guest_queue_finished_body: "حان دورك، أو أُغلق الدور. تحدّث مع الصالون إذا كان هذا غير صحيح.",
+  queue_last_checked: "آخر تحديث {time}",
+
   /* ---- shop owner / barber --------------------------------------------- */
   nav_today: "اليوم",
   nav_calendar: "التقويم",

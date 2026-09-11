@@ -1,5 +1,10 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import publicApi, { setPublicAuthToken } from "../../services/publicApi";
+import {
+  saveGuestSession,
+  saveGuestQueue,
+  clearGuestSession
+} from "../../utils/guestSession";
 import { getAcquisitionSource } from "../../utils/acquisition";
 import {
   loadBookingState,
@@ -88,6 +93,17 @@ export const registerGuest = createAsyncThunk(
       });
       const result = res.data.data;
       setPublicAuthToken(result.token);
+
+      /* Persisted so a refresh — or the phone locking mid-OTP — doesn't throw
+         the guest back to the start of the flow, and so a walk-in tracker can
+         be resumed later from the same tab. */
+      saveGuestSession({
+        token: result.token,
+        slug,
+        fullName,
+        phoneNumber
+      });
+
       return result;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || "Failed to continue as guest");
@@ -162,6 +178,89 @@ export const createDepositCheckoutSession = createAsyncThunk(
   }
 );
 
+/*
+ * `GET /queue/me/:tenantId/position` answers with a flat `{ inQueue: false }`
+ * — not null, and not wrapped in `data` like the rest of the API — once the
+ * customer is out of the line, whether they were served, cancelled or marked a
+ * no-show.
+ *
+ * That object is truthy, so passing it straight through made the tracker
+ * render a queue card reading "#undefined in line" for someone whose turn had
+ * already come. Collapsed to null here so every consumer can just check for a
+ * queue.
+ */
+export function normalizeQueuePosition(payload) {
+  const body = payload?.data ?? payload;
+  if (!body || body.inQueue !== true) return null;
+
+  /* eslint-disable-next-line no-unused-vars -- the flag is the thing being dropped */
+  const { inQueue, ...queue } = body;
+  return queue;
+}
+
+/*
+ * Live walk-in waits for the landing page. Unauthenticated on purpose: the
+ * wait has to be visible before anyone signs up, which is the whole point of
+ * the QR card on the counter.
+ */
+export const fetchQueueStats = createAsyncThunk(
+  "publicBooking/fetchQueueStats",
+  async (slug, { rejectWithValue }) => {
+    try {
+      const res = await publicApi.get(`/public/tenants/${slug}/queue-stats`);
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to load wait times");
+    }
+  }
+);
+
+/*
+ * Joining and tracking a walk-in queue as a guest.
+ *
+ * These three call the *authenticated* queue endpoints with the guest's own
+ * token rather than public duplicates. That works because tenantMiddleware
+ * short-circuits for the CUSTOMER role and a guest account is an ordinary
+ * CUSTOMER — the same mechanism createDepositCheckoutSession already relies
+ * on. A backend test pins the behaviour down so it can't regress silently.
+ */
+export const joinQueue = createAsyncThunk(
+  "publicBooking/joinQueue",
+  async ({ tenantId, slug, barberId, serviceIds }, { rejectWithValue }) => {
+    try {
+      await publicApi.post(`/queue/tenants/${tenantId}/join`, { barberId, serviceIds });
+      saveGuestQueue({ tenantId, slug });
+      return { tenantId, slug };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to join the queue");
+    }
+  }
+);
+
+export const fetchQueuePosition = createAsyncThunk(
+  "publicBooking/fetchQueuePosition",
+  async (tenantId, { rejectWithValue }) => {
+    try {
+      const res = await publicApi.get(`/queue/me/${tenantId}/position`);
+      return normalizeQueuePosition(res.data);
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to load your place in line");
+    }
+  }
+);
+
+export const leaveQueue = createAsyncThunk(
+  "publicBooking/leaveQueue",
+  async (tenantId, { rejectWithValue }) => {
+    try {
+      await publicApi.patch(`/queue/me/${tenantId}/leave`);
+      return true;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to leave the queue");
+    }
+  }
+);
+
 const publicBookingSlice = createSlice({
   name: "publicBooking",
   initialState: {
@@ -173,8 +272,14 @@ const publicBookingSlice = createSlice({
     tenantError: null,
     services: [],
     servicesLoading: false,
+    /* Without these a rejected fetch only cleared the loading flag, so "this
+       shop has no services" and "the request failed" rendered identically. */
+    servicesError: null,
     barbers: [],
     barbersLoading: false,
+    barbersError: null,
+    queueStats: [],
+    queueStatsLoading: false,
     selectedServiceIds: persisted?.selectedServiceIds || [],
     selectedBarberId: persisted?.selectedBarberId || null,
     slots: [],
@@ -190,7 +295,11 @@ const publicBookingSlice = createSlice({
     bookingError: null,
     waitlistJoined: false,
     waitlistLoading: false,
-    waitlistError: null
+    waitlistError: null,
+    queue: null,
+    queueLoading: false,
+    queueError: null,
+    queueJoining: false
   },
   reducers: {
     toggleService(state, action) {
@@ -232,13 +341,13 @@ const publicBookingSlice = createSlice({
       .addCase(fetchTenant.fulfilled, (s, a) => { s.tenantLoading = false; s.tenant = a.payload; })
       .addCase(fetchTenant.rejected, (s, a) => { s.tenantLoading = false; s.tenantError = a.payload; })
 
-      .addCase(fetchServices.pending, s => { s.servicesLoading = true; })
+      .addCase(fetchServices.pending, s => { s.servicesLoading = true; s.servicesError = null; })
       .addCase(fetchServices.fulfilled, (s, a) => { s.servicesLoading = false; s.services = a.payload; })
-      .addCase(fetchServices.rejected, s => { s.servicesLoading = false; })
+      .addCase(fetchServices.rejected, (s, a) => { s.servicesLoading = false; s.servicesError = a.payload; })
 
-      .addCase(fetchBarbers.pending, s => { s.barbersLoading = true; })
+      .addCase(fetchBarbers.pending, s => { s.barbersLoading = true; s.barbersError = null; })
       .addCase(fetchBarbers.fulfilled, (s, a) => { s.barbersLoading = false; s.barbers = a.payload; })
-      .addCase(fetchBarbers.rejected, s => { s.barbersLoading = false; })
+      .addCase(fetchBarbers.rejected, (s, a) => { s.barbersLoading = false; s.barbersError = a.payload; })
 
       .addCase(fetchSlots.pending, s => { s.slotsLoading = true; s.slotsError = null; })
       .addCase(fetchSlots.fulfilled, (s, a) => { s.slotsLoading = false; s.slots = a.payload; })
@@ -273,7 +382,38 @@ const publicBookingSlice = createSlice({
         s.waitlistJoined = true;
         clearBookingState(STORAGE_KEY);
       })
-      .addCase(joinWaitlist.rejected, (s, a) => { s.waitlistLoading = false; s.waitlistError = a.payload; });
+      .addCase(joinWaitlist.rejected, (s, a) => { s.waitlistLoading = false; s.waitlistError = a.payload; })
+
+      /* Wait times are refreshed by polling, so a failed refresh keeps the
+         last known figures rather than blanking them — a slightly stale wait
+         is more useful than none, and the tracker labels it. */
+      .addCase(fetchQueueStats.pending, s => { s.queueStatsLoading = true; })
+      .addCase(fetchQueueStats.fulfilled, (s, a) => { s.queueStatsLoading = false; s.queueStats = a.payload || []; })
+      .addCase(fetchQueueStats.rejected, s => { s.queueStatsLoading = false; })
+
+      .addCase(joinQueue.pending, s => { s.queueJoining = true; s.queueError = null; })
+      .addCase(joinQueue.fulfilled, s => {
+        s.queueJoining = false;
+        clearBookingState(STORAGE_KEY);
+      })
+      .addCase(joinQueue.rejected, (s, a) => { s.queueJoining = false; s.queueError = a.payload; })
+
+      .addCase(fetchQueuePosition.pending, s => { s.queueLoading = true; })
+      .addCase(fetchQueuePosition.fulfilled, (s, a) => {
+        s.queueLoading = false;
+        s.queue = a.payload;
+        s.queueError = null;
+      })
+      .addCase(fetchQueuePosition.rejected, (s, a) => { s.queueLoading = false; s.queueError = a.payload; })
+
+      .addCase(leaveQueue.fulfilled, s => {
+        s.queue = null;
+        s.queueError = null;
+        /* The guest has nothing left to come back to, so the stored token goes
+           too rather than lingering in the tab. */
+        clearGuestSession();
+      })
+      .addCase(leaveQueue.rejected, (s, a) => { s.queueError = a.payload; });
   }
 });
 
