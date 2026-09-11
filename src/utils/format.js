@@ -179,3 +179,76 @@ export function initialsOf(name) {
   if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
+
+/* ---------------------------------------------------------------------------
+   Local calendar dates
+   ---------------------------------------------------------------------------
+   Everything that talks to the slots API or the appointments date filter uses
+   a plain "YYYY-MM-DD" local date. Building that with toISOString() silently
+   shifts the day for anyone west of UTC, which is why it is computed from the
+   local parts here and nowhere else.
+   ------------------------------------------------------------------------- */
+
+const pad2 = (n) => String(n).padStart(2, "0");
+
+export function toLocalDateString(value = new Date()) {
+  const date = value instanceof Date ? value : toDate(value) || new Date();
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+/* "Today" / "Tomorrow", or "" for every other day — the day strip keeps an
+   empty line rather than changing height as it scrolls. */
+export function relativeDayLabel(date, t) {
+  const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOfDay(date) - startOfDay(new Date())) / 86400000);
+
+  if (days === 0) return t ? t("today") : "Today";
+  if (days === 1) return t ? t("tomorrow") : "Tomorrow";
+  return "";
+}
+
+/* Which third of the day a "HH:MM" slot falls in, for grouping times. */
+export function periodOfDay(time) {
+  const hour = Number(String(time).split(":")[0]);
+  if (hour < 12) return "morning";
+  if (hour < 17) return "afternoon";
+  return "evening";
+}
+
+/*
+ * The date range behind each of the shop calendar's modes.
+ *
+ * One place, because "today" meaning two different things on two screens is
+ * exactly the class of bug utils/time.js exists to document.
+ *
+ * `all` deliberately returns an empty range: the API treats missing bounds as
+ * unbounded, and the caller is responsible for warning that it is about to ask
+ * for the shop's entire history.
+ */
+export function dateRangeFor(mode, custom = {}) {
+  const today = toLocalDateString();
+
+  switch (mode) {
+    case "today":
+      return { startDate: today, endDate: today };
+
+    case "upcoming": {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return { startDate: toLocalDateString(tomorrow) };
+    }
+
+    case "custom": {
+      const { startDate, endDate } = custom;
+      if (!startDate || !endDate) return null;
+      /* Tolerate a range entered backwards rather than returning nothing. */
+      return startDate <= endDate
+        ? { startDate, endDate }
+        : { startDate: endDate, endDate: startDate };
+    }
+
+    case "all":
+    default:
+      return {};
+  }
+}

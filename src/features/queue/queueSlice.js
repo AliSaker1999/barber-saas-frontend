@@ -27,6 +27,29 @@ export const joinQueue = createAsyncThunk(
   }
 );
 
+/*
+ * A shop adding someone who walked in.
+ *
+ * No tenant id in the path: the server takes it from the staff member's token,
+ * so a shop can only ever add to its own line.
+ */
+export const addWalkIn = createAsyncThunk(
+  "queue/addWalkIn",
+  async ({ fullName, phoneNumber, barberId, serviceIds }, { rejectWithValue }) => {
+    try {
+      const res = await api.post("/queue/walk-in", {
+        fullName,
+        phoneNumber,
+        barberId,
+        serviceIds
+      });
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to add the walk-in");
+    }
+  }
+);
+
 /* Fetch queue (Admin/Barber view) */
 export const fetchQueue = createAsyncThunk(
   "queue/fetch",

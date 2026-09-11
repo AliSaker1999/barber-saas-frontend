@@ -179,18 +179,6 @@ export const payAppointmentWithLoyaltyThunk = createAsyncThunk(
   }
 );
 
-export const verifyAppointmentPaymentThunk = createAsyncThunk(
-  "appointments/verifyPayment",
-  async (id, { rejectWithValue }) => {
-    try {
-      await api.patch(`/appointments/${id}/pay/verify`);
-      return id;
-    } catch (err) {
-      return rejectWithValue(err.response?.data?.message || "Failed to verify payment");
-    }
-  }
-);
-
 const appointmentsSlice = createSlice({
   name: "appointments",
   initialState: {
@@ -333,8 +321,12 @@ const appointmentsSlice = createSlice({
           state.items[index].StatusId = 1;
         }
       })
+      /* `loading = true` here left the Appointments screen stuck in its
+         skeleton forever after one failed accept — both the filter tiles and
+         the list are gated on `!loading`, so the owner had no way back except
+         navigating away. */
       .addCase(acceptAppointment.rejected, (state, action) => {
-        state.loading = true;
+        state.loading = false;
         state.error = action.payload || action.error?.message || "Failed to accept appointment";
       })
       .addCase(declineAppointment.pending, state => {
@@ -345,11 +337,14 @@ const appointmentsSlice = createSlice({
         state.loading = false;
         const index = state.items.findIndex(i => i.Id === action.payload);
         if (index !== -1) {
+          /* Both, like every sibling case — anything reading StatusId saw a
+             declined booking as still PENDING until the next refetch. */
           state.items[index].Status = "DECLINED";
+          state.items[index].StatusId = 6;
         }
       })
       .addCase(declineAppointment.rejected, (state, action) => {
-        state.loading = true;
+        state.loading = false;
         state.error = action.payload || action.error?.message || "Failed to decline appointment";
       })
       .addCase(verifyPayment.fulfilled, (state, action) => {

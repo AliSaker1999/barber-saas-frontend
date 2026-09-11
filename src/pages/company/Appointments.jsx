@@ -1,582 +1,675 @@
-import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import {
   fetchAppointments,
-  cancelAppointment,
-  markNoShow,
-  completeAppointment,
   acceptAppointment,
   declineAppointment,
-  notifyCustomer,
   arriveForAppointment,
+  completeAppointment,
+  markNoShow,
+  cancelAppointment,
+  notifyCustomer,
   verifyPayment,
   clearAppointmentsError
 } from "../../features/appointments/appointmentsSlice";
 import { openChatWindow } from "../../features/chat/chatSlice";
 import { fetchCustomerDetails, clearSelectedCustomer } from "../../features/customers/customersSlice";
 import { getSocket } from "../../services/socket";
+
+import TopBar from "../../components/ui/TopBar";
+import Button, { IconButton } from "../../components/ui/Button";
+import DayPicker from "../../components/ui/DayPicker";
+import BottomSheet, { ConfirmSheet } from "../../components/ui/BottomSheet";
 import CustomerModal from "../../components/CustomerModal";
-import Modal from "../../components/Modal";
-import LoadingState from "../../components/LoadingState";
-import EmptyState from "../../components/EmptyState";
-import ErrorState from "../../components/ErrorState";
+import { FilterChip, Pill, SectionHeader } from "../../components/ui/Primitives";
+import { PersonRow } from "../../components/shop/ShopDayComponents";
+import { EmptyState, ErrorState, ListSkeleton } from "../../components/ui/States";
+import { useI18n } from "../../i18n";
+import {
+  dateRangeFor,
+  formatMoney,
+  formatTime,
+  periodOfDay,
+  toLocalDateString,
+  toDate
+} from "../../utils/format";
+import {
+  appointmentTotals,
+  statusLabel,
+  statusOf,
+  statusTone
+} from "../../utils/appointmentStatus";
+import { shopWhatsappHref } from "../../config/support";
+
+/*
+ * The shop's bookings, day first.
+ *
+ * It is the "Calendar" tab, but a per-barber timeline grid cannot survive the
+ * 360px Android screens this app targets, so the calendar metaphor is a day
+ * strip: pick a day, see that day in time order. Ranges and the full history
+ * are still reachable, behind a sheet, because they are the rare case.
+ *
+ * Status is read exclusively through utils/appointmentStatus so this screen
+ * cannot disagree with Today or the customer's Bookings about what a booking
+ * is — it previously compared status names inline and silently fell back to
+ * "scheduled" for anything it didn't recognise.
+ */
+
+const PERIODS = ["morning", "afternoon", "evening"];
+
+/* Status filters, in the order a shop cares about them. `payment` is not a
+   status — it cuts across them — so it is kept visually separate. */
+const FILTERS = [
+  { id: "ALL", labelKey: "all_statuses" },
+  { id: "PAYMENT", labelKey: "payment_pending", tone: "warning" },
+  { id: "PENDING", labelKey: "status_pending" },
+  { id: "SCHEDULED", labelKey: "status_scheduled" },
+  { id: "AWAITING_PAYMENT", labelKey: "status_awaiting_payment" },
+  { id: "COMPLETED", labelKey: "status_completed" },
+  { id: "NO_SHOW", labelKey: "status_no_show" },
+  { id: "CANCELLED", labelKey: "status_cancelled" },
+  { id: "DECLINED", labelKey: "status_declined" }
+];
+
+function matchesFilter(appointment, filter) {
+  if (filter === "ALL") return true;
+  if (filter === "PAYMENT") return appointment.PaymentStatus === "PENDING";
+  return statusOf(appointment) === filter;
+}
 
 export default function Appointments() {
+  const { t, locale } = useI18n();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { items, loading, error, lastFetchedAt } = useAppSelector(s => s.appointments);
-  const [filter, setFilter] = useState("SCHEDULED");
-  const [dateMode, setDateMode] = useState("today"); // 'today', 'future', 'custom', 'all'
-  const [customRange, setCustomRange] = useState({ start: "", end: "" });
-  
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [declineModal, setDeclineModal] = useState({ isOpen: false, appointmentId: null, reason: "" });
+  const [params] = useSearchParams();
 
-  const [confirmModal, setConfirmModal] = useState({
-    isOpen: false,
-    title: "",
-    message: "",
-    action: null,
-    btnText: "",
-    btnColor: ""
-  });
+  const { items, loading, error } = useAppSelector((state) => state.appointments);
+  const user = useAppSelector((state) => state.auth.user);
 
-  const handleOpenCustomer = (customerId) => {
-    dispatch(fetchCustomerDetails({ customerId }));
-    setIsModalOpen(true);
-  };
+  const isOwner = Boolean(user?.roles?.includes("ADMIN") || user?.roles?.includes("STAFF"));
+  const tenantId = user?.tenantId;
 
-  const tenantId = useAppSelector(state => state.auth.user?.tenantId);
+  const [day, setDay] = useState(() => toLocalDateString());
+  const [mode, setMode] = useState("day"); // day | upcoming | custom | all
+  const [custom, setCustom] = useState({ startDate: "", endDate: "" });
+  const [rangeOpen, setRangeOpen] = useState(false);
+  const [filter, setFilter] = useState("ALL");
+  const [confirm, setConfirm] = useState(null);
+  const [acting, setActing] = useState(false);
+  const [declining, setDeclining] = useState(null);
+  const [declineReason, setDeclineReason] = useState("");
+  const [customerOpen, setCustomerOpen] = useState(false);
 
-  const toLocalDate = (date) => {
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-  };
+  /* A push notification deep-links here naming one booking. The screen used to
+     ignore it and default to today + scheduled, so tapping "new booking
+     request" landed on a list that could not contain it. */
+  const focusId = params.get("appointmentId");
 
-  const fetchCurrent = useCallback(() => {
-     let params = {};
-     const today = toLocalDate(new Date());
+  const range = useMemo(() => {
+    if (mode === "day") return { startDate: day, endDate: day };
+    return dateRangeFor(mode, custom);
+  }, [mode, day, custom]);
 
-     if (dateMode === 'today') {
-        params = { startDate: today, endDate: today };
-      } else if (dateMode === 'future') {
-        const tom = new Date();
-        tom.setDate(tom.getDate() + 1);
-        params = { startDate: toLocalDate(tom) };
-     } else if (dateMode === 'custom') {
-        if (!customRange.start || !customRange.end) return;
-        params = { startDate: customRange.start, endDate: customRange.end };
-     }
-
-     dispatch(fetchAppointments(params));
-  }, [dispatch, dateMode, customRange.start, customRange.end]);
+  const load = useCallback(() => {
+    /* A half-filled custom range would otherwise silently fetch nothing. */
+    if (!range) return;
+    dispatch(fetchAppointments(range));
+  }, [dispatch, range]);
 
   useEffect(() => {
-    fetchCurrent();
+    load();
+  }, [load]);
 
+  /* When a notification names a booking, widen to upcoming so it is reachable
+     whatever day it falls on. */
+  useEffect(() => {
+    if (focusId) setMode("upcoming");
+  }, [focusId]);
+
+  useEffect(() => {
     const socket = getSocket();
-    if (socket && tenantId) {
-      socket.emit("join-tenant", tenantId);
-      socket.on("appointments:update", fetchCurrent);
-    }
+    if (!socket || !tenantId) return undefined;
 
+    socket.emit("join-tenant", tenantId);
+    const refresh = () => load();
+    socket.on("appointments:update", refresh);
+
+    /* Passing the handler — the bare `off("appointments:update")` this screen
+       used removed every listener for the event, app-wide. */
     return () => {
-        if (socket) {
-            socket.off("appointments:update");
+      socket.off("appointments:update", refresh);
+    };
+  }, [tenantId, load]);
+
+  /* One pass for every count, instead of eleven filter() sweeps per render. */
+  const counts = useMemo(() => {
+    const tally = { ALL: items.length, PAYMENT: 0 };
+    items.forEach((appointment) => {
+      if (appointment.PaymentStatus === "PENDING") tally.PAYMENT += 1;
+      const status = statusOf(appointment);
+      if (status) tally[status] = (tally[status] || 0) + 1;
+    });
+    return tally;
+  }, [items]);
+
+  const visible = useMemo(
+    () =>
+      [...items]
+        .filter((appointment) => matchesFilter(appointment, filter))
+        .sort((a, b) => toDate(a.StartTime) - toDate(b.StartTime)),
+    [items, filter]
+  );
+
+  /* Grouped by time of day when looking at a single day; otherwise a flat list
+     in time order, since the date is on every row. */
+  const grouped = useMemo(() => {
+    if (mode !== "day") return null;
+
+    const groups = { morning: [], afternoon: [], evening: [] };
+    visible.forEach((appointment) => {
+      const date = toDate(appointment.StartTime);
+      if (!date) return;
+      const key = periodOfDay(`${String(date.getHours()).padStart(2, "0")}:00`);
+      groups[key].push(appointment);
+    });
+    return groups;
+  }, [visible, mode]);
+
+  const revenue = useMemo(
+    () =>
+      visible
+        .filter((a) => statusOf(a) === "COMPLETED")
+        .reduce((sum, a) => sum + appointmentTotals(a).price, 0),
+    [visible]
+  );
+
+  /* ---- actions ---- */
+  const run = useCallback(
+    async (thunk, successMessage) => {
+      setActing(true);
+      try {
+        await dispatch(thunk).unwrap();
+        if (successMessage) toast.success(successMessage);
+        /* The socket is the only refresh path today, so an action's effect
+           could be invisible whenever it is down. */
+        load();
+        setConfirm(null);
+      } catch (err) {
+        toast.error(typeof err === "string" ? err : t("error_generic"));
+      } finally {
+        setActing(false);
+      }
+    },
+    [dispatch, load, t]
+  );
+
+  const submitDecline = async () => {
+    if (!declining || !declineReason.trim()) return;
+    setActing(true);
+    try {
+      await dispatch(
+        declineAppointment({ id: declining.Id, reason: declineReason.trim() })
+      ).unwrap();
+      toast.success(t("request_declined"));
+      setDeclining(null);
+      setDeclineReason("");
+      load();
+    } catch (err) {
+      toast.error(typeof err === "string" ? err : t("error_generic"));
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const openCustomer = (customerId) => {
+    dispatch(fetchCustomerDetails({ customerId }));
+    setCustomerOpen(true);
+  };
+
+  /* ---- a row ---- */
+  const renderRow = (appointment) => {
+    const status = statusOf(appointment);
+    const { names, price } = appointmentTotals(appointment);
+    const currency = appointment.Currency || "USD";
+    const date = toDate(appointment.StartTime);
+    const isFocused = focusId === appointment.Id;
+
+    const meta = [
+      mode !== "day" && date
+        ? date.toLocaleDateString(locale === "ar" ? "ar-LB" : "en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric"
+          })
+        : null,
+      /* The barber was hidden below `lg` before, so an owner on a phone could
+         not tell whose booking they were looking at. */
+      isOwner ? appointment.BarberName : null,
+      price ? formatMoney(price, currency) : null
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    return (
+      <PersonRow
+        key={appointment.Id}
+        leading={formatTime(appointment.StartTime, locale)}
+        name={appointment.CustomerName}
+        photo={appointment.CustomerProfileImage}
+        primary={names.join(" + ")}
+        secondary={meta}
+        tone={statusTone(appointment)}
+        toneLabel={statusLabel(appointment, t)}
+        highlight={isFocused}
+        onOpen={() => openCustomer(appointment.CustomerId)}
+        badges={
+          <>
+            {appointment.PaymentStatus === "PENDING" ? (
+              <Pill tone="warning" icon="wallet">
+                {t("verifying_label")}
+              </Pill>
+            ) : appointment.PaymentStatus === "PAID" ? (
+              <Pill tone="success" icon="check">
+                {t("paid_label")}
+              </Pill>
+            ) : appointment.PaymentStatus === "DEPOSIT_PAID" ? (
+              /* Was collapsed into "Paid", so a deposit-only booking read as
+                 fully settled. */
+              <Pill tone="info" icon="wallet">
+                {t("deposit_paid_label")}
+              </Pill>
+            ) : null}
+            {appointment.NotificationSent ? (
+              <Pill tone="info" icon="bell">
+                {t("customer_called")}
+              </Pill>
+            ) : null}
+          </>
         }
-    };
-  }, [tenantId, fetchCurrent]);
+        actions={
+          <>
+            <IconButton
+              icon="message"
+              label={t("chat")}
+              onClick={() => {
+                dispatch(
+                  openChatWindow({
+                    barberId: appointment.BarberId,
+                    customerId: appointment.CustomerId,
+                    peerName: appointment.CustomerName
+                  })
+                );
+                navigate("/company/conversations");
+              }}
+            />
+            {shopWhatsappHref(appointment.CustomerPhone) ? (
+              <IconButton
+                icon="whatsapp"
+                label={t("whatsapp_support")}
+                onClick={() =>
+                  window.open(shopWhatsappHref(appointment.CustomerPhone), "_blank")
+                }
+              />
+            ) : null}
 
-  const filteredItems = (() => {
-    if (filter === "TOTAL") return items;
-    if (filter === "PAYMENT_PENDING") return items.filter(a => a.PaymentStatus === 'PENDING');
-    return items.filter(a => a.Status === filter);
-  })();
+            {appointment.PaymentStatus === "PENDING" ? (
+              <Button
+                size="sm"
+                icon="wallet"
+                onClick={() =>
+                  setConfirm({
+                    title: t("verify_payment"),
+                    message: t("verify_payment_message", { name: appointment.CustomerName }),
+                    confirmLabel: t("verify_payment"),
+                    destructive: false,
+                    thunk: verifyPayment(appointment.Id),
+                    success: t("payment_verified")
+                  })
+                }
+              >
+                {t("verify_payment")}
+              </Button>
+            ) : null}
 
-  const getStatusBadge = (status) => {
-    const badges = {
-      PENDING: { bg: "bg-app-surface-2", border: "border-app-border", text: "text-app-text", icon: "⏳" },
-      SCHEDULED: { bg: "bg-app-surface-2", border: "border-app-border", text: "text-app-text", icon: "📅" },
-      COMPLETED: { bg: "bg-app-accent/10", border: "border-app-accent/30", text: "text-app-accent", icon: "✅" },
-      CANCELLED: { bg: "bg-app-surface-2", border: "border-app-border", text: "text-app-text", icon: "❌" },
-      DECLINED: { bg: "bg-app-surface-2", border: "border-app-border", text: "text-app-text", icon: "🚫" },
-      NO_SHOW: { bg: "bg-app-surface-2", border: "border-app-border", text: "text-app-text", icon: "⚠️" },
-      AWAITING_PAYMENT: { bg: "bg-app-surface-2", border: "border-app-border", text: "text-app-text", icon: "💳" }
-    };
-    return badges[status] || badges.SCHEDULED;
+            {status === "PENDING" ? (
+              <>
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    setConfirm({
+                      title: t("accept"),
+                      message: t("accept_booking_message", { name: appointment.CustomerName }),
+                      confirmLabel: t("accept"),
+                      destructive: false,
+                      thunk: acceptAppointment(appointment.Id),
+                      success: t("booking_accepted")
+                    })
+                  }
+                >
+                  {t("accept")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={() => {
+                    setDeclining(appointment);
+                    setDeclineReason("");
+                  }}
+                >
+                  {t("decline")}
+                </Button>
+              </>
+            ) : null}
+
+            {status === "SCHEDULED" ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() =>
+                    setConfirm({
+                      title: t("check_in"),
+                      /* Check-in converts the booking into a queue entry. The
+                         old copy claimed it completed the appointment. */
+                      message: t("check_in_message", { name: appointment.CustomerName }),
+                      confirmLabel: t("check_in"),
+                      destructive: false,
+                      thunk: arriveForAppointment(appointment.Id),
+                      success: t("checked_in")
+                    })
+                  }
+                >
+                  {t("check_in")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() =>
+                    setConfirm({
+                      title: t("complete_service"),
+                      message: t("complete_message", { name: appointment.CustomerName }),
+                      confirmLabel: t("complete_service"),
+                      destructive: false,
+                      thunk: completeAppointment(appointment.Id),
+                      success: t("marked_complete")
+                    })
+                  }
+                >
+                  {t("complete_service")}
+                </Button>
+                <IconButton
+                  icon="bell"
+                  label={t("notify_customer")}
+                  onClick={() =>
+                    setConfirm({
+                      title: t("notify_customer"),
+                      message: t("notify_booking_message", { name: appointment.CustomerName }),
+                      confirmLabel: t("notify_customer"),
+                      destructive: false,
+                      thunk: notifyCustomer(appointment.Id),
+                      success: t("customer_notified")
+                    })
+                  }
+                />
+                <IconButton
+                  icon="alert"
+                  label={t("mark_no_show")}
+                  onClick={() =>
+                    setConfirm({
+                      title: t("mark_no_show"),
+                      message: t("no_show_message", { name: appointment.CustomerName }),
+                      confirmLabel: t("mark_no_show"),
+                      destructive: true,
+                      thunk: markNoShow(appointment.Id),
+                      success: t("marked_no_show")
+                    })
+                  }
+                />
+                <IconButton
+                  icon="x"
+                  label={t("cancel_appointment")}
+                  onClick={() =>
+                    setConfirm({
+                      title: t("cancel_appointment"),
+                      message: t("cancel_booking_shop_message", {
+                        name: appointment.CustomerName
+                      }),
+                      confirmLabel: t("cancel_appointment"),
+                      destructive: true,
+                      thunk: cancelAppointment(appointment.Id),
+                      success: t("booking_cancelled_toast")
+                    })
+                  }
+                />
+              </>
+            ) : null}
+          </>
+        }
+      />
+    );
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return {
-      date: date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-      time: date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-    };
-  };
+  const isFirstLoad = loading && !items.length;
+  const modeLabel =
+    mode === "day"
+      ? t("today")
+      : mode === "upcoming"
+      ? t("filter_upcoming")
+      : mode === "all"
+      ? t("all_time")
+      : t("custom_range");
 
   return (
-    <div>
-      {/* Header */}
-      <div className="mb-5 sm:mb-8">
-        <h1 className="text-2xl sm:text-4xl font-bold text-app-text mb-1.5">📅 Appointments</h1>
-        <p className="text-xs sm:text-base text-app-muted mb-1.5">Manage and track all salon appointments</p>
-        {lastFetchedAt && (
-          <p className="text-xs text-app-muted font-bold mb-6">
-            Last updated {new Date(lastFetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </p>
-        )}
-        
-        {/* Date Filters */}
-        <div className="bg-app-surface p-2.5 sm:p-4 rounded-[12px] shadow-sm border border-app-border flex flex-wrap gap-2 items-center">
-          <span className="font-semibold text-sm text-app-text mr-1">Show:</span>
-            
-            <button
-              onClick={() => setDateMode("today")}
-              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${dateMode === "today" ? "bg-app-accent text-white" : "bg-app-surface-2 text-app-text hover:bg-app-surface"}`}
-            >
-                Today
-            </button>
-            <button
-                onClick={() => setDateMode("future")}
-                className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${dateMode === "future" ? "bg-app-accent text-white" : "bg-app-surface-2 text-app-text hover:bg-app-surface"}`}
-            >
-                Future
-            </button>
-            <button
-                onClick={() => setDateMode("all")}
-                className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${dateMode === "all" ? "bg-app-accent text-white" : "bg-app-surface-2 text-app-text hover:bg-app-surface"}`}
-            >
-                All Time
-            </button>
-            <button
-                onClick={() => setDateMode("custom")}
-                className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${dateMode === "custom" ? "bg-app-accent text-white" : "bg-app-surface-2 text-app-text hover:bg-app-surface"}`}
-            >
-                Custom Range
-            </button>
-
-            {dateMode === "custom" && (
-                <div className="flex items-center gap-2 ml-1 sm:ml-2 animate-fadeIn">
-                    <input 
-                      type="date" 
-                      value={customRange.start}
-                      onChange={(e) => setCustomRange(prev => ({ ...prev, start: e.target.value }))}
-                      className="border border-app-border rounded-[12px] px-3 py-2 text-sm focus:ring-2 focus:ring-app-accent outline-none"
-                    />
-                    <span className="text-app-muted">to</span>
-                    <input 
-                      type="date" 
-                      value={customRange.end}
-                      onChange={(e) => setCustomRange(prev => ({ ...prev, end: e.target.value }))}
-                      className="border border-app-border rounded-[12px] px-3 py-2 text-sm focus:ring-2 focus:ring-app-accent outline-none"
-                    />
-                </div>
-            )}
-        </div>
-      </div>
-
-      {/* Stats Cards / Filters */}
-      {!loading && (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3 mb-6 sm:mb-10">
-          <button 
-            onClick={() => setFilter("TOTAL")}
-            className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "TOTAL" ? "bg-app-accent border-app-accent text-white shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
-          >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "TOTAL" ? "text-white" : "text-app-muted"}`}>Total</p>
-            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.length}</p>
-          </button>
-
-          {/* Payment Verification Filter */}
-          <button 
-            onClick={() => setFilter("PAYMENT_PENDING")}
-            className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "PAYMENT_PENDING" ? "bg-app-accent border-app-accent text-white shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
-          >
-            <div className="flex items-center justify-between">
-                <p className={`text-xs sm:text-sm font-semibold ${filter === "PAYMENT_PENDING" ? "text-amber-100" : "text-amber-600"}`}>Verify Payment</p>
-                {items.filter(a => a.PaymentStatus === 'PENDING').length > 0 && (
-                    <span className="bg-app-accent text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-pulse">Action</span>
-                )}
-            </div>
-            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.PaymentStatus === 'PENDING').length}</p>
-          </button>
-
-          <button 
-            onClick={() => setFilter("PENDING")}
-            className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "PENDING" ? "bg-app-accent border-app-accent text-white shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
-          >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "PENDING" ? "text-white" : "text-app-muted"}`}>Pending</p>
-            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'PENDING').length}</p>
-          </button>
-
-          <button 
-            onClick={() => setFilter("AWAITING_PAYMENT")}
-            className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "AWAITING_PAYMENT" ? "bg-app-accent border-app-accent text-white shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
-          >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "AWAITING_PAYMENT" ? "text-white" : "text-app-muted"}`}>Restricted</p>
-            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'AWAITING_PAYMENT').length}</p>
-          </button>
-          
-          <button 
-            onClick={() => setFilter("SCHEDULED")}
-            className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "SCHEDULED" ? "bg-app-accent border-app-accent text-white shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
-          >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "SCHEDULED" ? "text-white" : "text-app-muted"}`}>Scheduled</p>
-            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'SCHEDULED').length}</p>
-          </button>
-
-          <button 
-            onClick={() => setFilter("COMPLETED")}
-            className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "COMPLETED" ? "bg-app-accent border-app-accent text-white shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
-          >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "COMPLETED" ? "text-white" : "text-app-muted"}`}>Completed</p>
-            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'COMPLETED').length}</p>
-          </button>
-
-          <button 
-            onClick={() => setFilter("CANCELLED")}
-            className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "CANCELLED" ? "bg-app-accent border-app-accent text-white shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
-          >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "CANCELLED" ? "text-white" : "text-app-muted"}`}>Cancelled</p>
-            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'CANCELLED').length}</p>
-          </button>
-
-          <button 
-            onClick={() => setFilter("NO_SHOW")}
-            className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "NO_SHOW" ? "bg-app-accent border-app-accent text-white shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
-          >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "NO_SHOW" ? "text-white" : "text-app-muted"}`}>No Show</p>
-            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'NO_SHOW').length}</p>
-          </button>
-
-          <button 
-            onClick={() => setFilter("DECLINED")}
-            className={`transition-all duration-200 rounded-[12px] border px-2.5 py-2.5 sm:px-4 sm:py-4 text-left ${filter === "DECLINED" ? "bg-app-surface-2 border-app-border text-app-text shadow" : "bg-app-surface border-app-border text-app-text hover:border-app-accent shadow-sm"}`}
-          >
-            <p className={`text-xs sm:text-sm font-semibold ${filter === "DECLINED" ? "text-app-text" : "text-app-muted"}`}>Declined</p>
-            <p className="text-2xl sm:text-3xl font-bold mt-1">{items.filter(a => a.Status === 'DECLINED').length}</p>
-          </button>
-        </div>
-      )}
-
-      {/* Error Message */}
-      {error && (
-        <div className="mb-6">
-          <ErrorState message={error} onRetry={() => dispatch(clearAppointmentsError())} retryLabel="Dismiss" />
-        </div>
-      )}
-
-      {/* Loading State */}
-      {loading && (
-        <LoadingState label="Loading appointments..." blocks={3} />
-      )}
-
-      {/* Empty State */}
-      {!loading && filteredItems.length === 0 && (
-        <EmptyState title="No appointments found" description={`No ${filter.toLowerCase()} appointments right now.`} />
-      )}
-
-      {/* Appointments List (List to Card on Hover) */}
-      {!loading && filteredItems.length > 0 && (
-        <div className="space-y-4">
-          {filteredItems.map(appointment => {
-            const { date, time } = formatDate(appointment.StartTime);
-            const statusBadge = getStatusBadge(appointment.Status);
-
-            return (
-              <div
-                key={appointment.Id}
-                className="group relative bg-app-surface rounded-[12px] border border-app-border shadow-sm hover:shadow-2xl hover:scale-[1.02] hover:z-10 transition-all duration-300 cursor-default overflow-hidden"
-              >
-                {/* Decoration for hover */}
-                <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-app-accent transform scale-y-0 group-hover:scale-y-100 transition-transform origin-top duration-300" />
-                
-                <div className="p-3 sm:p-4 md:p-6 flex flex-col md:flex-row md:items-center gap-4 sm:gap-5 md:gap-6">
-                  {/* Date & Time Column */}
-                  <div className="min-w-[110px] sm:min-w-[140px]">
-                    <p className="text-xs text-app-muted font-bold uppercase tracking-wider mb-1">Schedule</p>
-                    <p className="text-sm font-bold text-app-text">{date}</p>
-                    <p className="text-app-accent font-black text-base sm:text-lg">⏰ {time}</p>
-                  </div>
-
-                  {/* Customer Column */}
-                  <div className="flex-1">
-                    <p className="text-xs text-app-muted font-bold uppercase tracking-wider mb-1">Customer</p>
-                    <button 
-                      onClick={() => handleOpenCustomer(appointment.CustomerId)}
-                      className="text-base sm:text-lg font-bold text-app-text hover:text-app-accent transition-colors pointer-events-auto text-left block"
-                    >
-                      {appointment.CustomerName}
-                    </button>
-                    <p className="text-xs sm:text-sm text-app-muted truncate max-w-xs">{appointment.Services}</p>
-                  </div>
-
-                  {/* Barber Column */}
-                  <div className="hidden lg:block min-w-[150px]">
-                    <p className="text-xs text-app-muted font-bold uppercase tracking-wider mb-1">Barber</p>
-                    <p className="text-sm font-bold text-app-text">{appointment.BarberName}</p>
-                  </div>
-
-                  {/* Status & Payment Badge */}
-                  <div className="flex flex-col items-end gap-2">
-                    <div className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-full font-bold text-[11px] sm:text-xs flex items-center gap-1.5 ${statusBadge.bg} border ${statusBadge.border} ${statusBadge.text}`}>
-                      <span className="text-sm">{statusBadge.icon}</span> {appointment.Status}
-                    </div>
-                    
-                    {appointment.PaymentStatus && appointment.PaymentStatus !== 'UNPAID' && (
-                        <div className={`px-3 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider flex items-center gap-1 ${
-                            appointment.PaymentStatus === 'PAID' 
-                            ? 'bg-app-accent/10 text-app-accent border-app-accent/30' 
-                            : 'bg-app-surface-2 text-app-text border-app-border'
-                        }`}>
-                            {appointment.PaymentStatus === 'PENDING' ? '⏳ Verifying' : '💰 Paid'}
-                        </div>
-                    )}
-                    {appointment.PaymentReference && (
-                       <p className="text-[10px] font-mono text-app-muted mt-1">Ref: {appointment.PaymentReference}</p>
-                    )}
-                  </div>
-
-                  {/* Actions (Only visible/expanded on hover or always if Scheduled) */}
-                  <div className="flex gap-2">
-                    {/* Verify Payment Button (High Priority) */}
-                    {appointment.PaymentStatus === 'PENDING' && (
-                         <button
-                            onClick={() => setConfirmModal({
-                                isOpen: true,
-                                title: "Verify Payment",
-                                message: (
-                                  <div>
-                                    <p className="mb-2">Confirm receipt of payment?</p>
-                                    <div className="bg-gray-100 p-3 rounded-lg font-mono text-sm text-center">
-                                      Ref: <strong>{appointment.PaymentReference || "N/A"}</strong>
-                                    </div>
-                                  </div>
-                                ),
-                                action: () => dispatch(verifyPayment(appointment.Id)),
-                                btnText: "Verify & Mark Paid",
-                                btnColor: "bg-app-accent hover:bg-app-accent-dark"
-                            })}
-                            className="bg-app-surface-2 hover:bg-app-surface text-app-text px-3 py-2 rounded-lg transition-all border border-app-border font-bold flex items-center gap-2 text-sm shadow-sm animate-pulse"
-                            title={`Verify Reference: ${appointment.PaymentReference}`}
-                         >
-                            💰 Verify
-                         </button>
-                    )}
-
-                    {/* Communication Buttons */}
-                    {(appointment.Status === "SCHEDULED" || appointment.Status === "PENDING") && (
-                      <>
-                        <button
-                          onClick={() => {
-                            dispatch(openChatWindow({
-                              barberId: appointment.BarberId,
-                              customerId: appointment.CustomerId,
-                              peerName: appointment.CustomerName
-                            }));
-                            navigate("/company/conversations");
-                          }}
-                          className="bg-app-accent hover:bg-app-accent-dark text-white p-2 rounded-lg transition-all shadow-sm flex items-center justify-center mr-2 tap-target"
-                          title="Internal Chat"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                        </button>
-                        {appointment.CustomerPhone && (
-                           <a
-                             href={`https://wa.me/${appointment.CustomerPhone.replace(/\D/g, '')}`}
-                             target="_blank"
-                             rel="noopener noreferrer"
-                             className="bg-app-accent hover:bg-app-accent-dark text-white p-2 rounded-lg transition-all shadow-sm flex items-center justify-center tap-target"
-                             title="Chat on WhatsApp"
-                           >
-                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-                           </a>
-                        )}
-                        <button
-                          onClick={() => setConfirmModal({
-                            isOpen: true,
-                            title: "Notify Customer",
-                            message: `Send a "10-minute warning" notification${appointment.CustomerPhone ? ' and WhatsApp message' : ''} to ${appointment.CustomerName}?`,
-                            action: () => dispatch(notifyCustomer(appointment.Id)),
-                            btnText: "Notify",
-                            btnColor: "bg-app-accent hover:bg-app-accent-dark"
-                          })}
-                          className="bg-app-surface-2 hover:bg-app-accent hover:text-white text-app-accent p-2 rounded-lg transition-all border border-app-border font-bold tap-target"
-                          title="Notify (10 min warning)"
-                        >
-                          🔔
-                        </button>
-                      </>
-                    )}
-
-                    {appointment.Status === "PENDING" && (
-                        <>
-                          <button
-                            onClick={() => setConfirmModal({
-                              isOpen: true,
-                              title: "Accept Appointment",
-                              message: `Accept appointment for ${appointment.CustomerName} at ${date} ${time}?`,
-                              action: () => dispatch(acceptAppointment(appointment.Id)),
-                              btnText: "Accept",
-                              btnColor: "bg-app-accent hover:bg-app-accent-dark"
-                            })}
-                            className="bg-app-surface-2 hover:bg-app-accent hover:text-white text-app-accent p-2 rounded-lg transition-all border border-app-border tap-target"
-                            title="Accept"
-                          >
-                            ✅
-                          </button>
-                          <button
-                            onClick={() => setDeclineModal({
-                              isOpen: true,
-                              appointmentId: appointment.Id,
-                              reason: ""
-                            })}
-                            className="bg-app-surface-2 hover:bg-app-accent hover:text-white text-app-accent p-2 rounded-lg transition-all border border-app-border tap-target"
-                            title="Decline"
-                          >
-                            🚫
-                          </button>
-                        </>
-                    )}
-                    {appointment.Status === "SCHEDULED" && (
-                      <>
-                        <button
-                          onClick={() => setConfirmModal({
-                            isOpen: true,
-                            title: "Customer Arrived",
-                            message: `Mark ${appointment.CustomerName} as arrived? This will add them to the queue and update the appointment as completed.`,
-                            action: () => dispatch(arriveForAppointment(appointment.Id)),
-                            btnText: "Arrived",
-                            btnColor: "bg-app-accent hover:bg-app-accent-dark"
-                          })}
-                          className="bg-app-surface-2 hover:bg-app-accent hover:text-white text-app-accent p-2 rounded-lg transition-all border border-app-border tap-target"
-                          title="Customer Arrived"
-                        >
-                          🏃
-                        </button>
-                        <button
-                          onClick={() => setConfirmModal({
-                            isOpen: true,
-                            title: "Complete Appointment",
-                            message: `Are you sure you want to mark ${appointment.CustomerName}'s appointment as completed?`,
-                            action: () => dispatch(completeAppointment(appointment.Id)),
-                            btnText: "Complete",
-                            btnColor: "bg-app-accent hover:bg-app-accent-dark"
-                          })}
-                          className="bg-app-surface-2 hover:bg-app-accent hover:text-white text-app-accent p-2 rounded-lg transition-all border border-app-border tap-target"
-                          title="Complete"
-                        >
-                          ✅
-                        </button>
-                        <button
-                          onClick={() => setConfirmModal({
-                            isOpen: true,
-                            title: "Mark No Show",
-                            message: `Are you sure you want to mark ${appointment.CustomerName} as a no-show? This will increment their no-show count.`,
-                            action: () => dispatch(markNoShow(appointment.Id)),
-                            btnText: "Mark No-Show",
-                            btnColor: "bg-app-accent hover:bg-app-accent-dark"
-                          })}
-                          className="bg-app-surface-2 hover:bg-app-accent hover:text-white text-app-accent p-2 rounded-lg transition-all border border-app-border tap-target"
-                          title="No Show"
-                        >
-                          ⚠️
-                        </button>
-                        <button
-                          onClick={() => setConfirmModal({
-                            isOpen: true,
-                            title: "Cancel Appointment",
-                            message: `Are you sure you want to cancel the appointment for ${appointment.CustomerName}?`,
-                            action: () => dispatch(cancelAppointment(appointment.Id)),
-                            btnText: "Cancel",
-                            btnColor: "bg-app-accent hover:bg-app-accent-dark"
-                          })}
-                          className="bg-app-surface-2 hover:bg-app-accent hover:text-white text-app-accent p-2 rounded-lg transition-all border border-app-border tap-target"
-                          title="Cancel"
-                        >
-                          ❌
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Customer Detail Modal */}
-      <CustomerModal 
-        isOpen={isModalOpen} 
-        onClose={() => {
-          setIsModalOpen(false);
-          dispatch(clearSelectedCustomer());
-        }} 
+    <div className="pb-6">
+      <TopBar
+        title={t("nav_calendar")}
+        subtitle={isOwner ? undefined : t("my_bookings_subtitle")}
+        actions={
+          <>
+            <IconButton icon="refresh" label={t("retry")} onClick={load} />
+            <IconButton icon="calendar" label={t("custom_range")} onClick={() => setRangeOpen(true)} />
+          </>
+        }
       />
 
-      <Modal
-        isOpen={confirmModal.isOpen}
-        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-        title={confirmModal.title}
-      >
-        <div className="p-6 text-center">
-            <p className="text-app-muted mb-8">{confirmModal.message}</p>
-            <div className="flex gap-3">
-                <button 
-                    onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-                    className="flex-1 px-6 py-3 bg-app-surface-2 hover:bg-app-surface text-app-text font-bold rounded-[12px] transition"
-                >
-                    Back
-                </button>
-                <button 
-                    onClick={() => {
-                        confirmModal.action();
-                        setConfirmModal({ ...confirmModal, isOpen: false });
-                    }}
-                    className={`flex-1 px-6 py-3 text-white font-bold rounded-xl transition shadow-lg ${confirmModal.btnColor}`}
-                >
-                    {confirmModal.btnText}
-                </button>
-            </div>
+      {/* ---- day ---- */}
+      {mode === "day" ? (
+        <div className="px-4">
+          <DayPicker value={day} onChange={setDay} maxDays={30} />
         </div>
-      </Modal>
+      ) : (
+        <div className="px-4 flex items-center gap-2">
+          <Pill tone="gold">{modeLabel}</Pill>
+          <button
+            type="button"
+            onClick={() => setMode("day")}
+            className="text-caption font-semibold text-brand-gold-text py-1"
+          >
+            {t("back_to_day")}
+          </button>
+        </div>
+      )}
 
-      <Modal
-        isOpen={declineModal.isOpen}
-        onClose={() => setDeclineModal({ ...declineModal, isOpen: false })}
-        title="Decline Appointment"
+      {/* ---- status filters ---- */}
+      <div className="flex gap-2 overflow-x-auto no-scrollbar px-4 pt-3">
+        {FILTERS.map((entry) => (
+          <FilterChip
+            key={entry.id}
+            active={filter === entry.id}
+            onClick={() => setFilter(entry.id)}
+            count={counts[entry.id] || 0}
+          >
+            {t(entry.labelKey)}
+          </FilterChip>
+        ))}
+      </div>
+
+      {/* ---- list ---- */}
+      <div className="px-4 pt-4">
+        {isFirstLoad ? (
+          <ListSkeleton count={4} height="h-[92px]" />
+        ) : error && !items.length ? (
+          <ErrorState
+            message={error}
+            onRetry={() => {
+              dispatch(clearAppointmentsError());
+              load();
+            }}
+          />
+        ) : !visible.length ? (
+          <EmptyState
+            icon="calendar"
+            title={t("no_appointments_today")}
+            description={t("no_appointments_today_body")}
+          />
+        ) : grouped ? (
+          <div className="space-y-6">
+            {isOwner && revenue > 0 ? (
+              <p className="text-body-sm text-content-secondary tnum">
+                {t("revenue_today")}:{" "}
+                <span className="font-bold text-content-primary">{formatMoney(revenue)}</span>
+              </p>
+            ) : null}
+
+            {PERIODS.map((period) =>
+              grouped[period].length ? (
+                <section key={period}>
+                  <SectionHeader title={t(period)} />
+                  <div className="space-y-2.5">{grouped[period].map(renderRow)}</div>
+                </section>
+              ) : null
+            )}
+          </div>
+        ) : (
+          <div className="space-y-2.5">{visible.map(renderRow)}</div>
+        )}
+      </div>
+
+      {/* ---- sheets ---- */}
+      <ConfirmSheet
+        open={Boolean(confirm)}
+        onClose={() => setConfirm(null)}
+        onConfirm={() => confirm && run(confirm.thunk, confirm.success)}
+        loading={acting}
+        title={confirm?.title}
+        message={confirm?.message}
+        confirmLabel={confirm?.confirmLabel}
+        destructive={confirm?.destructive}
+      />
+
+      <BottomSheet
+        open={Boolean(declining)}
+        onClose={() => setDeclining(null)}
+        title={t("decline")}
+        subtitle={declining?.CustomerName}
+        footer={
+          <Button
+            block
+            variant="danger-solid"
+            loading={acting}
+            disabled={!declineReason.trim()}
+            onClick={submitDecline}
+          >
+            {t("decline")}
+          </Button>
+        }
       >
-         <div className="p-6">
-            <p className="text-app-muted mb-4">Please provide a reason for declining this appointment:</p>
-            <textarea
-                className="w-full border rounded-xl p-4 focus:ring-2 focus:ring-red-500 outline-none mb-6"
-                rows="3"
-                placeholder="Reason (e.g. Barber unavailable, conflict...)"
-                value={declineModal.reason}
-                onChange={(e) => setDeclineModal({ ...declineModal, reason: e.target.value })}
-            />
-            <div className="flex gap-3">
-                <button 
-                    onClick={() => setDeclineModal({ ...declineModal, isOpen: false })}
-                    className="flex-1 px-6 py-3 bg-app-surface-2 hover:bg-app-surface text-app-text font-bold rounded-[12px] transition"
-                >
-                    Cancel
-                </button>
-                <button 
-                    onClick={() => {
-                        if (!declineModal.reason.trim()) return;
-                        dispatch(declineAppointment({ id: declineModal.appointmentId, reason: declineModal.reason }));
-                        setDeclineModal({ ...declineModal, isOpen: false });
-                    }}
-                    disabled={!declineModal.reason.trim()}
-                    className={`flex-1 px-6 py-3 text-white font-bold rounded-[12px] transition shadow-lg bg-app-accent hover:bg-app-accent-dark ${!declineModal.reason.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                    Decline Request
-                </button>
-            </div>
-         </div>
-      </Modal>
+        <p className="text-body text-content-secondary">
+          {t("decline_booking_message", { name: declining?.CustomerName || "" })}
+        </p>
+        <label className="block mt-4">
+          <span className="block text-label uppercase text-content-muted mb-1.5">
+            {t("reason_decline")}
+          </span>
+          <textarea
+            value={declineReason}
+            onChange={(event) => setDeclineReason(event.target.value)}
+            rows={3}
+            className="w-full p-3.5 rounded-control bg-surface-raised border border-line-subtle
+                       text-body text-content-primary focus:border-brand-gold focus:outline-none"
+          />
+          <span className="block mt-1.5 text-caption text-content-muted">
+            {t("decline_reason_hint")}
+          </span>
+        </label>
+      </BottomSheet>
+
+      <BottomSheet
+        open={rangeOpen}
+        onClose={() => setRangeOpen(false)}
+        title={t("custom_range")}
+        footer={
+          <Button
+            block
+            disabled={mode === "custom" && (!custom.startDate || !custom.endDate)}
+            onClick={() => setRangeOpen(false)}
+          >
+            {t("done")}
+          </Button>
+        }
+      >
+        <div className="space-y-2">
+          {[
+            { id: "day", label: t("today") },
+            { id: "upcoming", label: t("filter_upcoming") },
+            { id: "custom", label: t("custom_range") },
+            { id: "all", label: t("all_time") }
+          ].map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => {
+                setMode(option.id);
+                if (option.id === "day") setDay(toLocalDateString());
+              }}
+              className={`press w-full flex items-center gap-3 p-3 rounded-card border text-start ${
+                mode === option.id
+                  ? "border-brand-gold bg-brand-gold-soft"
+                  : "border-line-subtle bg-surface-raised"
+              }`}
+            >
+              <span className="flex-1 text-body text-content-primary">{option.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {mode === "custom" ? (
+          <div className="mt-4 grid grid-cols-2 gap-2.5">
+            {["startDate", "endDate"].map((field) => (
+              <label key={field} className="block">
+                <span className="block text-label uppercase text-content-muted mb-1.5">
+                  {t(field === "startDate" ? "from_date" : "to_date")}
+                </span>
+                <input
+                  type="date"
+                  value={custom[field]}
+                  onChange={(event) =>
+                    setCustom((prev) => ({ ...prev, [field]: event.target.value }))
+                  }
+                  className="w-full h-12 px-3 rounded-control bg-surface-raised border border-line-subtle
+                             text-body text-content-primary tnum focus:border-brand-gold focus:outline-none"
+                />
+              </label>
+            ))}
+          </div>
+        ) : null}
+
+        {mode === "all" ? (
+          /* This asks for the shop's entire history in one unpaginated
+             response — worth warning about rather than silently doing. */
+          <p className="mt-4 text-caption text-content-muted">{t("all_time_warning")}</p>
+        ) : null}
+      </BottomSheet>
+
+      <CustomerModal
+        isOpen={customerOpen}
+        onClose={() => {
+          setCustomerOpen(false);
+          dispatch(clearSelectedCustomer());
+        }}
+      />
     </div>
   );
 }

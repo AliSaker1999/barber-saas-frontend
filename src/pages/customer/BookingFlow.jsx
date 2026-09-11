@@ -25,6 +25,7 @@ import TopBar from "../../components/ui/TopBar";
 import Icon from "../../components/ui/Icon";
 import Button from "../../components/ui/Button";
 import ServiceCard from "../../components/ui/ServiceCard";
+import DayPicker from "../../components/ui/DayPicker";
 import BarberCard from "../../components/ui/BarberCard";
 import BookingSummary from "../../components/ui/BookingSummary";
 import PhoneVerificationModal from "../../components/PhoneVerificationModal";
@@ -38,7 +39,13 @@ import {
 } from "../../components/ui/States";
 import BookingConfirmed from "./BookingConfirmed";
 import { useI18n } from "../../i18n";
-import { formatDuration, formatMoney, formatTime } from "../../utils/format";
+import {
+  formatDuration,
+  formatMoney,
+  formatTime,
+  periodOfDay,
+  toLocalDateString
+} from "../../utils/format";
 
 /*
  * Booking, in one screen with four steps (spec §10).
@@ -57,25 +64,6 @@ import { formatDuration, formatMoney, formatTime } from "../../utils/format";
 
 const STEPS = ["service", "barber", "time", "confirm"];
 const FIRST_AVAILABLE = "__first__";
-
-const pad = (n) => String(n).padStart(2, "0");
-const toDateInput = (date) =>
-  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-
-function offsetLabel(date, t) {
-  const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const days = Math.round((startOfDay(date) - startOfDay(new Date())) / 86400000);
-  if (days === 0) return t("today");
-  if (days === 1) return t("tomorrow");
-  return "";
-}
-
-function periodOf(time) {
-  const hour = Number(String(time).split(":")[0]);
-  if (hour < 12) return "morning";
-  if (hour < 17) return "afternoon";
-  return "evening";
-}
 
 /* ---------------------------------------------------------------------------
    Stepper
@@ -122,60 +110,6 @@ function Stepper({ current, onJump }) {
 }
 
 /* ---------------------------------------------------------------------------
-   Day picker — a week of chips, "Today" and "Tomorrow" spelled out.
-   ------------------------------------------------------------------------- */
-function DayPicker({ value, onChange, maxDays = 30, allowToday = true }) {
-  const { t, locale } = useI18n();
-
-  const days = useMemo(() => {
-    const list = [];
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-
-    for (let offset = allowToday ? 0 : 1; offset < Math.min(maxDays, 14); offset += 1) {
-      const date = new Date(start);
-      date.setDate(start.getDate() + offset);
-      list.push(date);
-    }
-    return list;
-  }, [maxDays, allowToday]);
-
-  return (
-    <div className="flex gap-2 overflow-x-auto no-scrollbar snap-rail -mx-4 px-4">
-      {days.map((date) => {
-        const key = toDateInput(date);
-        const active = key === value;
-
-        return (
-          <button
-            key={key}
-            type="button"
-            onClick={() => onChange(key)}
-            aria-pressed={active}
-            className={`press flex-shrink-0 w-[68px] py-2.5 rounded-card border text-center transition-colors ${
-              active
-                ? "bg-brand-gold border-brand-gold text-content-on-gold"
-                : "bg-surface-raised border-line-subtle text-content-primary"
-            }`}
-          >
-            <span className="block text-[10.5px] font-bold uppercase tracking-wide opacity-80">
-              {date.toLocaleDateString(locale === "ar" ? "ar-LB" : "en-US", { weekday: "short" })}
-            </span>
-            <span className="block text-h3 tnum leading-tight mt-0.5">{date.getDate()}</span>
-            {/* "Today"/"Tomorrow" replace the bare date for the two days that
-                matter most; every other chip keeps a stable empty line so the
-                row does not change height as it scrolls. */}
-            <span className="block text-[9.5px] font-semibold opacity-75 truncate px-0.5 min-h-[12px]">
-              {offsetLabel(date, t)}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-/* ---------------------------------------------------------------------------
    Screen
    ------------------------------------------------------------------------- */
 export default function BookingFlow() {
@@ -196,7 +130,7 @@ export default function BookingFlow() {
 
   const stepIndex = Math.max(0, Math.min(STEPS.length - 1, Number(params.get("step") || 0)));
 
-  const [date, setDate] = useState(() => toDateInput(new Date()));
+  const [date, setDate] = useState(() => toLocalDateString(new Date()));
   const [slotTime, setSlotTime] = useState(null);
   const [chosenBarberId, setChosenBarberId] = useState(booking.selectedBarberId || null);
   const [firstAvailable, setFirstAvailable] = useState(false);
@@ -395,7 +329,7 @@ export default function BookingFlow() {
 
   const groupedSlots = useMemo(() => {
     const groups = { morning: [], afternoon: [], evening: [] };
-    timeSlots.forEach((slot) => groups[periodOf(slot.time)].push(slot));
+    timeSlots.forEach((slot) => groups[periodOfDay(slot.time)].push(slot));
     return groups;
   }, [timeSlots]);
 

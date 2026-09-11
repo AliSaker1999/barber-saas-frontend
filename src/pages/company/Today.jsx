@@ -19,6 +19,7 @@ import Icon from "../../components/ui/Icon";
 import Button, { IconButton } from "../../components/ui/Button";
 import { ConfirmSheet } from "../../components/ui/BottomSheet";
 import { Avatar, Pill, SectionHeader } from "../../components/ui/Primitives";
+import { StatStrip, PersonRow } from "../../components/shop/ShopDayComponents";
 import { EmptyState, ErrorState, ListSkeleton } from "../../components/ui/States";
 import { useI18n } from "../../i18n";
 import { formatDuration, formatMoney, formatTime, formatWaitRange, toDate } from "../../utils/format";
@@ -54,61 +55,6 @@ const QUEUE_PENDING_APPROVAL = 7;
 /* A booking counts as "running late" once the start time has passed and the
    customer still hasn't been checked in. */
 const LATE_GRACE_MINUTES = 10;
-
-function StatStrip({ stats }) {
-  return (
-    <div className="flex gap-2 overflow-x-auto no-scrollbar px-4">
-      {stats.map((stat) => (
-        <div
-          key={stat.label}
-          className="flex-shrink-0 min-w-[92px] px-3 py-2.5 rounded-card bg-surface-raised border border-line-subtle"
-        >
-          <p className="text-h2 text-content-primary tnum leading-none">{stat.value}</p>
-          <p className="mt-1 text-caption text-content-muted truncate">{stat.label}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function PersonRow({
-  name,
-  photo,
-  primary,
-  secondary,
-  tone,
-  toneLabel,
-  actions,
-  onOpen,
-  highlight = false
-}) {
-  return (
-    <div
-      className={`flex items-center gap-3 p-3.5 rounded-card border ${
-        highlight
-          ? "bg-brand-gold-soft border-brand-gold"
-          : "bg-surface-raised border-line-subtle"
-      }`}
-    >
-      <button type="button" onClick={onOpen} className="flex items-center gap-3 flex-1 min-w-0 text-start">
-        <Avatar src={photo} name={name} size={42} />
-        <span className="flex-1 min-w-0">
-          <span className="flex items-center gap-2">
-            <span className="flex-1 text-body font-bold text-content-primary truncate">{name}</span>
-            {toneLabel ? <Pill tone={tone}>{toneLabel}</Pill> : null}
-          </span>
-          {primary ? (
-            <span className="block text-body-sm text-content-secondary truncate">{primary}</span>
-          ) : null}
-          {secondary ? (
-            <span className="block text-caption text-content-muted tnum truncate">{secondary}</span>
-          ) : null}
-        </span>
-      </button>
-      {actions ? <div className="flex items-center gap-1.5 flex-shrink-0">{actions}</div> : null}
-    </div>
-  );
-}
 
 export default function Today() {
   const { t, locale } = useI18n();
