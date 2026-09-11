@@ -47,6 +47,9 @@
   --text-inverse: #f7f4ee;
   /* Text that sits on a filled gold surface */
   --text-on-gold: #1a1408;
+  /* Text on a filled danger surface. Unlike on-gold this flips, because
+     --danger itself does: a deep red in light mode, a light coral in dark. */
+  --text-on-danger: #ffffff;
 
   /* ---- borders --------------------------------------------------------- */
   --border-subtle: #e4ded2;
@@ -108,6 +111,7 @@
   --text-muted: #8d8880;
   --text-inverse: #141414;
   --text-on-gold: #1a1408;
+  --text-on-danger: #2b0d0a;
 
   --border-subtle: rgba(247, 244, 238, 0.1);
   --border-strong: rgba(247, 244, 238, 0.2);

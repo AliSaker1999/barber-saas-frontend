@@ -63,7 +63,7 @@ export default function BottomNavigation({ items }) {
                     {item.badge ? (
                       <span
                         className="absolute -top-1 -end-1.5 min-w-[15px] h-[15px] px-1 rounded-pill
-                                   bg-state-danger text-white text-[9px] font-bold leading-[15px] text-center tnum"
+                                   bg-state-danger text-content-on-danger text-[9px] font-bold leading-[15px] text-center tnum"
                       >
                         {item.badge > 9 ? "9+" : item.badge}
                       </span>

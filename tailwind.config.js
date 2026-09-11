@@ -31,7 +31,8 @@ export default {
           secondary: "var(--text-secondary)",
           muted: "var(--text-muted)",
           inverse: "var(--text-inverse)",
-          "on-gold": "var(--text-on-gold)"
+          "on-gold": "var(--text-on-gold)",
+          "on-danger": "var(--text-on-danger)"
         },
         line: {
           subtle: "var(--border-subtle)",

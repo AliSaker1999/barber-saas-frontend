@@ -97,7 +97,7 @@ export default function CustomerLayout() {
           >
             <Icon name="bell" size={20} />
             {unreadCount > 0 ? (
-              <span className="absolute top-2 end-2 min-w-[16px] h-4 px-1 rounded-pill bg-state-danger text-white text-[10px] font-bold leading-4 text-center tnum">
+              <span className="absolute top-2 end-2 min-w-[16px] h-4 px-1 rounded-pill bg-state-danger text-content-on-danger text-[10px] font-bold leading-4 text-center tnum">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             ) : null}

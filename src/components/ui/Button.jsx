@@ -24,7 +24,7 @@ const VARIANTS = {
   danger:
     "bg-transparent text-state-danger border border-state-danger hover:bg-state-danger-soft",
   "danger-solid":
-    "bg-state-danger text-white hover:opacity-90"
+    "bg-state-danger text-content-on-danger hover:opacity-90"
 };
 
 const SIZES = {
@@ -139,7 +139,7 @@ export function IconButton({
     <>
       <Icon name={icon} size={size} filled={filled} />
       {badge ? (
-        <span className="absolute top-1.5 end-1.5 min-w-[16px] h-4 px-1 rounded-pill bg-state-danger text-white text-[10px] font-bold leading-4 text-center tnum">
+        <span className="absolute top-1.5 end-1.5 min-w-[16px] h-4 px-1 rounded-pill bg-state-danger text-content-on-danger text-[10px] font-bold leading-4 text-center tnum">
           {badge}
         </span>
       ) : null}
