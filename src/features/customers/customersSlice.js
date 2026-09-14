@@ -25,6 +25,38 @@ export const updateCustomerTenantDetails = createAsyncThunk(
   }
 );
 
+/* This shop's own customer list — search/filter/pagination all happen
+   client-side over one fetch, which is the right scale for a single shop's
+   customer count (see platform/Customers.jsx for the platform-wide version,
+   which is the same shape at a bigger scale). */
+export const fetchTenantCustomers = createAsyncThunk(
+  "customers/fetchTenantList",
+  async (_arg, { rejectWithValue }) => {
+    try {
+      const response = await api.get("/customers/tenant");
+      return response.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to fetch customers");
+    }
+  }
+);
+
+/* Blocks or unblocks a customer at this shop only — kept separate from
+   updateCustomerTenantDetails above because it is an access-control decision
+   with a real consequence, not annotation, and the UI gates it behind its
+   own confirmation rather than firing on a Save tap. */
+export const updateCustomerBlock = createAsyncThunk(
+  "customers/updateBlock",
+  async ({ customerId, blocked }, { rejectWithValue }) => {
+    try {
+      await api.patch(`/customers/${customerId}/block`, { blocked });
+      return { customerId, blocked };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Failed to update block status");
+    }
+  }
+);
+
 const customersSlice = createSlice({
   name: "customers",
   initialState: {
@@ -32,6 +64,14 @@ const customersSlice = createSlice({
     loading: false,
     error: null,
     updateSuccess: false,
+    /* Kept separate from the singular selectedCustomer state above so the
+       existing detail-modal contract (and the tests that cover it) are
+       untouched by adding a list. */
+    list: {
+      items: [],
+      loading: false,
+      error: null
+    }
   },
   reducers: {
     clearSelectedCustomer: (state) => {
@@ -62,6 +102,33 @@ const customersSlice = createSlice({
       .addCase(updateCustomerTenantDetails.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      .addCase(fetchTenantCustomers.pending, (state) => {
+        state.list.loading = true;
+        state.list.error = null;
+      })
+      .addCase(fetchTenantCustomers.fulfilled, (state, action) => {
+        state.list.loading = false;
+        state.list.items = action.payload;
+      })
+      .addCase(fetchTenantCustomers.rejected, (state, action) => {
+        state.list.loading = false;
+        state.list.error = action.payload;
+      })
+      .addCase(updateCustomerBlock.fulfilled, (state, action) => {
+        const { customerId, blocked } = action.payload;
+
+        /* Patched in place rather than refetched — the row's badge updates
+           immediately, and a full reload of every customer for one toggle
+           would be wasteful. */
+        const row = state.list.items.find(
+          (c) => String(c.CustomerId).toLowerCase() === String(customerId).toLowerCase()
+        );
+        if (row) row.IsBlocked = blocked;
+
+        if (state.selectedCustomer?.Id === customerId) {
+          state.selectedCustomer.IsBlocked = blocked;
+        }
       });
   },
 });

@@ -549,7 +549,38 @@ const redesignEn = {
   setup_shop_hours_title: "Shop hours",
   setup_shop_hours_sub: "Your shop's own opening times, if they differ from your barbers'.",
   setup_shop_hours_skip: "Use my barbers' hours",
-  setup_shop_hours_blocked: ""
+  setup_shop_hours_blocked: "",
+
+  /* ---- owner customers screen ---- */
+  channel_sms: "SMS",
+  channel_email: "Email",
+  customer_member_since: "Member since {date}",
+  customer_recently: "recently",
+  customer_gender: "Gender",
+  customer_birthdate: "Birthdate",
+  customer_last_visit: "Last visit",
+  customer_first_time: "First time",
+  customer_not_set: "Not set",
+  customer_loyalty_points: "Loyalty points",
+  customer_no_show_count: "No-show count",
+  customer_staff_notes: "Staff notes",
+  customer_notes_placeholder: "Allergies, style preferences, or anything worth remembering.",
+  customer_blocked_pill: "Blocked at this shop",
+  customer_block_action: "Block at this shop",
+  customer_unblock_action: "Unblock at this shop",
+  customer_block_confirm_message: "{name} will not be able to book or join the queue at this shop. Their account, bookings, and history at other shops are unaffected.",
+  customers_search_placeholder: "Search by name or phone",
+  customers_filter_all: "All",
+  customers_filter_blocked: "Blocked",
+  customers_empty_title: "No customers yet",
+  customers_empty_sub: "Customers show up here once they book, join your queue, or you add a note.",
+  customers_no_results_title: "No matches",
+  customers_no_results_sub: "Try a different name or number.",
+  customers_last_visit: "Last visit {date}",
+  customers_visit_count: "{n} visits",
+  customers_loyalty_points: "{n} pts",
+  previous: "Previous",
+  page_of: "Page {page} of {total}"
 };
 
 export default redesignEn;

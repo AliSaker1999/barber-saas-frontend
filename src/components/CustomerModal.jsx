@@ -1,16 +1,45 @@
-import { useState, useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { updateCustomerTenantDetails, clearSelectedCustomer } from "../features/customers/customersSlice";
-import OptimizedImage from "./OptimizedImage";
+import { useEffect, useState } from "react";
+import { useAppDispatch, useAppSelector } from "../app/hooks";
+import { useI18n } from "../i18n";
+import {
+  updateCustomerTenantDetails,
+  updateCustomerBlock,
+  clearSelectedCustomer
+} from "../features/customers/customersSlice";
+import { formatDateOnly } from "../utils/time";
+import Icon from "./ui/Icon";
+import Button from "./ui/Button";
+import Field from "./ui/Field";
+import BottomSheet, { ConfirmSheet } from "./ui/BottomSheet";
+import { Avatar, Pill } from "./ui/Primitives";
 
+/*
+ * One customer, as a shop sees them.
+ *
+ * Same {isOpen, onClose} contract as before the rewrite — Queue.jsx and
+ * Appointments.jsx both open this from a "view customer" tap and populate it
+ * via fetchCustomerDetails beforehand, and neither needed to change.
+ *
+ * Save (notes/loyalty points) and Block are two separate actions rather than
+ * one form: blocking is an access-control decision with a real consequence
+ * for the customer, so it gets its own confirmation naming that consequence,
+ * and must never fire as a side effect of an accidental Save tap.
+ */
 export default function CustomerModal({ isOpen, onClose }) {
-  const dispatch = useDispatch();
-  const { selectedCustomer, loading, updateSuccess } = useSelector((state) => state.customers);
+  const dispatch = useAppDispatch();
+  const { t, locale } = useI18n();
+  const { selectedCustomer, loading, updateSuccess } = useAppSelector((state) => state.customers);
+  const canBlock = useAppSelector((state) => state.auth.user?.roles?.includes("ADMIN"));
 
   const [notes, setNotes] = useState("");
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [prevId, setPrevId] = useState(null);
+  const [confirmBlockOpen, setConfirmBlockOpen] = useState(false);
+  const [blocking, setBlocking] = useState(false);
+  const [blockError, setBlockError] = useState("");
 
+  /* Derived per customer, in render — not in an effect — so the form never
+     fights a refetch and never shows the previous customer's draft. */
   if (selectedCustomer && selectedCustomer.Id !== prevId) {
     setNotes(selectedCustomer.Notes || "");
     setLoyaltyPoints(selectedCustomer.LoyaltyPoints || 0);
@@ -24,142 +53,188 @@ export default function CustomerModal({ isOpen, onClose }) {
     }
   }, [updateSuccess, onClose, dispatch]);
 
+  const handleClose = () => {
+    onClose();
+    dispatch(clearSelectedCustomer());
+  };
+
   const handleSave = () => {
     dispatch(updateCustomerTenantDetails({
       customerId: selectedCustomer.Id,
       notes,
-      loyaltyPoints: parseInt(loyaltyPoints)
+      loyaltyPoints: parseInt(loyaltyPoints, 10) || 0
     }));
   };
 
-  if (!isOpen || !selectedCustomer) return null;
+  async function confirmBlock() {
+    setBlocking(true);
+    setBlockError("");
+    try {
+      await dispatch(
+        updateCustomerBlock({ customerId: selectedCustomer.Id, blocked: !selectedCustomer.IsBlocked })
+      ).unwrap();
+      setConfirmBlockOpen(false);
+    } catch (err) {
+      setBlockError(typeof err === "string" ? err : t("error_generic"));
+    } finally {
+      setBlocking(false);
+    }
+  }
+
+  if (!selectedCustomer) return null;
+
+  const isBlocked = Boolean(selectedCustomer.IsBlocked);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-app-surface rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        
-        {/* Header */}
-        <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-8 text-white relative">
-          <button 
-            onClick={onClose}
-            className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-          
-          <div className="flex items-center gap-6">
-            <div className="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center text-3xl border border-white/20 overflow-hidden">
-              {selectedCustomer.ProfileImage ? (
-                <OptimizedImage 
-                  src={selectedCustomer.ProfileImage} 
-                  alt={selectedCustomer.FullName} 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                "👤"
-              )}
-            </div>
-            <div>
-              <h2 className="text-3xl font-bold">{selectedCustomer.FullName}</h2>
-              <p className="text-gray-300 mt-1 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-400"></span>
-                Member since {selectedCustomer.CreatedAt ? new Date(selectedCustomer.CreatedAt).toLocaleDateString() : "Recently"}
-              </p>
-            </div>
+    <>
+      <BottomSheet
+        open={isOpen}
+        onClose={handleClose}
+        title={selectedCustomer.FullName}
+        subtitle={t("customer_member_since", {
+          date: selectedCustomer.CreatedAt
+            ? new Date(selectedCustomer.CreatedAt).toLocaleDateString(locale === "ar" ? "ar-LB" : undefined)
+            : t("customer_recently")
+        })}
+        footer={
+          <div className="flex gap-2.5">
+            <Button variant="secondary" block onClick={handleClose} disabled={loading}>
+              {t("cancel")}
+            </Button>
+            <Button block onClick={handleSave} loading={loading}>
+              {t("save")}
+            </Button>
           </div>
-        </div>
+        }
+      >
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Avatar src={selectedCustomer.ProfileImage} name={selectedCustomer.FullName} size={56} />
+            {isBlocked ? (
+              <Pill tone="danger" icon="lock">
+                {t("customer_blocked_pill")}
+              </Pill>
+            ) : null}
+          </div>
 
-        <div className="p-8 space-y-8">
-          {/* Customer Global Info (Read Only) */}
-          <section className="grid grid-cols-2 md:grid-cols-3 gap-6">
-            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Gender</p>
-              <p className="font-bold text-gray-800">{selectedCustomer.Gender || "Not Set"}</p>
-            </div>
-            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Birthdate</p>
-              <p className="font-bold text-gray-800">
-                {selectedCustomer.Birthdate ? new Date(selectedCustomer.Birthdate).toLocaleDateString() : "Not Set"}
-              </p>
-            </div>
-            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Last Visit</p>
-              <p className="font-bold text-gray-800 text-blue-600">
-                {selectedCustomer.LastAppointmentDate ? new Date(selectedCustomer.LastAppointmentDate).toLocaleDateString() : "First Time"}
-              </p>
-            </div>
+          {/* Read-only facts */}
+          <section className="grid grid-cols-3 gap-3">
+            <Fact label={t("customer_gender")} value={selectedCustomer.Gender || t("customer_not_set")} />
+            <Fact
+              label={t("customer_birthdate")}
+              value={selectedCustomer.Birthdate ? formatDateOnly(selectedCustomer.Birthdate) : t("customer_not_set")}
+            />
+            <Fact
+              label={t("customer_last_visit")}
+              value={
+                selectedCustomer.LastAppointmentDate
+                  ? formatDateOnly(selectedCustomer.LastAppointmentDate)
+                  : t("customer_first_time")
+              }
+            />
           </section>
 
-          {/* Contact Methods */}
-          <section className="flex flex-wrap gap-4">
-            <div className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 ${selectedCustomer.AllowSMS ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-400 line-through"}`}>
-              📱 SMS
-            </div>
-            <div className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 ${selectedCustomer.AllowWhatsApp ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-400 line-through"}`}>
-              💬 WhatsApp
-            </div>
-            <div className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 ${selectedCustomer.AllowEmail ? "bg-red-50 text-red-700" : "bg-gray-100 text-gray-400 line-through"}`}>
-              📧 Email
-            </div>
+          {/* Contact channels the customer has allowed */}
+          <section className="flex flex-wrap gap-2">
+            <ChannelPill allowed={selectedCustomer.AllowSMS} icon="phone" label={t("channel_sms")} />
+            <ChannelPill allowed={selectedCustomer.AllowWhatsApp} icon="whatsapp" label={t("channel_whatsapp")} />
+            <ChannelPill allowed={selectedCustomer.AllowEmail} label={t("channel_email")} />
           </section>
 
-          {/* Editable Tenant Info */}
-          <div className="space-y-6 pt-6 border-t border-gray-100">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-tight">Loyalty Points</label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={loyaltyPoints}
-                    onChange={(e) => setLoyaltyPoints(e.target.value)}
-                    className="w-full bg-indigo-50 border-none rounded-2xl py-4 px-6 text-xl font-black text-indigo-700 focus:ring-4 focus:ring-indigo-100 transition-all pointer-events-auto"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-2xl">🏆</span>
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-tight">No Show Count</label>
-                <div className="w-full bg-red-50 border-none rounded-2xl py-4 px-6 text-xl font-black text-red-700 flex items-center justify-between">
-                  <span>{selectedCustomer.NoShowCount || 0}</span>
-                  <span className="text-2xl">⚠️</span>
+          <div className="space-y-4 pt-4 border-t border-line-subtle">
+            <div className="flex gap-3">
+              <Field
+                className="flex-1"
+                label={t("customer_loyalty_points")}
+                value={loyaltyPoints}
+                onChange={(e) => setLoyaltyPoints(e.target.value)}
+                type="number"
+                inputMode="numeric"
+                dir="ltr"
+                inputClassName="tnum"
+              />
+              <div className="flex-1">
+                <p className="text-label uppercase text-content-muted mb-1.5">
+                  {t("customer_no_show_count")}
+                </p>
+                <div className="h-12 px-3.5 rounded-control bg-state-danger-soft border border-transparent flex items-center justify-between">
+                  <span className="text-body font-bold text-state-danger tnum">
+                    {selectedCustomer.NoShowCount || 0}
+                  </span>
+                  <Icon name="alert" size={18} className="text-state-danger" />
                 </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-tight">Privat Staff Notes</label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={4}
-                className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 focus:ring-4 focus:ring-gray-100 transition-all font-medium text-gray-800 placeholder:text-gray-400"
-                placeholder="Mention allergies, style preferences, or special requests here..."
-              ></textarea>
-            </div>
+            <Field
+              label={t("customer_staff_notes")}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              as="textarea"
+              rows={4}
+              placeholder={t("customer_notes_placeholder")}
+            />
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="p-8 bg-gray-50 flex gap-4">
-          <button
-            onClick={onClose}
-            className="flex-1 py-4 bg-white text-gray-700 font-bold rounded-2xl border-2 border-gray-100 hover:bg-gray-50 transition-all active:scale-95"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={loading}
-            className="flex-[2] py-4 bg-gray-900 text-white font-bold rounded-2xl shadow-xl shadow-gray-200 hover:bg-black hover:scale-[1.02] transition-all active:scale-95 disabled:opacity-50"
-          >
-            {loading ? "Saving..." : "Save Customer Profile"}
-          </button>
+          {canBlock ? (
+            <div className="pt-4 border-t border-line-subtle">
+              {blockError ? (
+                <p role="alert" className="mb-2 text-body-sm text-state-danger">
+                  {blockError}
+                </p>
+              ) : null}
+              <Button
+                variant={isBlocked ? "secondary" : "danger"}
+                block
+                icon="lock"
+                onClick={() => setConfirmBlockOpen(true)}
+              >
+                {isBlocked ? t("customer_unblock_action") : t("customer_block_action")}
+              </Button>
+            </div>
+          ) : null}
         </div>
-      </div>
+      </BottomSheet>
+
+      <ConfirmSheet
+        open={confirmBlockOpen}
+        onClose={() => setConfirmBlockOpen(false)}
+        onConfirm={confirmBlock}
+        loading={blocking}
+        destructive={!isBlocked}
+        title={isBlocked ? t("customer_unblock_action") : t("customer_block_action")}
+        message={t("customer_block_confirm_message", { name: selectedCustomer.FullName })}
+        confirmLabel={isBlocked ? t("customer_unblock_action") : t("customer_block_action")}
+      />
+    </>
+  );
+}
+
+/* Pill has no "disallowed" tone of its own — this renders that state
+   directly: dimmed and struck through, same signal the old markup used, just
+   in tokens instead of raw gray. */
+function ChannelPill({ allowed, icon, label }) {
+  if (allowed) {
+    return (
+      <Pill tone="neutral" icon={icon}>
+        {label}
+      </Pill>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-pill text-caption font-semibold whitespace-nowrap bg-surface-sunken text-content-muted line-through opacity-70">
+      {icon ? <Icon name={icon} size={13} /> : null}
+      {label}
+    </span>
+  );
+}
+
+function Fact({ label, value }) {
+  return (
+    <div className="p-3 rounded-card bg-surface-sunken border border-line-subtle">
+      <p className="text-label uppercase text-content-muted mb-1">{label}</p>
+      <p className="text-body-sm font-bold text-content-primary truncate">{value}</p>
     </div>
   );
 }

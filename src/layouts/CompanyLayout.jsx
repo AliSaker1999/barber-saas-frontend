@@ -34,6 +34,7 @@ const OWNER_MORE = [
      same question. */
   { to: "/company/setup", labelKey: "setup_title", icon: "sparkle" },
   { to: "/company/services", labelKey: "manage_services", icon: "scissors" },
+  { to: "/company/customers", labelKey: "nav_customers", icon: "users" },
   { to: "/company/share", labelKey: "share_booking_title", icon: "qr" },
   { to: "/company/promotions", labelKey: "promotions", icon: "tag" },
   { to: "/company/reports", labelKey: "nav_reports", icon: "chart" },

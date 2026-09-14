@@ -548,7 +548,38 @@ const redesignAr = {
   setup_shop_hours_title: "ساعات المحل",
   setup_shop_hours_sub: "أوقات فتح محلك، إن كانت تختلف عن دوام حلّاقيك.",
   setup_shop_hours_skip: "استخدم دوام حلّاقيّ",
-  setup_shop_hours_blocked: ""
+  setup_shop_hours_blocked: "",
+
+  /* ---- owner customers screen ---- */
+  channel_sms: "رسالة نصية",
+  channel_email: "بريد إلكتروني",
+  customer_member_since: "عضو منذ {date}",
+  customer_recently: "مؤخراً",
+  customer_gender: "الجنس",
+  customer_birthdate: "تاريخ الميلاد",
+  customer_last_visit: "آخر زيارة",
+  customer_first_time: "أول زيارة",
+  customer_not_set: "غير محدد",
+  customer_loyalty_points: "نقاط الولاء",
+  customer_no_show_count: "عدد مرات الغياب بلا إشعار",
+  customer_staff_notes: "ملاحظات الفريق",
+  customer_notes_placeholder: "حساسية، تفضيلات تصفيف، أو أي شيء يستحق التذكر.",
+  customer_blocked_pill: "محظور في هذا المحل",
+  customer_block_action: "حظر في هذا المحل",
+  customer_unblock_action: "إلغاء الحظر في هذا المحل",
+  customer_block_confirm_message: "لن يستطيع {name} الحجز أو الانضمام إلى الطابور في هذا المحل. حسابه وحجوزاته وسجله في المحلات الأخرى تبقى كما هي.",
+  customers_search_placeholder: "ابحث بالاسم أو الرقم",
+  customers_filter_all: "الكل",
+  customers_filter_blocked: "المحظورون",
+  customers_empty_title: "لا يوجد زبائن بعد",
+  customers_empty_sub: "يظهر الزبائن هنا بمجرد أن يحجزوا أو ينضموا للطابور أو تضيف ملاحظة.",
+  customers_no_results_title: "لا توجد نتائج",
+  customers_no_results_sub: "جرّب اسماً أو رقماً آخر.",
+  customers_last_visit: "آخر زيارة {date}",
+  customers_visit_count: "{n} زيارات",
+  customers_loyalty_points: "{n} نقطة",
+  previous: "السابق",
+  page_of: "صفحة {page} من {total}"
 };
 
 export default redesignAr;
