@@ -37,6 +37,7 @@ const AdminReports = lazy(() => import("../pages/company/AdminReports"));
 const CompanyPromotions = lazy(() => import("../pages/company/Promotions"));
 const Settings = lazy(() => import("../pages/company/Settings"));
 const ShareBooking = lazy(() => import("../pages/company/ShareBooking"));
+const SetupWizard = lazy(() => import("../pages/company/SetupWizard"));
 
 /* Shared */
 const NotificationHistory = lazy(() => import("../pages/customer/NotificationHistory"));
@@ -169,6 +170,7 @@ export default function AppRoutes() {
               <>
                 <Route path="settings" element={<Settings />} />
                 <Route path="share" element={<ShareBooking />} />
+                <Route path="setup" element={<SetupWizard />} />
               </>
             )}
 

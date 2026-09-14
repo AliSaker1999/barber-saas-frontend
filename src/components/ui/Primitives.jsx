@@ -317,3 +317,49 @@ export function RowGroup({ title, children, className = "" }) {
     </section>
   );
 }
+
+/* ---------------------------------------------------------------------------
+   Toggle — an on/off switch.
+
+   Hand-rolled from a peer-checkbox in Settings and again in Barbers, both
+   times without role="switch", so neither announced its state. This one is a
+   real button: the label travels with it, and the whole row is the target so
+   it clears 44px even though the switch itself is 24px tall.
+   ------------------------------------------------------------------------- */
+export function Toggle({ checked, onChange, label, hint, disabled = false, className = "" }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={Boolean(checked)}
+      disabled={disabled}
+      onClick={() => onChange?.(!checked)}
+      className={[
+        "w-full flex items-center gap-3 min-h-[44px] text-start",
+        disabled ? "opacity-55 cursor-not-allowed" : "",
+        className
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      <span className="flex-1 min-w-0">
+        <span className="block text-body text-content-primary">{label}</span>
+        {hint ? <span className="block text-caption text-content-muted">{hint}</span> : null}
+      </span>
+
+      <span
+        aria-hidden="true"
+        className={`relative flex-shrink-0 w-11 h-6 rounded-pill transition-colors ${
+          checked ? "bg-brand-gold" : "bg-line-strong"
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 h-5 w-5 rounded-pill bg-surface-raised shadow-sm
+                      transition-[inset-inline-start] duration-[var(--dur-fast)] ${
+                        checked ? "start-[22px]" : "start-0.5"
+                      }`}
+        />
+      </span>
+    </button>
+  );
+}

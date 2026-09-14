@@ -59,16 +59,24 @@ const servicesSlice = createSlice({
   name: "services",
   initialState: {
     items: [],
-    loading: false
+    loading: false,
+    error: null
   },
   extraReducers: builder => {
     builder
       .addCase(fetchServices.pending, state => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(fetchServices.fulfilled, (state, action) => {
         state.loading = false;
         state.items = action.payload;
+      })
+      /* Without this a failed load left `loading` true forever, so the screen
+         sat on its skeleton with no error and no way back. */
+      .addCase(fetchServices.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
       .addCase(addService.fulfilled, (state, action) => {
         state.items.push(action.payload);

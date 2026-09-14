@@ -20,6 +20,7 @@ import Button, { IconButton } from "../../components/ui/Button";
 import { ConfirmSheet } from "../../components/ui/BottomSheet";
 import { Avatar, Pill, SectionHeader } from "../../components/ui/Primitives";
 import { StatStrip, PersonRow } from "../../components/shop/ShopDayComponents";
+import SetupBanner from "../../components/setup/SetupBanner";
 import { EmptyState, ErrorState, ListSkeleton } from "../../components/ui/States";
 import { useI18n } from "../../i18n";
 import { formatDuration, formatMoney, formatTime, formatWaitRange, toDate } from "../../utils/format";
@@ -262,6 +263,10 @@ export default function Today() {
         </div>
       ) : (
         <>
+          {/* Only an owner can act on it — a barber has no access to services,
+              the team or the shop's hours. */}
+          {isOwner ? <SetupBanner /> : null}
+
           <StatStrip stats={stats} />
 
           {/* ---- needs a decision now ---- */}

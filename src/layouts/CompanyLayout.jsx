@@ -29,6 +29,10 @@ import { setTheme, getInitialTheme } from "../utils/theme";
  */
 
 const OWNER_MORE = [
+  /* Permanent, not just while the shop is unfinished: after setup it reads as
+     a health check ("is anything stopping customers booking?"), which is the
+     same question. */
+  { to: "/company/setup", labelKey: "setup_title", icon: "sparkle" },
   { to: "/company/services", labelKey: "manage_services", icon: "scissors" },
   { to: "/company/share", labelKey: "share_booking_title", icon: "qr" },
   { to: "/company/promotions", labelKey: "promotions", icon: "tag" },

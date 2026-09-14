@@ -44,7 +44,72 @@ const DYNAMIC_KEYS = [
   /* BookingFlow slot groups: t(period) */
   "morning",
   "afternoon",
-  "evening"
+  "evening",
+
+  /* SetupChecklist: t(`setup_check_${check.key}`) and the sentence under it */
+  "setup_check_identity",
+  "setup_check_services",
+  "setup_check_team",
+  "setup_check_bookable",
+  "setup_check_shop_hours",
+  "setup_check_branding",
+  "setup_detail_identity_ok",
+  "setup_detail_identity_none",
+  "setup_detail_services_ok",
+  "setup_detail_services_none",
+  "setup_detail_team_ok",
+  "setup_detail_team_none",
+  "setup_detail_shop_hours_ok",
+  "setup_detail_shop_hours_none",
+  "setup_detail_branding_ok",
+  "setup_detail_branding_none",
+
+  /* SetupWizard: t(`setup_${stepKey}_title` | `_sub` | `_blocked` | `_skip`) */
+  "setup_welcome_title",
+  "setup_welcome_sub",
+  "setup_welcome_blocked",
+  "setup_identity_title",
+  "setup_identity_sub",
+  "setup_identity_blocked",
+  "setup_look_title",
+  "setup_look_sub",
+  "setup_look_blocked",
+  "setup_look_skip",
+  "setup_services_title",
+  "setup_services_sub",
+  "setup_services_blocked",
+  "setup_team_title",
+  "setup_team_sub",
+  "setup_team_blocked",
+  "setup_assign_title",
+  "setup_assign_sub",
+  "setup_assign_blocked",
+  "setup_rota_title",
+  "setup_rota_sub",
+  "setup_rota_blocked",
+  "setup_shop_hours_title",
+  "setup_shop_hours_sub",
+  "setup_shop_hours_blocked",
+  "setup_shop_hours_skip",
+
+  /* SetupWizard BarberPicker: t(emptyKey) */
+  "assign_needs_team",
+  "rota_needs_team",
+
+  /* ServicesEditor: t(starter.nameKey) */
+  "starter_haircut",
+  "starter_beard",
+  "starter_haircut_beard",
+  "starter_shave",
+  "starter_kids",
+
+  /* ScheduleRequestsSection: t(`request_status_${status.toLowerCase()}`) */
+  "request_status_pending",
+  "request_status_pending_partner",
+  "request_status_pending_admin",
+  "request_status_approved",
+  "request_status_declined",
+  "request_status_cancelled"
 ];
 
 function walk(dir, files = []) {

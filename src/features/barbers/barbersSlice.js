@@ -28,27 +28,23 @@ export const createBarber = createAsyncThunk(
 );
 
 
-/* Assign service */
-export const assignService = createAsyncThunk(
-  "barbers/assignService",
-  async ({ barberId, serviceId }, { rejectWithValue }) => {
+/*
+ * Set the full list of services a barber performs.
+ *
+ * Replaces a per-checkbox toggle against POST /barbers/:id/services. That
+ * endpoint flips rather than assigns, so a double tap, a retry, or two staff
+ * editing the same barber could silently un-assign a service — and the shop
+ * only found out when a customer could not book. One request, stating the
+ * whole list, applied server-side as a delta.
+ */
+export const setBarberServices = createAsyncThunk(
+  "barbers/setServices",
+  async ({ barberId, serviceIds }, { rejectWithValue }) => {
     try {
-      await api.post(`/barbers/${barberId}/services`, { serviceId });
-      return { barberId, serviceId };
+      const res = await api.put(`/barbers/${barberId}/services`, { serviceIds });
+      return { barberId, serviceIds: res.data?.data?.serviceIds ?? serviceIds };
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || "Failed to assign service");
-    }
-  }
-);
-
-export const toggleBarberService = createAsyncThunk(
-  "barbers/toggleService",
-  async ({ barberId, serviceId }, { rejectWithValue }) => {
-    try {
-      await api.post(`/barbers/${barberId}/services`, { serviceId });
-      return { barberId, serviceId };
-    } catch (err) {
-      return rejectWithValue(err.response?.data?.message || "Failed to toggle service");
+      return rejectWithValue(err.response?.data?.message || "Failed to save services");
     }
   }
 );
@@ -111,12 +107,24 @@ const barbersSlice = createSlice({
   initialState: {
     items: [],
     selectedProfile: null,
-    loading: false
+    loading: false,
+    error: null
   },
   extraReducers: builder => {
     builder
+      .addCase(fetchBarbers.pending, (s) => {
+        s.loading = true;
+        s.error = null;
+      })
       .addCase(fetchBarbers.fulfilled, (s, a) => {
+        s.loading = false;
         s.items = a.payload;
+      })
+      /* The list had no rejected case, so a failed load showed an empty team
+         rather than an error — indistinguishable from a shop with no barbers. */
+      .addCase(fetchBarbers.rejected, (s, a) => {
+        s.loading = false;
+        s.error = a.payload;
       })
       .addCase(fetchBarberProfile.pending, (s) => { s.loading = true; })
       .addCase(fetchBarberProfile.fulfilled, (s, a) => {
@@ -124,16 +132,10 @@ const barbersSlice = createSlice({
         s.selectedProfile = a.payload;
       })
       .addCase(fetchBarberProfile.rejected, (s) => { s.loading = false; })
-      .addCase(toggleBarberService.fulfilled, (s, a) => {
-      const barber = s.items.find(b => b.Id === a.payload.barberId);
-      if (!barber) return;
-
-      barber.ServiceIds = barber.ServiceIds || [];
-
-      barber.ServiceIds = barber.ServiceIds.includes(a.payload.serviceId)
-        ? barber.ServiceIds.filter(id => id !== a.payload.serviceId)
-        : [...barber.ServiceIds, a.payload.serviceId];
-    })
+      .addCase(setBarberServices.fulfilled, (s, a) => {
+        const barber = s.items.find(b => b.Id === a.payload.barberId);
+        if (barber) barber.ServiceIds = a.payload.serviceIds;
+      })
     .addCase(toggleAvailability.fulfilled, (state, action) => {
       const { barberId, isAvailable, isAcceptingAppointments, autoAcceptAppointments } = action.payload;
       

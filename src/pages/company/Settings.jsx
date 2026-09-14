@@ -2,11 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { useI18n } from "../../i18n";
-import { toHHMM } from "../../utils/time";
 import {
-  fetchOperatingHours,
-  saveOperatingHours,
-  resetHoursSaveSuccess,
   fetchCompanyProfile,
   updateCompanyProfile,
   fetchAvailablePlans,
@@ -18,40 +14,14 @@ import { toast } from "react-hot-toast";
 import Icon from "../../components/ui/Icon";
 import Button from "../../components/ui/Button";
 import { formatMoney } from "../../utils/format";
-
-const DAYS = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday"
-];
-
-const DEFAULT_DAY = { openTime: "09:00", closeTime: "18:00", isClosed: false };
-
-function buildDraft(operatingHours) {
-  const draft = DAYS.map(() => ({ ...DEFAULT_DAY }));
-  operatingHours.forEach((h) => {
-    draft[h.DayOfWeek] = {
-      openTime: toHHMM(h.OpenTime, DEFAULT_DAY.openTime),
-      closeTime: toHHMM(h.CloseTime, DEFAULT_DAY.closeTime),
-      isClosed: Boolean(h.IsClosed)
-    };
-  });
-  return draft;
-}
+import { SectionHeader } from "../../components/ui/Primitives";
+import ShopHoursEditor from "../../components/setup/ShopHoursEditor";
 
 export default function Settings() {
   const dispatch = useAppDispatch();
   const { t } = useI18n();
   const { user } = useAppSelector((state) => state.auth);
   const {
-    operatingHours,
-    hoursLoading,
-    hoursError,
-    hoursSaveSuccess,
     profile,
     availablePlans,
     checkoutLoading,
@@ -65,19 +35,9 @@ export default function Settings() {
   const checkoutStatus = searchParams.get("checkout");
   const connectReturnStatus = searchParams.get("connect");
 
-  const [draft, setDraft] = useState(() => buildDraft([]));
-  const [hydrated, setHydrated] = useState(false);
   const [savingCurrency, setSavingCurrency] = useState(null);
 
-  if (!hydrated && !hoursLoading && operatingHours.length) {
-    setDraft(buildDraft(operatingHours));
-    setHydrated(true);
-  }
-
   useEffect(() => {
-    if (user?.tenantId) {
-      dispatch(fetchOperatingHours(user.tenantId));
-    }
     dispatch(fetchCompanyProfile());
     dispatch(fetchAvailablePlans());
     dispatch(fetchConnectStatus());
@@ -88,12 +48,6 @@ export default function Settings() {
       dispatch(fetchConnectStatus());
     }
   }, [connectReturnStatus, dispatch]);
-
-  useEffect(() => {
-    if (!hoursSaveSuccess) return;
-    const timer = setTimeout(() => dispatch(resetHoursSaveSuccess()), 4000);
-    return () => clearTimeout(timer);
-  }, [hoursSaveSuccess, dispatch]);
 
   useEffect(() => {
     if (checkoutStatus === "success") {
@@ -118,12 +72,6 @@ export default function Settings() {
   const dismissCheckoutBanner = () => {
     searchParams.delete("checkout");
     setSearchParams(searchParams, { replace: true });
-  };
-
-  const updateDay = (dayIndex, patch) => {
-    setDraft((prev) =>
-      prev.map((day, i) => (i === dayIndex ? { ...day, ...patch } : day))
-    );
   };
 
   /*
@@ -151,19 +99,6 @@ export default function Settings() {
     }
   };
 
-  const handleSave = () => {
-    dispatch(
-      saveOperatingHours(
-        draft.map((day, dayOfWeek) => ({
-          dayOfWeek,
-          openTime: day.openTime,
-          closeTime: day.closeTime,
-          isClosed: day.isClosed
-        }))
-      )
-    );
-  };
-
   return (
     <div className="p-4 sm:p-8 max-w-5xl mx-auto">
       <div className="mb-8">
@@ -174,20 +109,6 @@ export default function Settings() {
           Configure when customers can book and walk in to your shop
         </p>
       </div>
-
-      {hoursError && (
-        <div className="bg-app-surface-2 text-red-600 p-4 mb-6 rounded-[12px] flex items-center shadow-sm border border-red-200">
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          <span className="font-semibold">{hoursError}</span>
-        </div>
-      )}
-
-      {hoursSaveSuccess && (
-        <div className="bg-app-surface-2 text-app-accent p-4 mb-6 rounded-[12px] flex items-center shadow-sm border border-app-border">
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-          <span className="font-bold uppercase tracking-tight text-sm">Operating hours saved</span>
-        </div>
-      )}
 
       {checkoutStatus === "success" && (
         <div className="bg-app-surface-2 text-app-accent p-4 mb-6 rounded-[12px] flex items-center justify-between shadow-sm border border-app-border">
@@ -383,76 +304,10 @@ export default function Settings() {
         </div>
       </section>
 
-      <div className="bg-app-surface p-8 rounded-[12px] shadow-sm border border-app-border">
-        <div className="flex items-center gap-3 mb-8 pb-4 border-b border-app-border">
-          <div className="w-10 h-10 bg-app-surface-2 rounded-[12px] flex items-center justify-center text-app-text">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          </div>
-          <h2 className="text-xl font-bold text-app-text">Operating Hours</h2>
-        </div>
-
-        <div className="divide-y divide-app-border">
-          {DAYS.map((dayName, dayIndex) => {
-            const day = draft[dayIndex];
-            return (
-              <div
-                key={dayIndex}
-                className="flex flex-col sm:grid sm:grid-cols-12 gap-3 sm:gap-4 items-start sm:items-center py-4"
-              >
-                <div className="sm:col-span-2 font-bold text-app-text text-sm">{dayName}</div>
-
-                <div className="sm:col-span-4">
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="sr-only peer"
-                      checked={!day.isClosed}
-                      onChange={(e) => updateDay(dayIndex, { isClosed: !e.target.checked })}
-                    />
-                    <div className="w-11 h-6 shrink-0 rounded-full bg-line-strong transition-colors peer peer-checked:bg-brand-gold peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-brand-gold peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface-raised after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:border after:border-line-strong after:shadow-sm after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-                    <span className="ms-3 text-xs font-bold text-app-muted">
-                      {day.isClosed ? "Closed" : "Open"}
-                    </span>
-                  </label>
-                </div>
-
-                <div className="sm:col-span-6 flex items-center gap-2 w-full">
-                  {day.isClosed ? (
-                    <span className="text-sm text-app-muted italic">Not open this day</span>
-                  ) : (
-                    <>
-                      <input
-                        type="time"
-                        value={day.openTime}
-                        onChange={(e) => updateDay(dayIndex, { openTime: e.target.value })}
-                        className="flex-1 border-2 border-app-border rounded-[12px] px-3 py-2 text-sm focus:border-app-accent focus:outline-none transition-all text-app-text bg-app-surface"
-                      />
-                      <span className="text-app-muted font-bold">to</span>
-                      <input
-                        type="time"
-                        value={day.closeTime}
-                        onChange={(e) => updateDay(dayIndex, { closeTime: e.target.value })}
-                        className="flex-1 border-2 border-app-border rounded-[12px] px-3 py-2 text-sm focus:border-app-accent focus:outline-none transition-all text-app-text bg-app-surface"
-                      />
-                    </>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="mt-6 flex justify-end">
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={hoursLoading}
-            className="bg-app-accent text-white px-8 py-2.5 rounded-[25px] font-bold hover:bg-app-accent-dark transition-all active:scale-95 shadow-lg disabled:opacity-50"
-          >
-            {hoursLoading ? "Saving..." : "Save Hours"}
-          </button>
-        </div>
-      </div>
+      <section className="mb-6">
+        <SectionHeader title={t("operating_hours")} subtitle={t("operating_hours_sub")} />
+        <ShopHoursEditor />
+      </section>
     </div>
   );
 }
