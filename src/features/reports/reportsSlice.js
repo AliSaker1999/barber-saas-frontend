@@ -44,7 +44,11 @@ export const fetchTenantDashboard = createAsyncThunk(
       const response = await axios.get("/reports/tenant-dashboard");
       return response.data.data;
     } catch (err) {
-      return rejectWithValue(err.response.data);
+      /* A bare string, not the whole response body — a network error with no
+         err.response would otherwise throw inside this catch instead of
+         rejecting cleanly, and every consuming screen expects a message it
+         can render as-is. */
+      return rejectWithValue(err.response?.data?.message || "Failed to load report data");
     }
   }
 );

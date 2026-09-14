@@ -109,7 +109,18 @@ const DYNAMIC_KEYS = [
   "request_status_pending_admin",
   "request_status_approved",
   "request_status_declined",
-  "request_status_cancelled"
+  "request_status_cancelled",
+
+  /* AdminReports: t(SOURCE_LABEL_KEYS[row.Source] || "source_unknown") */
+  "source_qr",
+  "source_instagram",
+  "source_whatsapp",
+  "source_poster",
+  "source_referral",
+  "source_search",
+  "source_direct",
+  "source_walk_in",
+  "source_unknown"
 ];
 
 function walk(dir, files = []) {

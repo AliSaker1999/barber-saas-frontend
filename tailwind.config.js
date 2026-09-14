@@ -32,7 +32,9 @@ export default {
           muted: "var(--text-muted)",
           inverse: "var(--text-inverse)",
           "on-gold": "var(--text-on-gold)",
-          "on-danger": "var(--text-on-danger)"
+          "on-danger": "var(--text-on-danger)",
+          "on-success": "var(--text-on-success)",
+          "on-warning": "var(--text-on-warning)"
         },
         line: {
           subtle: "var(--border-subtle)",
