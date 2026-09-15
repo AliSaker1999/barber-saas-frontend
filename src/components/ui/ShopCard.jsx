@@ -5,6 +5,7 @@ import { formatPriceRange } from "../../utils/format";
 import { shopAvailability } from "../../utils/shopAvailability";
 import { formatDistanceKm, haversineDistanceKm } from "../../utils/geo";
 import { useI18n } from "../../i18n";
+import { localized } from "../../utils/localized";
 
 /*
  * ShopCard.
@@ -77,7 +78,7 @@ export default function ShopCard({
   trailing,
   onClick
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const distance = useDistanceLabel(shop, coords);
   const priceRange = formatPriceRange(shop.MinPrice, shop.MaxPrice, shop.Currency);
   const place = shop.Area || shop.City;
@@ -99,7 +100,7 @@ export default function ShopCard({
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="text-body font-bold text-content-primary truncate">{shop.Name}</span>
+            <span className="text-body font-bold text-content-primary truncate">{localized(shop, "Name", locale)}</span>
             {shop.IsVerified ? <VerifiedBadge /> : null}
           </div>
           <AvailabilityStrip shop={shop} compact />
@@ -147,7 +148,7 @@ export default function ShopCard({
 
       <div className="p-3.5">
         <div className="flex items-start gap-2">
-          <h3 className="flex-1 text-h3 text-content-primary line-clamp-1">{shop.Name}</h3>
+          <h3 className="flex-1 text-h3 text-content-primary line-clamp-1">{localized(shop, "Name", locale)}</h3>
           {shop.IsVerified ? <VerifiedBadge /> : null}
         </div>
 

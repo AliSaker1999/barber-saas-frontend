@@ -10,6 +10,7 @@ import { trimSeconds } from "../../utils/shopAvailability";
 import { shopMapsHref } from "../../utils/shopLinks";
 import { toHHMM } from "../../utils/time";
 import { useI18n } from "../../i18n";
+import { localized } from "../../utils/localized";
 
 /*
  * The body of a shop profile, section by section.
@@ -30,8 +31,12 @@ const DAY_KEYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "frida
    Promotion
    ------------------------------------------------------------------------- */
 export function ShopPromotion({ promotion }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   if (!promotion) return null;
+
+  /* A shop can write its offer in both languages; show the reader theirs. */
+  const title = localized(promotion, "Title", locale);
+  const description = localized(promotion, "Description", locale);
 
   return (
     <section className="px-4 mt-5">
@@ -41,10 +46,10 @@ export function ShopPromotion({ promotion }) {
         </span>
         <div className="min-w-0">
           <p className="text-body font-bold text-content-primary truncate">
-            {promotion.Title || promotion.Name || t("special_offers")}
+            {title || promotion.Name || t("special_offers")}
           </p>
-          {promotion.Description ? (
-            <p className="text-caption text-content-secondary">{promotion.Description}</p>
+          {description ? (
+            <p className="text-caption text-content-secondary">{description}</p>
           ) : null}
         </div>
       </div>

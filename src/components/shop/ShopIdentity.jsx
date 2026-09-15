@@ -4,6 +4,7 @@ import { Rating } from "../ui/Primitives";
 import { shopMapsHref } from "../../utils/shopLinks";
 import { shopWhatsappHref, telHref } from "../../config/support";
 import { useI18n } from "../../i18n";
+import { localized } from "../../utils/localized";
 
 /*
  * Name, trust signals, and the three ways to reach the shop.
@@ -15,7 +16,7 @@ import { useI18n } from "../../i18n";
  * channel. A dead "Call" button is worse than no button.
  */
 export default function ShopIdentity({ shop, reviews, onOpenReviews }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const mapsHref = shopMapsHref(shop);
   const phone = telHref(shop.Phone);
   const whatsapp = shopWhatsappHref(shop.WhatsappNumber);
@@ -23,7 +24,7 @@ export default function ShopIdentity({ shop, reviews, onOpenReviews }) {
   return (
     <header className="px-4 pt-4">
       <div className="flex items-start gap-2">
-        <h1 className="flex-1 text-display text-content-primary">{shop.Name}</h1>
+        <h1 className="flex-1 text-display text-content-primary">{localized(shop, "Name", locale)}</h1>
         {shop.IsVerified ? (
           <span className="mt-1.5 text-brand-gold-text flex-shrink-0">
             <Icon name="verified" size={20} title={t("verified_shop")} />

@@ -88,6 +88,7 @@ const promotionsSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(fetchAdminPromotions.fulfilled, (state, action) => {
+        state.isLoading = false;
         state.adminItems = action.payload;
       })
       .addCase(createPromotion.fulfilled, (state, action) => {
@@ -99,6 +100,26 @@ const promotionsSlice = createSlice({
       })
       .addCase(deletePromotion.fulfilled, (state, action) => {
         state.adminItems = state.adminItems.filter((p) => p.Id !== action.payload);
+      })
+      /* The server refuses to delete an offer that has already been redeemed
+         and says how many times. Without this the thunk rejected into silence
+         and the row simply stayed put with no explanation. */
+      .addCase(deletePromotion.rejected, (state, action) => {
+        state.error = action.payload;
+      })
+      .addCase(createPromotion.rejected, (state, action) => {
+        state.error = action.payload;
+      })
+      .addCase(updatePromotion.rejected, (state, action) => {
+        state.error = action.payload;
+      })
+      .addCase(fetchAdminPromotions.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchAdminPromotions.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
       });
   },
 });
