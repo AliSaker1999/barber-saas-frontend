@@ -73,7 +73,9 @@ export const fetchBarberProfile = createAsyncThunk(
       const res = await api.get(`/barbers/${barberId}/profile`);
       return res.data.data;
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || "Failed");
+      return rejectWithValue(
+        err.response?.data?.message || "Could not load this profile. Please try again."
+      );
     }
   }
 );
@@ -85,7 +87,9 @@ export const updateBarberProfile = createAsyncThunk(
       await api.patch(`/barbers/${barberId}/profile`, data);
       return { barberId, data };
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || "Failed");
+      return rejectWithValue(
+        err.response?.data?.message || "Could not save your profile. Please try again."
+      );
     }
   }
 );
@@ -97,7 +101,9 @@ export const rateBarber = createAsyncThunk(
       await api.post(`/barbers/${barberId}/rate`, { rating, comment, appointmentId, queueId });
       return { barberId };
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || "Failed");
+      return rejectWithValue(
+        err.response?.data?.message || "Could not send your review. Please try again."
+      );
     }
   }
 );

@@ -11,12 +11,25 @@ import {
   startConnectOnboarding
 } from "../../features/company/companySlice";
 import { toast } from "react-hot-toast";
+import TopBar from "../../components/ui/TopBar";
 import Icon from "../../components/ui/Icon";
-import Button from "../../components/ui/Button";
+import Button, { IconButton } from "../../components/ui/Button";
 import { formatMoney } from "../../utils/format";
-import { SectionHeader } from "../../components/ui/Primitives";
+import { Pill, Row, SectionHeader } from "../../components/ui/Primitives";
+import { InlineError } from "../../components/ui/States";
 import ShopHoursEditor from "../../components/setup/ShopHoursEditor";
 
+/*
+ * What the shop pays, what it gets paid in, and when it is open.
+ *
+ * One currency distinction runs through this screen and is worth stating
+ * plainly, because it is the only place in the app where a hardcoded currency
+ * is correct. The plan prices below are what Ajmal charges the shop, and
+ * SubscriptionPlans has no currency column — the platform bills in one
+ * currency for everyone. The currency picker further down is a different
+ * thing entirely: it is what the shop charges its own customers, and nothing
+ * anywhere converts between the two.
+ */
 export default function Settings() {
   const dispatch = useAppDispatch();
   const { t } = useI18n();
@@ -81,7 +94,7 @@ export default function Settings() {
    * interchangeable — so this sets which currency the shop's Services.Price
    * values are read as. Nothing anywhere converts between them; changing this
    * relabels the prices, it does not recalculate them, which is exactly why
-   * the confirmation below spells that out.
+   * the sample below spells that out.
    */
   const currency = profile?.Currency || "USD";
 
@@ -91,7 +104,7 @@ export default function Settings() {
     try {
       await dispatch(updateCompanyProfile({ currency: next })).unwrap();
       await dispatch(fetchCompanyProfile());
-      toast.success(t("save"));
+      toast.success(t("saved"));
     } catch (err) {
       toast.error(typeof err === "string" ? err : t("error_generic"));
     } finally {
@@ -99,215 +112,226 @@ export default function Settings() {
     }
   };
 
+  const stripeReady = Boolean(connectStatus?.chargesEnabled);
+
   return (
-    <div className="p-4 sm:p-8 max-w-5xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-black text-app-text tracking-tight">
-          {t("shop_settings")}
-        </h1>
-        <p className="text-app-muted font-medium">
-          Configure when customers can book and walk in to your shop
-        </p>
-      </div>
+    <div className="pb-8">
+      <TopBar back title={t("shop_settings")} subtitle={t("settings_subtitle")} />
 
-      {checkoutStatus === "success" && (
-        <div className="bg-app-surface-2 text-app-accent p-4 mb-6 rounded-[12px] flex items-center justify-between shadow-sm border border-app-border">
-          <span className="font-bold text-sm">Payment received — your plan will update shortly.</span>
-          <button onClick={dismissCheckoutBanner} className="text-app-accent hover:text-app-accent-dark">✕</button>
-        </div>
-      )}
-
-      {checkoutStatus === "cancelled" && (
-        <div className="bg-app-surface-2 text-app-muted p-4 mb-6 rounded-[12px] flex items-center justify-between shadow-sm border border-app-border">
-          <span className="font-bold text-sm">Checkout cancelled — no changes were made.</span>
-          <button onClick={dismissCheckoutBanner} className="text-app-muted hover:text-app-text">✕</button>
-        </div>
-      )}
-
-      {checkoutError && (
-        <div className="bg-app-surface-2 text-red-600 p-4 mb-6 rounded-[12px] flex items-center shadow-sm border border-red-200">
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          <span className="font-semibold">{checkoutError}</span>
-        </div>
-      )}
-
-      <div className="bg-app-surface p-8 rounded-[12px] shadow-sm border border-app-border mb-6">
-        <div className="flex items-center gap-3 mb-8 pb-4 border-b border-app-border">
-          <div className="w-10 h-10 bg-app-surface-2 rounded-[12px] flex items-center justify-center text-app-text">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-          </div>
-          <h2 className="text-xl font-bold text-app-text">Billing</h2>
-        </div>
-
-        <div className="mb-6">
-          {profile?.PlanName ? (
-            <p className="text-app-text">
-              Current plan: <span className="font-bold">{profile.PlanName}</span> — ${Number(profile.PlanMonthlyPrice).toFixed(0)}/mo
+      <div className="px-4 pt-3 space-y-4">
+        {checkoutStatus === "success" || checkoutStatus === "cancelled" ? (
+          <div className="flex items-start gap-2.5 rounded-card bg-surface-raised border border-line-subtle px-3.5 py-3">
+            <Icon
+              name={checkoutStatus === "success" ? "check" : "info"}
+              size={18}
+              className={
+                checkoutStatus === "success"
+                  ? "text-state-success mt-0.5 flex-shrink-0"
+                  : "text-content-muted mt-0.5 flex-shrink-0"
+              }
+            />
+            <p className="flex-1 text-body-sm text-content-secondary">
+              {checkoutStatus === "success" ? t("checkout_success") : t("checkout_cancelled")}
             </p>
-          ) : (
-            <p className="text-app-muted">No active subscription yet — pick a plan below.</p>
-          )}
-        </div>
+            <IconButton
+              icon="x"
+              label={t("dismiss")}
+              variant="ghost"
+              size="sm"
+              onClick={dismissCheckoutBanner}
+            />
+          </div>
+        ) : null}
 
-        {availablePlans.length === 0 ? (
-          <p className="text-sm text-app-muted italic">No plans available yet — check back later.</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {availablePlans.map((plan) => {
-              const isCurrent = profile?.PlanId === plan.Id;
-              return (
-                <div key={plan.Id} className="border-2 border-app-border rounded-[12px] p-5 flex flex-col">
-                  <p className="font-black text-app-text text-lg">{plan.Name}</p>
-                  <p className="text-app-muted text-sm mb-1">
-                    {plan.MinBarbers}{plan.MaxBarbers ? `–${plan.MaxBarbers}` : "+"} barbers
-                  </p>
-                  <p className="text-2xl font-black text-app-text mb-4">${Number(plan.MonthlyPrice).toFixed(0)}<span className="text-sm text-app-muted font-normal">/mo</span></p>
-                  <button
-                    type="button"
-                    disabled={isCurrent || checkoutLoading}
-                    onClick={() => handleSubscribe(plan.Id)}
-                    className="mt-auto bg-app-accent text-white px-4 py-2 rounded-[25px] font-bold text-sm hover:bg-app-accent-dark transition-all disabled:opacity-50"
+        {/* ---- billing ---- */}
+        <section className="bg-surface-raised border border-line-subtle rounded-card p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="w-10 h-10 rounded-control bg-surface-sunken text-content-secondary flex items-center justify-center flex-shrink-0">
+              <Icon name="card" size={20} />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-h2 text-content-primary">{t("billing")}</h2>
+              <p className="text-caption text-content-muted">
+                {profile?.PlanName
+                  ? t("billing_current_plan", {
+                      plan: profile.PlanName,
+                      price: formatMoney(profile.PlanMonthlyPrice, "USD")
+                    })
+                  : t("billing_no_plan")}
+              </p>
+            </div>
+          </div>
+
+          {checkoutError ? <InlineError message={checkoutError} /> : null}
+
+          {!availablePlans.length ? (
+            <p className="text-body-sm text-content-muted">{t("billing_no_plans")}</p>
+          ) : (
+            <ul className="space-y-2">
+              {availablePlans.map((plan) => {
+                const isCurrent = profile?.PlanId === plan.Id;
+                const range = plan.MaxBarbers
+                  ? `${plan.MinBarbers}-${plan.MaxBarbers}`
+                  : `${plan.MinBarbers}+`;
+
+                return (
+                  <li
+                    key={plan.Id}
+                    className={`flex items-center gap-3 p-3.5 rounded-card border ${
+                      isCurrent
+                        ? "border-brand-gold bg-brand-gold-soft"
+                        : "border-line-subtle bg-surface-sunken"
+                    }`}
                   >
-                    {isCurrent ? "Current plan" : checkoutLoading ? "Redirecting..." : "Subscribe"}
-                  </button>
-                </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-body font-bold text-content-primary truncate">
+                          {plan.Name}
+                        </p>
+                        {isCurrent ? <Pill tone="success">{t("billing_current")}</Pill> : null}
+                      </div>
+                      <p className="text-caption text-content-muted tnum">
+                        {t("billing_barbers_range", { range })}
+                      </p>
+                      {/* Always the platform's own currency, never the shop's. */}
+                      <p className="text-body-sm font-semibold text-content-primary tnum">
+                        {t("billing_per_month", {
+                          price: formatMoney(plan.MonthlyPrice, "USD")
+                        })}
+                      </p>
+                    </div>
+
+                    {!isCurrent ? (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        loading={checkoutLoading}
+                        onClick={() => handleSubscribe(plan.Id)}
+                      >
+                        {t("billing_subscribe")}
+                      </Button>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
+        {/* ---- deposits via Stripe ---- */}
+        <section className="bg-surface-raised border border-line-subtle rounded-card p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="w-10 h-10 rounded-control bg-surface-sunken text-content-secondary flex items-center justify-center flex-shrink-0">
+              <Icon name="wallet" size={20} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-h2 text-content-primary">{t("deposit_payments")}</h2>
+              <p className="text-caption text-content-muted">{t("deposit_payments_intro")}</p>
+            </div>
+          </div>
+
+          {connectOnboardingError ? <InlineError message={connectOnboardingError} /> : null}
+
+          <div className="flex items-center gap-3 p-3.5 rounded-card bg-surface-sunken">
+            <div className="flex-1 min-w-0">
+              {connectStatusLoading ? (
+                <p className="text-body-sm text-content-muted">{t("stripe_checking")}</p>
+              ) : stripeReady ? (
+                <p className="text-body-sm font-semibold text-state-success flex items-center gap-1.5">
+                  <Icon name="check" size={16} />
+                  {t("stripe_connected")}
+                </p>
+              ) : connectStatus?.connected ? (
+                <p className="text-body-sm font-semibold text-state-warning">
+                  {t("stripe_started")}
+                </p>
+              ) : (
+                <p className="text-body-sm text-content-muted">{t("stripe_not_connected")}</p>
+              )}
+            </div>
+
+            <Button
+              variant={stripeReady ? "secondary" : "primary"}
+              size="sm"
+              loading={connectOnboardingLoading}
+              onClick={handleConnectStripe}
+            >
+              {stripeReady ? t("stripe_manage_action") : t("stripe_connect_action")}
+            </Button>
+          </div>
+
+          <p className="text-caption text-content-muted mt-2.5">{t("deposit_rules_live_in")}</p>
+        </section>
+
+        {/* ---- pricing currency ---- */}
+        <section className="bg-surface-raised border border-line-subtle rounded-card p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="w-10 h-10 rounded-control bg-surface-sunken text-content-secondary flex items-center justify-center flex-shrink-0">
+              <Icon name="tag" size={20} />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-h2 text-content-primary">{t("currency_label")}</h2>
+              <p className="text-caption text-content-muted">{t("currency_help")}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {[
+              { code: "USD", label: t("currency_usd"), sample: 20 },
+              { code: "LBP", label: t("currency_lbp"), sample: 1800000 }
+            ].map((option) => {
+              const active = currency === option.code;
+              return (
+                <button
+                  key={option.code}
+                  type="button"
+                  onClick={() => handleCurrency(option.code)}
+                  disabled={Boolean(savingCurrency)}
+                  aria-pressed={active}
+                  className={`press flex items-center gap-3 p-3.5 rounded-card border text-start transition-colors ${
+                    active
+                      ? "border-brand-gold bg-brand-gold-soft"
+                      : "border-line-subtle bg-surface-raised hover:bg-surface-sunken"
+                  } ${savingCurrency ? "opacity-60 pointer-events-none" : ""}`}
+                >
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-body font-semibold text-content-primary truncate">
+                      {option.label}
+                    </span>
+                    {/* A worked example, so nobody has to guess how a price will
+                        read to a customer after switching. */}
+                    <span className="block text-caption text-content-muted tnum">
+                      {formatMoney(option.sample, option.code)}
+                    </span>
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className={`w-6 h-6 rounded-pill border-2 flex items-center justify-center flex-shrink-0 ${
+                      active
+                        ? "bg-brand-gold border-brand-gold text-content-on-gold"
+                        : "border-line-strong"
+                    }`}
+                  >
+                    {active ? <Icon name="check" size={14} strokeWidth={2.75} /> : null}
+                  </span>
+                </button>
               );
             })}
           </div>
-        )}
+        </section>
+
+        <Row
+          icon="qr"
+          label={t("share_booking_title")}
+          value={t("ready_made_copy_sub")}
+          to="/company/share"
+        />
+
+        <section>
+          <SectionHeader title={t("operating_hours")} subtitle={t("operating_hours_sub")} />
+          <ShopHoursEditor />
+        </section>
       </div>
-
-      <div className="bg-app-surface p-8 rounded-[12px] shadow-sm border border-app-border mb-6">
-        <div className="flex items-center gap-3 mb-8 pb-4 border-b border-app-border">
-          <div className="w-10 h-10 bg-app-surface-2 rounded-[12px] flex items-center justify-center text-app-text">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>
-          </div>
-          <h2 className="text-xl font-bold text-app-text">Deposit Payments</h2>
-        </div>
-
-        <p className="text-app-muted text-sm mb-4 max-w-xl">
-          Connect a Stripe account to collect booking deposits directly — deposits are paid straight to your account, not held by the platform. Configure when a deposit is required under Company Profile → Payment Methods.
-        </p>
-
-        {connectOnboardingError && (
-          <div className="bg-app-surface-2 text-red-600 p-4 mb-4 rounded-[12px] text-sm font-semibold border border-red-200">
-            {connectOnboardingError}
-          </div>
-        )}
-
-        {connectReturnStatus === "return" && connectStatus?.chargesEnabled && (
-          <div className="bg-app-surface-2 text-app-accent p-4 mb-4 rounded-[12px] text-sm font-bold border border-app-border">
-            Stripe account connected — deposits are ready to collect.
-          </div>
-        )}
-
-        <div className="flex items-center justify-between gap-4 p-4 bg-app-bg rounded-[12px]">
-          <div>
-            {connectStatusLoading ? (
-              <p className="text-sm text-app-muted">Checking Stripe status...</p>
-            ) : connectStatus?.chargesEnabled ? (
-              <p className="text-sm font-bold text-app-accent flex items-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                Stripe connected
-              </p>
-            ) : connectStatus?.connected ? (
-              <p className="text-sm font-bold text-amber-600">Stripe onboarding started — finish setup to enable deposits.</p>
-            ) : (
-              <p className="text-sm text-app-muted">Not connected yet.</p>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={handleConnectStripe}
-            disabled={connectOnboardingLoading}
-            className="bg-app-accent text-white px-6 py-2.5 rounded-[25px] font-bold text-sm hover:bg-app-accent-dark transition-all disabled:opacity-50 flex-shrink-0"
-          >
-            {connectOnboardingLoading
-              ? "Redirecting..."
-              : connectStatus?.chargesEnabled
-                ? "Manage Stripe account"
-                : "Connect with Stripe"}
-          </button>
-        </div>
-      </div>
-
-      {/* ---- pricing currency ---- */}
-      <section className="bg-surface-raised border border-line-subtle rounded-card p-5 mb-6">
-        <div className="flex items-center gap-3 mb-4">
-          <span className="w-10 h-10 rounded-control bg-surface-sunken text-content-secondary flex items-center justify-center flex-shrink-0">
-            <Icon name="wallet" size={20} />
-          </span>
-          <div className="min-w-0">
-            <h2 className="text-h2 text-content-primary">{t("currency_label")}</h2>
-            <p className="text-caption text-content-muted">{t("currency_help")}</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {[
-            { code: "USD", label: t("currency_usd"), sample: 20 },
-            { code: "LBP", label: t("currency_lbp"), sample: 1800000 }
-          ].map((option) => {
-            const active = currency === option.code;
-            return (
-              <button
-                key={option.code}
-                type="button"
-                onClick={() => handleCurrency(option.code)}
-                disabled={Boolean(savingCurrency)}
-                aria-pressed={active}
-                className={`press flex items-center gap-3 p-3.5 rounded-card border text-start transition-colors ${
-                  active
-                    ? "border-brand-gold bg-brand-gold-soft"
-                    : "border-line-subtle bg-surface-raised hover:bg-surface-sunken"
-                } ${savingCurrency ? "opacity-60 pointer-events-none" : ""}`}
-              >
-                <span className="flex-1 min-w-0">
-                  <span className="block text-body font-semibold text-content-primary truncate">
-                    {option.label}
-                  </span>
-                  {/* A worked example, so nobody has to guess how a price will
-                      read to a customer after switching. */}
-                  <span className="block text-caption text-content-muted tnum">
-                    {formatMoney(option.sample, option.code)}
-                  </span>
-                </span>
-                <span
-                  aria-hidden="true"
-                  className={`w-6 h-6 rounded-pill border-2 flex items-center justify-center flex-shrink-0 ${
-                    active
-                      ? "bg-brand-gold border-brand-gold text-content-on-gold"
-                      : "border-line-strong"
-                  }`}
-                >
-                  {active ? <Icon name="check" size={14} strokeWidth={2.75} /> : null}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ---- share & QR ---- */}
-      <section className="bg-surface-raised border border-line-subtle rounded-card p-5 mb-6">
-        <div className="flex items-center gap-3">
-          <span className="w-10 h-10 rounded-control bg-surface-sunken text-content-secondary flex items-center justify-center flex-shrink-0">
-            <Icon name="qr" size={20} />
-          </span>
-          <div className="flex-1 min-w-0">
-            <h2 className="text-h2 text-content-primary">{t("share_booking_title")}</h2>
-            <p className="text-caption text-content-muted">{t("ready_made_copy_sub")}</p>
-          </div>
-          <Button variant="secondary" size="sm" to="/company/share" iconEnd="chevron-right">
-            {t("view")}
-          </Button>
-        </div>
-      </section>
-
-      <section className="mb-6">
-        <SectionHeader title={t("operating_hours")} subtitle={t("operating_hours_sub")} />
-        <ShopHoursEditor />
-      </section>
     </div>
   );
 }

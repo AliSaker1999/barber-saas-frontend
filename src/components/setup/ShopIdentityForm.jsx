@@ -8,7 +8,7 @@ import {
 import { uploadImage } from "../../services/media";
 import Button from "../ui/Button";
 import Field from "../ui/Field";
-import Icon from "../ui/Icon";
+import ImagePicker from "../ui/ImagePicker";
 import { InlineError } from "../ui/States";
 
 /*
@@ -206,44 +206,6 @@ export default function ShopIdentityForm({ section = "identity", onProgress }) {
       <Button block onClick={save} loading={saving}>
         {saved ? t("saved") : t("save")}
       </Button>
-    </div>
-  );
-}
-
-function ImagePicker({ label, hint, value, busy, onPick, onClear, aspect }) {
-  const { t } = useI18n();
-
-  return (
-    <div>
-      <p className="text-label uppercase text-content-muted mb-1.5">{label}</p>
-
-      <div className="flex items-center gap-3">
-        <div
-          className={`${aspect} flex-shrink-0 overflow-hidden bg-surface-sunken border border-line-subtle flex items-center justify-center`}
-        >
-          {value ? (
-            <img src={value} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <Icon name="image" size={22} className="text-content-muted" />
-          )}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <p className="text-caption text-content-muted mb-2">{hint}</p>
-          <div className="flex gap-2">
-            <label className="press inline-flex items-center justify-center min-h-[44px] px-4 gap-2 rounded-control bg-surface-raised border border-line-strong text-body font-semibold text-content-primary cursor-pointer">
-              <Icon name="camera" size={17} />
-              {busy ? t("uploading") : value ? t("change") : t("upload")}
-              <input type="file" accept="image/*" onChange={onPick} className="sr-only" />
-            </label>
-            {value ? (
-              <Button variant="ghost" onClick={onClear}>
-                {t("remove")}
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

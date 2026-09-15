@@ -1,584 +1,319 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchBarberProfile, updateBarberProfile, toggleAvailability, fetchBarbers } from '../../features/barbers/barbersSlice';
+import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
+import { useAppDispatch, useAppSelector } from "../../app/hooks";
+import { useI18n } from "../../i18n";
 import {
-  fetchMyScheduleRequests,
-  requestTimeOff,
-  requestSwap,
-  respondToSwap,
-  cancelScheduleRequest
-} from '../../features/scheduleRequests/scheduleRequestsSlice';
+  fetchBarberProfile,
+  updateBarberProfile,
+  toggleAvailability
+} from "../../features/barbers/barbersSlice";
 import { uploadImage } from "../../services/media";
-import LoadingState from "../../components/LoadingState";
-import ErrorState from "../../components/ErrorState";
-import OptimizedImage from "../../components/OptimizedImage";
+import TopBar from "../../components/ui/TopBar";
+import Button from "../../components/ui/Button";
+import Field from "../../components/ui/Field";
 import Select from "../../components/ui/Select";
+import ImagePicker from "../../components/ui/ImagePicker";
+import { Rating, Toggle } from "../../components/ui/Primitives";
+import { ErrorState, InlineError, ListSkeleton } from "../../components/ui/States";
+import MyScheduleRequests from "../../components/setup/MyScheduleRequests";
 
-/* Who this barber cuts for — drives the customer-side specialty filter. */
-const GENDER_SPECIALTY_OPTIONS = [
-  { value: "Male", label: "Male", icon: "gender-male" },
-  { value: "Female", label: "Female", icon: "gender-female" },
-  { value: "Unisex", label: "Unisex", icon: "gender-unisex" },
-  { value: "Other", label: "Other", icon: "gender-other" }
+/*
+ * A barber's own profile.
+ *
+ * Three things this screen used to get wrong, none of them cosmetic:
+ *
+ * A "No-Shows" stat tile in red. Barbers.NoShowCount exists as a column and
+ * nothing in the codebase has ever written to it — the increment on a no-show
+ * hits Users.NoShowCount, the customer's. Every barber in the app has been
+ * looking at a permanent, structural zero. The tile is gone rather than
+ * relabelled; a number nobody computes is not a statistic.
+ *
+ * An emoji as the empty avatar, in an app whose spec bans emoji from shipping
+ * UI, sitting in the one place a barber looks at their own face.
+ *
+ * And the three availability switches — walk-ins, online booking, auto-accept
+ * — fired straight at the server with nothing rendering a failure. Flipping
+ * "accepting appointments" off and having it silently not take is the kind of
+ * miss a barber discovers from the customer standing in front of them.
+ */
+
+const GENDER_OPTIONS = [
+  { value: "Male", labelKey: "specialty_male", icon: "gender-male" },
+  { value: "Female", labelKey: "specialty_female", icon: "gender-female" },
+  { value: "Unisex", labelKey: "specialty_unisex", icon: "gender-unisex" },
+  { value: "Other", labelKey: "specialty_other", icon: "gender-other" }
 ];
-import { getFriendlyErrorMessage } from "../../utils/errorMessages";
-import { formatDateOnly } from "../../utils/time";
-
-const STATUS_LABELS = {
-  PENDING: "Awaiting shop approval",
-  PENDING_PARTNER: "Awaiting colleague's response",
-  PENDING_ADMIN: "Awaiting shop approval",
-  APPROVED: "Approved",
-  DECLINED: "Declined",
-  CANCELLED: "Cancelled"
-};
-
-const STATUS_COLORS = {
-  PENDING: "bg-amber-100 text-amber-700",
-  PENDING_PARTNER: "bg-amber-100 text-amber-700",
-  PENDING_ADMIN: "bg-amber-100 text-amber-700",
-  APPROVED: "bg-emerald-100 text-emerald-700",
-  DECLINED: "bg-red-100 text-red-700",
-  CANCELLED: "bg-gray-100 text-gray-600"
-};
 
 export default function BarberMyProfile() {
-  const dispatch = useDispatch();
-  const { selectedProfile, loading, items: allBarbers } = useSelector(state => state.barbers);
-  const { mine: myRequests, mineLoading: requestsLoading, actionLoading: scheduleActionLoading, actionError: scheduleActionError } = useSelector(state => state.scheduleRequests);
+  const dispatch = useAppDispatch();
+  const { t } = useI18n();
 
-  const [timeOffForm, setTimeOffForm] = useState({ startDate: "", endDate: "", reason: "" });
-  const [swapForm, setSwapForm] = useState({ startDate: "", endDate: "", reason: "", partnerBarberId: "", partnerStartDate: "", partnerEndDate: "" });
-  const [scheduleSuccess, setScheduleSuccess] = useState("");
-  const [formData, setFormData] = useState({
-    displayName: '',
-    gender: '',
-    bio: '',
-    yearsOfExperience: '',
-    profileImage: '',
-    coverImage: ''
-  });
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState(null);
-  const [prevProfile, setPrevProfile] = useState(null);
-  const [uploading, setUploading] = useState({ profile: false, cover: false });
-  const [uploadError, setUploadError] = useState(null);
-  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
-  const [photoTarget, setPhotoTarget] = useState("profile");
-  const profileInputRef = useRef(null);
-  const coverInputRef = useRef(null);
+  const { selectedProfile, loading } = useAppSelector((state) => state.barbers);
+
+  const [draft, setDraft] = useState(null);
+  const [hydratedFor, setHydratedFor] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+  const [uploading, setUploading] = useState(null);
+  const [togglePending, setTogglePending] = useState(null);
 
   useEffect(() => {
-    dispatch(fetchBarberProfile('me'));
-    dispatch(fetchBarbers());
-    dispatch(fetchMyScheduleRequests());
+    dispatch(fetchBarberProfile("me"));
   }, [dispatch]);
 
-  const handleRequestTimeOff = async (e) => {
-    e.preventDefault();
-    setScheduleSuccess("");
-    try {
-      await dispatch(requestTimeOff(timeOffForm)).unwrap();
-      setTimeOffForm({ startDate: "", endDate: "", reason: "" });
-      setScheduleSuccess("Time-off request submitted.");
-      dispatch(fetchMyScheduleRequests());
-    } catch {
-      // actionError in the slice already surfaces this
-    }
-  };
-
-  const handleRequestSwap = async (e) => {
-    e.preventDefault();
-    setScheduleSuccess("");
-    try {
-      await dispatch(requestSwap(swapForm)).unwrap();
-      setSwapForm({ startDate: "", endDate: "", reason: "", partnerBarberId: "", partnerStartDate: "", partnerEndDate: "" });
-      setScheduleSuccess("Swap proposal sent.");
-      dispatch(fetchMyScheduleRequests());
-    } catch {
-      // actionError in the slice already surfaces this
-    }
-  };
-
-  const handleRespondToSwap = async (id, accept) => {
-    await dispatch(respondToSwap({ id, accept }));
-    dispatch(fetchMyScheduleRequests());
-  };
-
-  const handleCancelRequest = async (id) => {
-    await dispatch(cancelScheduleRequest(id));
-  };
-
-  const otherBarbers = (allBarbers || []).filter(b => b.Id !== selectedProfile?.Id);
-  const incomingSwaps = myRequests.filter(r => r.RequestType === "SWAP" && r.PartnerBarberId === selectedProfile?.Id && r.Status === "PENDING_PARTNER");
-  const myOwnRequests = myRequests.filter(r => r.RequestingBarberId === selectedProfile?.Id);
-
-  // Sync profile data to form state during render to avoid cascading renders from useEffect
-  if (selectedProfile && selectedProfile !== prevProfile) {
-    setPrevProfile(selectedProfile);
-    setFormData({
-      displayName: selectedProfile.DisplayName || selectedProfile.FullName || '',
-      gender: selectedProfile.Gender || '',
-      bio: selectedProfile.Bio || '',
-      yearsOfExperience: selectedProfile.YearsOfExperience || '',
-      profileImage: selectedProfile.ProfileImage || '',
-      coverImage: selectedProfile.CoverImage || ''
+  if (selectedProfile && hydratedFor !== selectedProfile.Id) {
+    setDraft({
+      displayName: selectedProfile.DisplayName || selectedProfile.FullName || "",
+      gender: selectedProfile.Gender || "",
+      bio: selectedProfile.Bio || "",
+      yearsOfExperience: selectedProfile.YearsOfExperience ?? "",
+      profileImage: selectedProfile.ProfileImage || "",
+      coverImage: selectedProfile.CoverImage || ""
     });
+    setHydratedFor(selectedProfile.Id);
   }
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  if (loading && !selectedProfile) {
+    return (
+      <div className="pb-8">
+        <TopBar title={t("my_barber_profile")} subtitle={t("my_barber_profile_sub")} />
+        <div className="px-4 pt-3">
+          <ListSkeleton count={4} />
+        </div>
+      </div>
+    );
+  }
+
+  if (!selectedProfile || !draft) {
+    return (
+      <div className="pb-8">
+        <TopBar title={t("my_barber_profile")} subtitle={t("my_barber_profile_sub")} />
+        <div className="px-4 pt-3">
+          <ErrorState
+            message={t("error_generic")}
+            onRetry={() => dispatch(fetchBarberProfile("me"))}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  const set = (patch) => {
+    setDraft((current) => ({ ...current, ...patch }));
+    setSaved(false);
   };
 
-  const handleUpload = async (file, kind) => {
+  async function pick(event, field) {
+    const file = event.target.files?.[0];
     if (!file) return;
+
+    setUploading(field);
+    setError("");
     try {
-      setUploadError(null);
-      setUploading(prev => ({ ...prev, [kind]: true }));
-      const { url } = await uploadImage(file, "barber");
-      
-      const field = kind === "profile" ? "profileImage" : "coverImage";
-      setFormData(prev => ({
-        ...prev,
-        [field]: url
-      }));
-
-      // Immediate update for barber images
-      dispatch(updateBarberProfile({ 
-        barberId: 'me', 
-        data: { [field]: url } 
-      }));
-    } catch {
-      setUploadError("Failed to upload image. Please try again.");
-    } finally {
-      setUploading(prev => ({ ...prev, [kind]: false }));
-    }
-  };
-
-  const openPhotoModal = (kind) => {
-    setPhotoTarget(kind);
-    setIsPhotoModalOpen(true);
-  };
-
-  const triggerFilePicker = (kind) => {
-    const ref = kind === "cover" ? coverInputRef : profileInputRef;
-    if (ref.current) {
-      ref.current.click();
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSuccess(false);
-    setError(null);
-    try {
-      await dispatch(updateBarberProfile({ 
-        barberId: 'me', 
-        data: {
-          ...formData,
-          yearsOfExperience: formData.yearsOfExperience ? parseInt(formData.yearsOfExperience) : null
-        } 
-      })).unwrap();
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      const result = await uploadImage(file, "barber");
+      const url = result?.url || result;
+      set({ [field]: url });
+      /* Saved on pick: a barber who chooses a photo and then leaves should not
+         quietly lose it. */
+      await dispatch(updateBarberProfile({ barberId: "me", data: { [field]: url } })).unwrap();
     } catch (err) {
-      const message = getFriendlyErrorMessage(err, "Unable to update profile right now.");
-      setError(message);
+      setError(typeof err === "string" ? err : t("upload_failed"));
+    } finally {
+      setUploading(null);
+      event.target.value = "";
     }
-  };
+  }
 
-  if (loading && !selectedProfile) return <LoadingState label="Loading your profile..." blocks={2} />;
+  async function flip(field, next) {
+    setTogglePending(field);
+    try {
+      await dispatch(
+        toggleAvailability({ barberId: selectedProfile.Id, [field]: next })
+      ).unwrap();
+    } catch (err) {
+      /* Previously this went nowhere at all, so the switch simply stayed where
+         it was and the barber had no way to know why. */
+      toast.error(typeof err === "string" ? err : t("error_generic"));
+    } finally {
+      setTogglePending(null);
+    }
+  }
+
+  async function save() {
+    setError("");
+
+    if (!draft.displayName.trim()) {
+      setError(t("display_name_required"));
+      return;
+    }
+
+    const years = String(draft.yearsOfExperience).trim();
+    if (years && !(Number(years) >= 0)) {
+      setError(t("years_invalid"));
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await dispatch(
+        updateBarberProfile({
+          barberId: "me",
+          data: {
+            displayName: draft.displayName.trim(),
+            gender: draft.gender,
+            bio: draft.bio.trim(),
+            yearsOfExperience: years === "" ? null : parseInt(years, 10),
+            profileImage: draft.profileImage,
+            coverImage: draft.coverImage
+          }
+        })
+      ).unwrap();
+      setSaved(true);
+    } catch (err) {
+      setError(typeof err === "string" ? err : t("profile_save_failed"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const genderOptions = GENDER_OPTIONS.map((option) => ({
+    value: option.value,
+    label: t(option.labelKey),
+    icon: option.icon
+  }));
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-app-text">My Barber Profile</h1>
-        <p className="text-app-muted">This information will be visible to customers when they book with you.</p>
-      </div>
+    <div className="pb-8">
+      <TopBar title={t("my_barber_profile")} subtitle={t("my_barber_profile_sub")} />
 
-      <form onSubmit={handleSubmit} className="bg-app-surface rounded-[12px] shadow-sm border border-app-border overflow-hidden">
-        {/* Cover Image Placeholder */}
-        <div className="h-48 bg-app-bg relative group">
-          {formData.coverImage ? (
-            <OptimizedImage src={formData.coverImage} alt="Cover" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-app-muted bg-gradient-to-r from-app-surface to-app-bg">
-               No Cover Image
-            </div>
-          )}
-          <div className="absolute top-4 right-4">
-             <button
-               type="button"
-               onClick={() => openPhotoModal("cover")}
-               className="bg-app-surface/90 backdrop-blur px-3 py-1 rounded-[12px] text-xs border-0 shadow-sm hover:bg-app-surface"
-             >
-               Change Cover
-             </button>
-             {uploading.cover && <p className="text-[10px] text-app-accent font-bold mt-1">Uploading...</p>}
-          </div>
-          
-          {/* Profile Image */}
-          <button
-            type="button"
-            onClick={() => openPhotoModal("profile")}
-            className="absolute -bottom-12 left-8 w-24 h-24 rounded-full border-4 border-app-border bg-app-surface shadow-md overflow-hidden group"
-            aria-label="Change profile photo"
-          >
-             {formData.profileImage ? (
-               <OptimizedImage src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
-             ) : (
-               <div className="w-full h-full flex items-center justify-center text-3xl bg-app-bg">👤</div>
-             )}
-            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <span className="text-app-text text-xs font-bold">Change</span>
-            </div>
-          </button>
-          <div className="absolute -bottom-16 left-36">
-            {uploading.profile && <p className="text-[10px] text-app-accent font-bold mt-1">Uploading...</p>}
-          </div>
-        </div>
-
-        <div className="pt-16 p-8 space-y-6">
-          {success && (
-            <div className="bg-green-50 text-green-700 p-4 font-bold rounded-[12px] flex items-center justify-center animate-bounce">
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-              Profile updated successfully!
-            </div>
-          )}
-
-          {error && <ErrorState message={error} onRetry={() => setError(null)} retryLabel="Dismiss" />}
-
-          {uploadError && <ErrorState message={uploadError} onRetry={() => setUploadError(null)} retryLabel="Dismiss" />}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* Availability Settings */}
-            <div className="md:col-span-2 bg-app-surface border border-app-border rounded-[12px] p-6">
-               <h3 className="text-lg font-bold text-app-text mb-4">Availability Settings</h3>
-               <div className="flex flex-col md:flex-row gap-8">
-                  <div className="flex items-center justify-between bg-surface-sunken border border-line-subtle p-4 rounded-[12px] w-full">
-                      <div>
-                          <p className="font-bold text-content-primary">Queue Walk-Ins</p>
-                          <p className="text-xs text-content-muted">Allow customers to join your queue now</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          className="sr-only peer"
-                          checked={selectedProfile?.IsAvailable ?? false}
-                          onChange={(e) => selectedProfile?.Id && dispatch(toggleAvailability({ barberId: selectedProfile.Id, isAvailable: e.target.checked }))}
-                        />
-                        <div className="w-11 h-6 shrink-0 rounded-full bg-line-strong transition-colors peer peer-checked:bg-brand-gold peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-brand-gold peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface-sunken after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:border after:border-line-strong after:shadow-sm after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-                      </label>
-                  </div>
-
-                  <div className="flex items-center justify-between bg-surface-sunken border border-line-subtle p-4 rounded-[12px] w-full">
-                      <div>
-                          <p className="font-bold text-content-primary">Online Booking</p>
-                          <p className="text-xs text-content-muted">Accept future appointment requests</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          className="sr-only peer"
-                          checked={selectedProfile?.IsAcceptingAppointments ?? false}
-                          onChange={(e) => selectedProfile?.Id && dispatch(toggleAvailability({ barberId: selectedProfile.Id, isAcceptingAppointments: e.target.checked }))}
-                        />
-                        <div className="w-11 h-6 shrink-0 rounded-full bg-line-strong transition-colors peer peer-checked:bg-brand-gold peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-brand-gold peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface-sunken after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:border after:border-line-strong after:shadow-sm after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-                      </label>
-                  </div>
-
-                  <div className="flex items-center justify-between bg-surface-sunken border border-line-subtle p-4 rounded-[12px] w-full">
-                      <div>
-                          <p className="font-bold text-content-primary">Auto-Accept</p>
-                          <p className="text-xs text-content-muted">Skip the "Pending" review phase</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          className="sr-only peer"
-                          checked={selectedProfile?.AutoAcceptAppointments ?? true}
-                          onChange={(e) => selectedProfile?.Id && dispatch(toggleAvailability({ barberId: selectedProfile.Id, autoAcceptAppointments: e.target.checked }))}
-                        />
-                        <div className="w-11 h-6 shrink-0 rounded-full bg-line-strong transition-colors peer peer-checked:bg-brand-gold peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-brand-gold peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface-sunken after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:border after:border-line-strong after:shadow-sm after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-                      </label>
-                  </div>
-               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-app-text mb-1">Display Name</label>
-              <input
-                type="text"
-                name="displayName"
-                value={formData.displayName}
-                onChange={handleChange}
-                placeholder="How customers see your name"
-                className="w-full border border-app-border bg-app-surface rounded-[12px] px-4 py-2 focus:ring-2 focus:ring-app-accent outline-none text-app-text"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-app-text mb-1">Gender / Specialty</label>
-              <Select
-                name="gender"
-                value={formData.gender}
-                onChange={handleChange}
-                placeholder="Select..."
-                options={GENDER_SPECIALTY_OPTIONS}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-app-text mb-1">Years of Experience</label>
-              <input
-                type="number"
-                name="yearsOfExperience"
-                value={formData.yearsOfExperience}
-                onChange={handleChange}
-                placeholder="e.g. 5"
-                className="w-full border border-app-border bg-app-surface rounded-[12px] px-4 py-2 focus:ring-2 focus:ring-app-accent outline-none text-app-text"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-app-text mb-1">Bio</label>
-            <textarea
-              name="bio"
-              value={formData.bio}
-              onChange={handleChange}
-              rows="4"
-              placeholder="Tell customers about your style and experience..."
-              className="w-full border border-app-border bg-app-surface rounded-[12px] px-4 py-2 focus:ring-2 focus:ring-app-accent outline-none text-app-text"
+      <div className="px-4 pt-3 space-y-4">
+        {/* ---- how you look to a customer ---- */}
+        <section className="space-y-3 rounded-card bg-surface-raised border border-line-subtle p-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-body font-bold text-content-primary truncate">
+              {draft.displayName || selectedProfile.FullName}
+            </p>
+            <Rating
+              compact
+              value={selectedProfile.AverageRating}
+              count={selectedProfile.ReviewsCount || 0}
             />
           </div>
 
-          <div className="flex items-center justify-between pt-4 border-t border-app-border">
-            {success && (
-              <span className="text-green-600 font-medium flex items-center">
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Profile updated successfully!
-              </span>
-            )}
-            <div className="flex-1"></div>
-            <button
-              type="submit"
-              className="bg-app-accent text-white px-8 py-2 rounded-[25px] font-bold hover:bg-app-accent-dark transition-colors shadow-sm"
-            >
-              Save Changes
-            </button>
+          <ImagePicker
+            label={t("profile_photo")}
+            hint={t("profile_photo_hint")}
+            value={draft.profileImage}
+            busy={uploading === "profileImage"}
+            onPick={(event) => pick(event, "profileImage")}
+            onClear={() => set({ profileImage: "" })}
+            aspect="w-20 h-20 rounded-pill"
+          />
+          <ImagePicker
+            label={t("cover_photo")}
+            hint={t("cover_photo_hint")}
+            value={draft.coverImage}
+            busy={uploading === "coverImage"}
+            onPick={(event) => pick(event, "coverImage")}
+            onClear={() => set({ coverImage: "" })}
+            aspect="w-full h-28 rounded-card"
+          />
+        </section>
+
+        {/* ---- taking work right now ---- */}
+        <section className="space-y-2">
+          <p className="text-label uppercase text-content-muted">{t("availability")}</p>
+
+          <div className="rounded-card bg-surface-raised border border-line-subtle px-3.5 py-2.5">
+            <Toggle
+              label={t("barber_takes_walkins")}
+              hint={t("takes_walkins_hint")}
+              checked={Boolean(selectedProfile.IsAvailable)}
+              disabled={togglePending === "isAvailable"}
+              onChange={(next) => flip("isAvailable", next)}
+            />
           </div>
-        </div>
-      </form>
 
-      {isPhotoModalOpen && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-app-surface rounded-[12px] shadow-2xl w-full max-w-sm p-6">
-            <h3 className="text-lg font-bold text-app-text">Update Photo</h3>
-            <p className="text-sm text-app-muted mt-1">Choose a new photo to upload.</p>
-
-            <div className="mt-6 flex gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  triggerFilePicker(photoTarget);
-                  setIsPhotoModalOpen(false);
-                }}
-                className="flex-1 bg-app-accent hover:bg-app-accent-dark text-white py-2 rounded-[25px] font-bold transition"
-              >
-                Upload Photo
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsPhotoModalOpen(false)}
-                className="flex-1 bg-app-surface hover:bg-app-surface-2 text-app-text py-2 rounded-[25px] font-bold transition"
-              >
-                Cancel
-              </button>
-            </div>
+          <div className="rounded-card bg-surface-raised border border-line-subtle px-3.5 py-2.5">
+            <Toggle
+              label={t("barber_takes_appointments")}
+              hint={t("takes_appointments_hint")}
+              checked={Boolean(selectedProfile.IsAcceptingAppointments)}
+              disabled={togglePending === "isAcceptingAppointments"}
+              onChange={(next) => flip("isAcceptingAppointments", next)}
+            />
           </div>
-        </div>
-      )}
 
-      <input
-        ref={profileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={(e) => {
-          handleUpload(e.target.files?.[0], "profile");
-          e.target.value = "";
-        }}
-        className="hidden"
-      />
-      <input
-        ref={coverInputRef}
-        type="file"
-        accept="image/*"
-        onChange={(e) => {
-          handleUpload(e.target.files?.[0], "cover");
-          e.target.value = "";
-        }}
-        className="hidden"
-      />
+          <div className="rounded-card bg-surface-raised border border-line-subtle px-3.5 py-2.5">
+            <Toggle
+              label={t("barber_auto_accept")}
+              hint={t("barber_auto_accept_hint")}
+              checked={Boolean(selectedProfile.AutoAcceptAppointments)}
+              disabled={
+                togglePending === "autoAcceptAppointments" ||
+                !selectedProfile.IsAcceptingAppointments
+              }
+              onChange={(next) => flip("autoAcceptAppointments", next)}
+            />
+          </div>
+        </section>
 
-      {/* Stats Preview */}
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-app-surface p-6 rounded-[12px] border border-app-border shadow-sm text-center">
-          <p className="text-app-muted text-sm font-medium">Rating</p>
-          <p className="text-3xl font-bold mt-1 text-app-accent">★ {selectedProfile?.AverageRating || "N/A"}</p>
-        </div>
-        <div className="bg-app-surface p-6 rounded-[12px] border border-app-border shadow-sm text-center">
-          <p className="text-app-muted text-sm font-medium">Reviews</p>
-          <p className="text-3xl font-bold mt-1 text-app-text">{selectedProfile?.ReviewsCount || 0}</p>
-        </div>
-        <div className="bg-app-surface p-6 rounded-[12px] border border-app-border shadow-sm text-center">
-          <p className="text-app-muted text-sm font-medium">No-Shows</p>
-          <p className="text-3xl font-bold mt-1 text-red-500">{selectedProfile?.NoShowCount || 0}</p>
-        </div>
-      </div>
+        {/* ---- what customers read ---- */}
+        <section className="space-y-3">
+          <p className="text-label uppercase text-content-muted">{t("about_you")}</p>
 
-      {/* Time Off & Swaps */}
-      <div className="mt-8 bg-app-surface rounded-[12px] border border-app-border p-6 space-y-8">
-        <div>
-          <h2 className="text-xl font-bold text-app-text">Time Off &amp; Swaps</h2>
-          <p className="text-sm text-app-muted">Request a day off, or propose trading shifts with a colleague. Both need shop approval.</p>
-        </div>
+          <Field
+            label={t("display_name")}
+            value={draft.displayName}
+            onChange={(event) => set({ displayName: event.target.value })}
+            hint={t("display_name_hint")}
+          />
 
-        {scheduleSuccess && (
-          <div className="bg-emerald-50 text-emerald-700 p-3 rounded-[12px] text-sm font-bold">{scheduleSuccess}</div>
-        )}
-        {scheduleActionError && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-[12px] text-sm font-bold">{scheduleActionError}</div>
-        )}
-
-        {incomingSwaps.length > 0 && (
           <div>
-            <h3 className="text-sm font-black text-app-text uppercase tracking-widest mb-3">Incoming Swap Requests</h3>
-            <div className="space-y-2">
-              {incomingSwaps.map(r => (
-                <div key={r.Id} className="bg-app-surface-2 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-bold text-app-text">{r.RequestingBarberName}</p>
-                    <p className="text-xs text-app-muted">
-                      They'll cover {formatDateOnly(r.PartnerStartDate)}–{formatDateOnly(r.PartnerEndDate)} for you, if you cover {formatDateOnly(r.StartDate)}–{formatDateOnly(r.EndDate)} for them.
-                    </p>
-                    {r.Reason && <p className="text-xs text-app-muted mt-0.5">"{r.Reason}"</p>}
-                  </div>
-                  <div className="flex gap-2 flex-shrink-0">
-                    <button onClick={() => handleRespondToSwap(r.Id, true)} className="px-4 py-2 rounded-xl bg-app-accent text-white font-bold text-sm">Accept</button>
-                    <button onClick={() => handleRespondToSwap(r.Id, false)} className="px-4 py-2 rounded-xl bg-app-surface text-app-muted font-bold text-sm border border-app-border">Decline</button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <p className="text-label uppercase text-content-muted mb-1.5">{t("specialty")}</p>
+            <Select
+              value={draft.gender}
+              onChange={(event) => set({ gender: event.target.value })}
+              options={genderOptions}
+              placeholder={t("select_placeholder")}
+              aria-label={t("specialty")}
+            />
+            <p className="text-caption text-content-muted mt-1.5">{t("specialty_hint")}</p>
           </div>
-        )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <form onSubmit={handleRequestTimeOff} className="bg-app-surface-2 rounded-[12px] p-5 space-y-3">
-            <h3 className="text-sm font-black text-app-text uppercase tracking-widest">Request Time Off</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-app-muted mb-1">Start date</label>
-                <input type="date" required value={timeOffForm.startDate}
-                  onChange={e => setTimeOffForm(f => ({ ...f, startDate: e.target.value }))}
-                  className="w-full px-3 py-2 border border-app-border rounded-lg bg-app-surface text-app-text text-sm" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-app-muted mb-1">End date</label>
-                <input type="date" required value={timeOffForm.endDate}
-                  onChange={e => setTimeOffForm(f => ({ ...f, endDate: e.target.value }))}
-                  className="w-full px-3 py-2 border border-app-border rounded-lg bg-app-surface text-app-text text-sm" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-app-muted mb-1">Reason (optional)</label>
-              <input type="text" value={timeOffForm.reason}
-                onChange={e => setTimeOffForm(f => ({ ...f, reason: e.target.value }))}
-                className="w-full px-3 py-2 border border-app-border rounded-lg bg-app-surface text-app-text text-sm" />
-            </div>
-            <button type="submit" disabled={scheduleActionLoading} className="w-full bg-app-accent text-white font-bold py-2.5 rounded-xl disabled:opacity-60">
-              {scheduleActionLoading ? "Submitting..." : "Submit Request"}
-            </button>
-          </form>
+          <Field
+            label={t("years_experience")}
+            optional
+            optionalLabel={t("optional")}
+            value={draft.yearsOfExperience}
+            onChange={(event) => set({ yearsOfExperience: event.target.value })}
+            type="number"
+            inputMode="numeric"
+            min="0"
+            dir="ltr"
+            inputClassName="tnum"
+          />
 
-          <form onSubmit={handleRequestSwap} className="bg-app-surface-2 rounded-[12px] p-5 space-y-3">
-            <h3 className="text-sm font-black text-app-text uppercase tracking-widest">Propose a Swap</h3>
-            <div>
-              <label className="block text-xs font-bold text-app-muted mb-1">Swap with</label>
-              <Select
-                required
-                size="sm"
-                value={swapForm.partnerBarberId}
-                onChange={e => setSwapForm(f => ({ ...f, partnerBarberId: e.target.value }))}
-                placeholder="Select a colleague..."
-                options={otherBarbers.map(b => ({ value: b.Id, label: b.FullName, icon: "user" }))}
-              />
-            </div>
-            <p className="text-xs text-app-muted">You give up:</p>
-            <div className="grid grid-cols-2 gap-3">
-              <input type="date" required value={swapForm.startDate}
-                onChange={e => setSwapForm(f => ({ ...f, startDate: e.target.value }))}
-                className="w-full px-3 py-2 border border-app-border rounded-lg bg-app-surface text-app-text text-sm" />
-              <input type="date" required value={swapForm.endDate}
-                onChange={e => setSwapForm(f => ({ ...f, endDate: e.target.value }))}
-                className="w-full px-3 py-2 border border-app-border rounded-lg bg-app-surface text-app-text text-sm" />
-            </div>
-            <p className="text-xs text-app-muted">In exchange, you'll cover:</p>
-            <div className="grid grid-cols-2 gap-3">
-              <input type="date" required value={swapForm.partnerStartDate}
-                onChange={e => setSwapForm(f => ({ ...f, partnerStartDate: e.target.value }))}
-                className="w-full px-3 py-2 border border-app-border rounded-lg bg-app-surface text-app-text text-sm" />
-              <input type="date" required value={swapForm.partnerEndDate}
-                onChange={e => setSwapForm(f => ({ ...f, partnerEndDate: e.target.value }))}
-                className="w-full px-3 py-2 border border-app-border rounded-lg bg-app-surface text-app-text text-sm" />
-            </div>
-            <input type="text" placeholder="Reason (optional)" value={swapForm.reason}
-              onChange={e => setSwapForm(f => ({ ...f, reason: e.target.value }))}
-              className="w-full px-3 py-2 border border-app-border rounded-lg bg-app-surface text-app-text text-sm" />
-            <button type="submit" disabled={scheduleActionLoading} className="w-full bg-app-accent text-white font-bold py-2.5 rounded-xl disabled:opacity-60">
-              {scheduleActionLoading ? "Submitting..." : "Propose Swap"}
-            </button>
-          </form>
-        </div>
+          <Field
+            as="textarea"
+            rows={4}
+            label={t("bio")}
+            optional
+            optionalLabel={t("optional")}
+            value={draft.bio}
+            onChange={(event) => set({ bio: event.target.value })}
+            placeholder={t("bio_placeholder")}
+          />
 
-        <div>
-          <h3 className="text-sm font-black text-app-text uppercase tracking-widest mb-3">My Requests</h3>
-          {requestsLoading && <LoadingState label="Loading requests..." blocks={2} />}
-          {!requestsLoading && myOwnRequests.length === 0 && (
-            <p className="text-sm text-app-muted">No requests yet.</p>
-          )}
-          <div className="space-y-2">
-            {myOwnRequests.map(r => (
-              <div key={r.Id} className="bg-app-surface-2 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-bold text-app-text">
-                      {r.RequestType === "SWAP" ? `Swap with ${r.PartnerBarberName}` : "Time Off"}
-                    </span>
-                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${STATUS_COLORS[r.Status] || "bg-gray-100 text-gray-600"}`}>
-                      {STATUS_LABELS[r.Status] || r.Status}
-                    </span>
-                  </div>
-                  <p className="text-xs text-app-muted">
-                    {formatDateOnly(r.StartDate)}–{formatDateOnly(r.EndDate)}
-                    {r.RequestType === "SWAP" && ` (in exchange for ${formatDateOnly(r.PartnerStartDate)}–${formatDateOnly(r.PartnerEndDate)})`}
-                  </p>
-                  {r.DeclineReason && <p className="text-xs text-red-600 mt-0.5">Declined: {r.DeclineReason}</p>}
-                </div>
-                {["PENDING", "PENDING_PARTNER", "PENDING_ADMIN"].includes(r.Status) && (
-                  <button onClick={() => handleCancelRequest(r.Id)} className="flex-shrink-0 text-xs font-bold text-app-muted hover:text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">
-                    Cancel
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+          {error ? <InlineError message={error} /> : null}
+
+          <Button block onClick={save} loading={saving}>
+            {saved ? t("saved") : t("save")}
+          </Button>
+        </section>
+
+        <MyScheduleRequests barberId={selectedProfile.Id} />
       </div>
     </div>
   );
