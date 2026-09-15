@@ -1,6 +1,17 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "../../services/api";
 
+/*
+ * Every thunk here rejects with a plain message string.
+ *
+ * They used to reject with `err.response.data` — the whole body, and with no
+ * optional chaining, so a network error with no response threw a TypeError
+ * inside the catch itself and the rejected action arrived with no payload at
+ * all. Screens then rendered nothing and looked hung. A string also means one
+ * shape for every consumer, rather than three thunks returning an object and
+ * one returning text.
+ */
+
 export const fetchTenantsReport = createAsyncThunk(
   "reports/fetchTenants",
   async (_, { rejectWithValue }) => {
@@ -8,7 +19,7 @@ export const fetchTenantsReport = createAsyncThunk(
       const response = await axios.get("/reports/tenants");
       return response.data.data;
     } catch (err) {
-      return rejectWithValue(err.response.data);
+      return rejectWithValue(err.response?.data?.message || "Failed to load the tenants report");
     }
   }
 );
@@ -20,7 +31,7 @@ export const fetchSubscriptionSummary = createAsyncThunk(
       const response = await axios.get("/reports/subscription-summary");
       return response.data.data;
     } catch (err) {
-      return rejectWithValue(err.response.data);
+      return rejectWithValue(err.response?.data?.message || "Failed to load the subscription summary");
     }
   }
 );
@@ -32,7 +43,7 @@ export const fetchCustomersReport = createAsyncThunk(
       const response = await axios.get("/reports/customers");
       return response.data.data;
     } catch (err) {
-      return rejectWithValue(err.response.data);
+      return rejectWithValue(err.response?.data?.message || "Failed to load the customers report");
     }
   }
 );
@@ -60,7 +71,7 @@ export const fetchCustomerDashboard = createAsyncThunk(
       const response = await axios.get("/reports/customer-dashboard");
       return response.data.data;
     } catch (err) {
-      return rejectWithValue(err.response.data);
+      return rejectWithValue(err.response?.data?.message || "Failed to load your stats");
     }
   }
 );
@@ -81,6 +92,14 @@ const reportsSlice = createSlice({
     builder
       .addCase(fetchSubscriptionSummary.fulfilled, (state, action) => {
         state.subscriptionSummary = action.payload;
+      })
+      /* No `.pending` twin on purpose: `loading` is one flag shared by four
+         thunks that Reports.jsx dispatches together, so a fourth writer would
+         make the table flash its empty state whenever this one resolves
+         first. The missing `.rejected` was the real gap — a failed summary
+         used to vanish without a trace. */
+      .addCase(fetchSubscriptionSummary.rejected, (state, action) => {
+        state.error = action.payload;
       })
       .addCase(fetchTenantsReport.pending, (state) => {
         state.loading = true;

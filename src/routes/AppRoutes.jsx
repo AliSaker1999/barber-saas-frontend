@@ -156,19 +156,25 @@ export default function AppRoutes() {
         {(user.roles?.includes("ADMIN") || user.roles?.includes("BARBER")) && (
           <Route path="/company" element={<CompanyLayout />}>
             <Route path="today" element={<OwnerToday />} />
-            <Route path="profile" element={<CompanyProfile />} />
             <Route path="queue" element={<Queue />} />
             <Route path="appointments" element={<Appointments />} />
-            <Route path="services" element={<Services />} />
-            <Route path="barbers" element={<Barbers />} />
             <Route path="my-profile" element={<BarberMyProfile />} />
             <Route path="reports" element={<AdminReports />} />
-            <Route path="promotions" element={<CompanyPromotions />} />
             <Route path="notifications" element={<NotificationHistory />} />
             <Route path="conversations" element={<ConversationsPage />} />
 
+            {/* Owner-only. Each of these calls an endpoint guarded to ADMIN (or
+                ADMIN/STAFF), so a barber who reached them by typing the URL got
+                a screen that 403'd — and /company/profile spun forever, because
+                its loading gate never clears against a profile that never
+                arrives. None of them appear in BARBER_MORE or the barber tab
+                bar, so nothing linked here is lost. */}
             {user.roles?.includes("ADMIN") && (
               <>
+                <Route path="profile" element={<CompanyProfile />} />
+                <Route path="services" element={<Services />} />
+                <Route path="barbers" element={<Barbers />} />
+                <Route path="promotions" element={<CompanyPromotions />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="share" element={<ShareBooking />} />
                 <Route path="setup" element={<SetupWizard />} />
