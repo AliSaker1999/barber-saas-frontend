@@ -81,7 +81,6 @@ export default function App() {
       // Robust re-join logic for development/unstable connections
       const handleConnect = () => {
          if (user?.id) {
-            console.log("🔌 Socket connected/reconnected. Joining room:", `user-${user.id}`);
             socket.emit("join-user", user.id);
          }
       };
@@ -89,8 +88,8 @@ export default function App() {
       socket.on("connect", handleConnect);
 
       const handleNotification = (data) => {
-        console.log("🔔 Notification received:", data);
-        
+        /* Not logged: this fires for every notification a customer receives
+           and the payload carries their booking details. */
         // Add to Redux state
         dispatch(addNotification(data));
 
