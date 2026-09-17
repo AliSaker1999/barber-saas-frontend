@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../services/api";
+import { STATUS_ID } from "../../utils/appointmentStatus";
 
 /* Fetch tenant appointments */
 export const fetchAppointments = createAsyncThunk(
@@ -259,7 +260,7 @@ const appointmentsSlice = createSlice({
         const index = state.items.findIndex(i => i.Id === action.payload);
         if (index !== -1) {
           state.items[index].Status = "CANCELLED";
-          state.items[index].StatusId = 3;
+          state.items[index].StatusId = STATUS_ID.CANCELLED;
         }
       })
       .addCase(cancelAppointment.rejected, (state, action) => {
@@ -275,7 +276,7 @@ const appointmentsSlice = createSlice({
         const index = state.items.findIndex(i => i.Id === action.payload);
         if (index !== -1) {
           state.items[index].Status = "NO_SHOW";
-          state.items[index].StatusId = 4;
+          state.items[index].StatusId = STATUS_ID.NO_SHOW;
         }
       })
       .addCase(markNoShow.rejected, (state, action) => {
@@ -291,7 +292,7 @@ const appointmentsSlice = createSlice({
         const index = state.items.findIndex(i => i.Id === action.payload);
         if (index !== -1) {
           state.items[index].Status = "COMPLETED";
-          state.items[index].StatusId = 2;
+          state.items[index].StatusId = STATUS_ID.COMPLETED;
         }
       })
       .addCase(completeAppointment.rejected, (state, action) => {
@@ -318,7 +319,7 @@ const appointmentsSlice = createSlice({
         const index = state.items.findIndex(i => i.Id === action.payload);
         if (index !== -1) {
           state.items[index].Status = "SCHEDULED";
-          state.items[index].StatusId = 1;
+          state.items[index].StatusId = STATUS_ID.SCHEDULED;
         }
       })
       /* `loading = true` here left the Appointments screen stuck in its
@@ -340,7 +341,7 @@ const appointmentsSlice = createSlice({
           /* Both, like every sibling case — anything reading StatusId saw a
              declined booking as still PENDING until the next refetch. */
           state.items[index].Status = "DECLINED";
-          state.items[index].StatusId = 6;
+          state.items[index].StatusId = STATUS_ID.DECLINED;
         }
       })
       .addCase(declineAppointment.rejected, (state, action) => {
