@@ -22,6 +22,7 @@ export default function Field({
   optional = false,
   optionalLabel,
   suffix,
+  action,
   as = "input",
   rows = 3,
   className = "",
@@ -40,6 +41,8 @@ export default function Field({
     "text-body text-content-primary placeholder:text-content-muted",
     "outline-none transition-colors",
     error ? "border-state-danger" : "border-line-subtle focus:border-brand-gold",
+    /* Keeps the value clear of the trailing control instead of running under it. */
+    action ? "pe-12" : "",
     inputClassName
   ]
     .filter(Boolean)
@@ -66,7 +69,7 @@ export default function Field({
         </label>
       ) : null}
 
-      {suffix ? (
+      {suffix || action ? (
         <div className="relative flex items-center">
           {as === "textarea" ? (
             <textarea rows={rows} {...shared} />
@@ -75,9 +78,15 @@ export default function Field({
           )}
           {/* Sits inside the control rather than after it, so a currency or a
               unit reads as part of the value instead of as another field. */}
-          <span className="pointer-events-none absolute end-3.5 text-body-sm text-content-muted">
-            {suffix}
-          </span>
+          {suffix ? (
+            <span className="pointer-events-none absolute end-3.5 text-body-sm text-content-muted">
+              {suffix}
+            </span>
+          ) : null}
+          {/* `action` is the interactive twin of `suffix` — a password reveal,
+              a clear button. It must stay clickable, so unlike `suffix` it is
+              not pointer-events-none, and it carries its own label. */}
+          {action ? <span className="absolute end-1.5 flex items-center">{action}</span> : null}
         </div>
       ) : as === "textarea" ? (
         <textarea rows={rows} {...shared} />

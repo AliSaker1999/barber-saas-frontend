@@ -10,7 +10,7 @@ import CompanyLayout from "../layouts/CompanyLayout";
 import CustomerLayout from "../layouts/CustomerLayout";
 
 /* Auth */
-const Login = lazy(() => import("../pages/auth/login"));
+const Login = lazy(() => import("../pages/auth/Login"));
 const Signup = lazy(() => import("../pages/auth/Signup"));
 const Onboarding = lazy(() => import("../pages/auth/Onboarding"));
 

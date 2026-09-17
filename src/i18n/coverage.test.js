@@ -24,6 +24,19 @@ const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /* Keys built at runtime from a template literal or a variable. */
 const DYNAMIC_KEYS = [
+  /* Onboarding: t(slide.titleKey) / t(slide.descKey) */
+  "onboarding_title_1",
+  "onboarding_desc_1",
+  "onboarding_title_2",
+  "onboarding_desc_2",
+  "onboarding_title_3",
+  "onboarding_desc_3",
+  "onboarding_title_4",
+  "onboarding_desc_4",
+  /* Signup: t(option.labelKey) for the gender picker */
+  "gender_man",
+  "gender_woman",
+  "prefer_not_to_say",
   /* CustomerReports: t(`activity_status_${status.toLowerCase()}`), over the
      union of AppointmentStatus and QueueStatus names */
   "activity_status_scheduled",
