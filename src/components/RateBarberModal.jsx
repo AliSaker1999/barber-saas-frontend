@@ -1,83 +1,125 @@
-import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { rateBarber } from '../features/barbers/barbersSlice';
-import Modal from './Modal';
+import { useState } from "react";
+import { useAppDispatch } from "../app/hooks";
+import { useI18n } from "../i18n";
+import { rateBarber } from "../features/barbers/barbersSlice";
+import Button from "./ui/Button";
+import Field from "./ui/Field";
+import Icon from "./ui/Icon";
+import BottomSheet from "./ui/BottomSheet";
+import { InlineError } from "./ui/States";
 
-export default function RateBarberModal({ barberId, appointmentId, queueId, isOpen, onClose, onSuccess }) {
-  const dispatch = useDispatch();
+/*
+ * Rating the barber who cut your hair.
+ *
+ * The whole body of this used to be `catch (err) { console.error(err); }` — a
+ * customer whose review was rejected watched the sheet sit there and then
+ * close, with no idea whether it had counted. That mattered more after the
+ * ratings endpoint was tightened: it now refuses a review of a visit that is
+ * not yours, not finished, or not with that barber, and each of those comes
+ * back as a sentence worth showing.
+ *
+ * Re-rating the same visit is allowed and replaces the previous score, which
+ * is why nothing here treats a second submission as an error.
+ *
+ * The prop contract is unchanged — Bookings, QueueTracker and CustomerReports
+ * all mount it the same way they did.
+ */
+
+const SCORES = [1, 2, 3, 4, 5];
+
+export default function RateBarberModal({
+  barberId,
+  appointmentId,
+  queueId,
+  isOpen,
+  onClose,
+  onSuccess
+}) {
+  const dispatch = useAppDispatch();
+  const { t } = useI18n();
+
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  async function submit() {
+    setError("");
     setSubmitting(true);
     try {
-      await dispatch(rateBarber({ barberId, appointmentId, queueId, rating, comment })).unwrap();
+      await dispatch(
+        rateBarber({ barberId, appointmentId, queueId, rating, comment: comment.trim() })
+      ).unwrap();
       setComment("");
-      if (onSuccess) onSuccess();
+      setRating(5);
+      onSuccess?.();
       onClose();
     } catch (err) {
-      console.error(err);
+      setError(typeof err === "string" ? err : t("error_generic"));
     } finally {
       setSubmitting(false);
     }
-  };
+  }
 
-  if (!isOpen) return null;
+  function close() {
+    setError("");
+    onClose();
+  }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Rate Your Service">
-      <form onSubmit={handleSubmit} className="p-4 space-y-4">
+    <BottomSheet
+      open={Boolean(isOpen)}
+      onClose={close}
+      dismissible={!submitting}
+      title={t("rate_visit_title")}
+      footer={
+        <Button block onClick={submit} loading={submitting}>
+          {t("submit_review")}
+        </Button>
+      }
+    >
+      <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1 text-gray-700">How was your experience?</label>
-          <div className="flex space-x-2 justify-center py-2">
-            {[1, 2, 3, 4, 5].map(star => (
+          <p className="text-body text-content-secondary mb-2">{t("rate_how_was_it")}</p>
+
+          <div className="flex items-center justify-center gap-1.5">
+            {SCORES.map((score) => (
               <button
+                key={score}
                 type="button"
-                key={star}
-                onClick={() => setRating(star)}
-                className={`text-3xl focus:outline-none transition-transform hover:scale-110 ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                onClick={() => setRating(score)}
+                aria-pressed={score === rating}
+                aria-label={t("rate_n_stars", { n: score })}
+                className="press min-w-[44px] min-h-[44px] flex items-center justify-center rounded-control"
               >
-                ★
+                <Icon
+                  name="star"
+                  size={30}
+                  filled={score <= rating}
+                  className={score <= rating ? "text-brand-gold" : "text-line-strong"}
+                />
               </button>
             ))}
           </div>
-          <div className="text-center text-sm font-medium text-gray-600">
-            {rating === 1 && "Poor"}
-            {rating === 2 && "Fair"}
-            {rating === 3 && "Good"}
-            {rating === 4 && "Very Good"}
-            {rating === 5 && "Excellent"}
-          </div>
+
+          <p className="text-center text-body-sm font-semibold text-content-primary mt-1">
+            {t(`rate_score_${rating}`)}
+          </p>
         </div>
-        <div>
-           <label className="block text-sm font-medium mb-1 text-gray-700">Comment (Optional)</label>
-           <textarea
-             className="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-             rows="3"
-             placeholder="Tell us about your cut..."
-             value={comment}
-             onChange={e => setComment(e.target.value)}
-           />
-        </div>
-        <div className="flex justify-end pt-2">
-           <button
-             type="button"
-             onClick={onClose}
-             className="mr-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm"
-           >
-             Cancel
-           </button>
-           <button
-             type="submit"
-             disabled={submitting}
-             className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium shadow-sm"
-           >
-             {submitting ? "Submitting..." : "Submit Review"}
-           </button>
-        </div>
-      </form>
-    </Modal>
+
+        <Field
+          as="textarea"
+          rows={3}
+          label={t("rate_comment")}
+          optional
+          optionalLabel={t("optional")}
+          value={comment}
+          onChange={(event) => setComment(event.target.value)}
+          placeholder={t("rate_comment_placeholder")}
+        />
+
+        {error ? <InlineError message={error} /> : null}
+      </div>
+    </BottomSheet>
   );
 }

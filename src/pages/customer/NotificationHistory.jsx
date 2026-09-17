@@ -1,109 +1,126 @@
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "../../app/hooks";
+import { useI18n } from "../../i18n";
+import {
+  markAsRead,
+  markAllAsRead,
+  fetchNotifications
+} from "../../features/notifications/notificationsSlice";
+import { getNotificationPath } from "../../utils/notificationNavigation";
+import { formatRelativeDay } from "../../utils/format";
+import TopBar from "../../components/ui/TopBar";
+import Button from "../../components/ui/Button";
+import { EmptyState, ErrorState, ListSkeleton } from "../../components/ui/States";
 
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { markAsRead, markAllAsRead, fetchNotifications } from '../../features/notifications/notificationsSlice';
-import MobileHeader from '../../components/MobileHeader';
-import { getNotificationPath } from '../../utils/notificationNavigation';
-import LoadingState from '../../components/LoadingState';
-import EmptyState from '../../components/EmptyState';
-import ErrorState from '../../components/ErrorState';
-
+/*
+ * Every alert the app has sent this person.
+ *
+ * Rendered by both shells — /customer/notifications and
+ * /company/notifications — which is why the old version was doubly wrong: it
+ * drew MobileHeader, customer chrome, inside CompanyLayout, and then drew its
+ * own <h1> underneath saying the same word twice.
+ *
+ * The rows were clickable <div>s, so the entire history was unreachable by
+ * keyboard and invisible to a screen reader as anything actionable. They are
+ * buttons now. Dates went through a hardcoded en-US formatter pinned to UTC
+ * even in Arabic; formatRelativeDay is the one the rest of the app uses, and
+ * it says "Today" where a person would.
+ */
 export default function NotificationHistory() {
-    const dispatch = useAppDispatch();
-    const navigate = useNavigate();
-    const { items, loading, error } = useAppSelector(state => state.notifications);
-    const user = useAppSelector(state => state.auth.user);
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const { t, locale } = useI18n();
 
-    useEffect(() => {
-        dispatch(fetchNotifications());
-    }, [dispatch]);
+  const { items, loading, error } = useAppSelector((state) => state.notifications);
+  const user = useAppSelector((state) => state.auth.user);
 
-    const handleMarkAsRead = (id) => {
-        dispatch(markAsRead(id));
-    };
+  useEffect(() => {
+    dispatch(fetchNotifications());
+  }, [dispatch]);
 
-    const handleNavigate = (item) => {
-        navigate(getNotificationPath(item, user?.roles || []));
-    };
+  const unread = items.filter((item) => !item.IsRead).length;
 
-    const handleMarkAll = () => {
-        dispatch(markAllAsRead());
-    };
+  function open(item) {
+    if (!item.IsRead) dispatch(markAsRead(item.Id));
+    navigate(getNotificationPath(item, user?.roles || []));
+  }
 
-    const formatDate = (dateStr) => {
-        if (!dateStr) return '';
-        const d = new Date(dateStr);
-        // Treat server timestamp as Wall Clock (UTC) to match Lebanon time stored/sent by server
-        return d.toLocaleDateString("en-US", { month: 'short', day: '2-digit', year: 'numeric', timeZone: 'UTC' }) + 
-               ' • ' + 
-               d.toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
-    };
+  return (
+    <div className="pb-8">
+      <TopBar
+        back
+        title={t("notifications")}
+        subtitle={t("notifications_sub")}
+        actions={
+          unread ? (
+            <Button variant="ghost" size="sm" onClick={() => dispatch(markAllAsRead())}>
+              {t("mark_all_read")}
+            </Button>
+          ) : null
+        }
+      />
 
-    return (
-        <div className="max-w-4xl mx-auto py-6 px-4 bg-app-bg text-app-text">
-            <MobileHeader title="Notifications" />
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold text-app-text">Notifications</h1>
-                    <p className="text-app-muted text-sm">Review your past alerts and messages</p>
-                </div>
-                {items.some(i => !i.IsRead) && (
-                    <button 
-                        onClick={handleMarkAll}
-                        className="text-sm font-semibold text-blue-600 hover:text-blue-800"
-                    >
-                        Mark all as read
-                    </button>
-                )}
-            </div>
+      <div className="px-4 pt-3">
+        {loading && !items.length ? (
+          <ListSkeleton count={4} />
+        ) : error && !items.length ? (
+          <ErrorState message={error} onRetry={() => dispatch(fetchNotifications())} />
+        ) : !items.length ? (
+          <EmptyState
+            icon="bell"
+            title={t("notifications_empty_title")}
+            description={t("notifications_empty_sub")}
+          />
+        ) : (
+          <ul className="space-y-2">
+            {items.map((item) => (
+              <li key={item.Id}>
+                <button
+                  type="button"
+                  onClick={() => open(item)}
+                  className={`press w-full text-start flex gap-3 p-3.5 rounded-card border ${
+                    item.IsRead
+                      ? "bg-surface-raised border-line-subtle"
+                      : "bg-brand-gold-soft border-brand-gold"
+                  }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`mt-1.5 h-2 w-2 rounded-pill flex-shrink-0 ${
+                      item.IsRead ? "bg-transparent" : "bg-brand-gold"
+                    }`}
+                  />
 
-            <div className="bg-app-surface rounded-2xl shadow-sm border border-app-border overflow-hidden">
-                {loading ? (
-                    <div className="p-4">
-                        <LoadingState label="Loading notifications..." blocks={3} />
-                    </div>
-                ) : error ? (
-                    <div className="p-4">
-                        <ErrorState message={error} onRetry={() => dispatch(fetchNotifications())} />
-                    </div>
-                ) : items.length === 0 ? (
-                    <div className="p-4">
-                        <EmptyState
-                            title="No notifications yet"
-                            description="We'll notify you when there's an update on your bookings or queue positions."
-                        />
-                    </div>
-                ) : (
-                    <div className="divide-y divide-gray-100">
-                        {items.map((item) => (
-                            <div 
-                                key={item.Id} 
-                                className={`p-4 sm:p-6 transition-colors hover:bg-app-surface-2 flex gap-4 ${!item.IsRead ? 'bg-blue-50/30' : ''}`}
-                                onClick={() => {
-                                    if (!item.IsRead) handleMarkAsRead(item.Id);
-                                    handleNavigate(item);
-                                }}
-                            >
-                                <div className={`mt-1.5 h-2.5 w-2.5 rounded-full flex-shrink-0 ${!item.IsRead ? 'bg-blue-500' : 'bg-transparent'}`}></div>
-                                <div className="flex-1">
-                                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 mb-2">
-                                        <h4 className={`text-base ${!item.IsRead ? 'font-bold text-app-text' : 'font-medium text-app-muted'}`}>
-                                            {item.Title}
-                                        </h4>
-                                        <span className="text-xs text-gray-400">
-                                            {formatDate(item.CreatedAt)}
-                                        </span>
-                                    </div>
-                                    <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">
-                                        {item.Message}
-                                    </p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-        </div>
-    );
+                  <span className="flex-1 min-w-0">
+                    <span className="flex items-baseline justify-between gap-2">
+                      <span
+                        className={`text-body truncate ${
+                          item.IsRead
+                            ? "text-content-secondary"
+                            : "font-bold text-content-primary"
+                        }`}
+                      >
+                        {item.Title}
+                      </span>
+                      <span className="text-caption text-content-muted flex-shrink-0 tnum">
+                        {formatRelativeDay(item.CreatedAt, t, locale)}
+                      </span>
+                    </span>
+
+                    <span className="block mt-0.5 text-body-sm text-content-secondary whitespace-pre-wrap">
+                      {item.Message}
+                    </span>
+
+                    {/* Screen readers get the state the gold dot conveys. */}
+                    {!item.IsRead ? <span className="sr-only">{t("unread")}</span> : null}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
 }

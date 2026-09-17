@@ -24,6 +24,25 @@ const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /* Keys built at runtime from a template literal or a variable. */
 const DYNAMIC_KEYS = [
+  /* CustomerReports: t(`activity_status_${status.toLowerCase()}`), over the
+     union of AppointmentStatus and QueueStatus names */
+  "activity_status_scheduled",
+  "activity_status_completed",
+  "activity_status_pending",
+  "activity_status_no_show",
+  "activity_status_cancelled",
+  "activity_status_declined",
+  "activity_status_awaiting_payment",
+  "activity_status_approved",
+  "activity_status_waiting",
+  "activity_status_in_progress",
+  "activity_status_pending_approval",
+  /* RateBarberModal: t(`rate_score_${rating}`) */
+  "rate_score_1",
+  "rate_score_2",
+  "rate_score_3",
+  "rate_score_4",
+  "rate_score_5",
   /* BookingFlow: t(`step_${step}`) */
   "step_service",
   "step_barber",

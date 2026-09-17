@@ -41,7 +41,7 @@ const STARTERS = [
   { nameKey: "starter_kids", durationMinutes: 20, price: 7 }
 ];
 
-const emptyForm = { name: "", price: "", duration: "", loyaltyPoints: "" };
+const emptyForm = { name: "", nameAr: "", price: "", duration: "", loyaltyPoints: "" };
 
 export default function ServicesEditor({ mode = "manage", onProgress }) {
   const dispatch = useAppDispatch();
@@ -83,6 +83,7 @@ export default function ServicesEditor({ mode = "manage", onProgress }) {
       await dispatch(
         addService({
           name: form.name.trim(),
+          nameAr: form.nameAr.trim(),
           price: Number(form.price),
           durationMinutes: Number(form.duration),
           loyaltyPointsEarned: Number(form.loyaltyPoints || 0)
@@ -137,6 +138,7 @@ export default function ServicesEditor({ mode = "manage", onProgress }) {
           serviceId: editing.id,
           updates: {
             name: editing.name.trim(),
+            nameAr: editing.nameAr.trim(),
             price: Number(editing.price),
             durationMinutes: Number(editing.duration),
             loyaltyPointsEarned: Number(editing.loyaltyPoints || 0),
@@ -206,6 +208,15 @@ export default function ServicesEditor({ mode = "manage", onProgress }) {
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             placeholder={t("service_name_placeholder")}
+          />
+          <Field
+            label={t("service_name_ar")}
+            optional
+            optionalLabel={t("optional")}
+            value={form.nameAr}
+            onChange={(e) => setForm((f) => ({ ...f, nameAr: e.target.value }))}
+            dir="rtl"
+            hint={t("service_name_ar_hint")}
           />
           <div className="flex gap-3">
             <Field
@@ -293,6 +304,7 @@ export default function ServicesEditor({ mode = "manage", onProgress }) {
                     setEditing({
                       id: service.Id,
                       name: service.Name || "",
+                      nameAr: service.NameAr || "",
                       price: String(service.Price ?? ""),
                       duration: String(service.DurationMinutes ?? ""),
                       loyaltyPoints: String(service.LoyaltyPointsEarned ?? ""),
@@ -340,6 +352,15 @@ export default function ServicesEditor({ mode = "manage", onProgress }) {
               label={t("service_name")}
               value={editing.name}
               onChange={(e) => setEditing((s) => ({ ...s, name: e.target.value }))}
+            />
+            <Field
+              label={t("service_name_ar")}
+              optional
+              optionalLabel={t("optional")}
+              value={editing.nameAr}
+              onChange={(e) => setEditing((s) => ({ ...s, nameAr: e.target.value }))}
+              dir="rtl"
+              hint={t("service_name_ar_hint")}
             />
             <div className="flex gap-3">
               <Field

@@ -207,7 +207,7 @@ const en = {
 
   // Notifications
   notifications: "Notifications",
-  mark_all_read: "Mark All as Read",
+  mark_all_read: "Mark all read",
   no_notifications: "No notifications",
   notification_empty: "You're all caught up!",
 
@@ -228,7 +228,7 @@ const en = {
   // Reviews / Ratings
   rate_barber: "Rate Your Experience",
   write_review: "Write a review...",
-  submit_review: "Submit Review",
+  submit_review: "Send review",
   your_rating: "Your Rating",
   excellent: "Excellent",
   very_good: "Very Good",

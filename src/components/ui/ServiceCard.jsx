@@ -1,6 +1,7 @@
 import Icon from "./Icon";
 import { formatDuration, formatMoney } from "../../utils/format";
 import { useI18n } from "../../i18n";
+import { localized } from "../../utils/localized";
 
 /*
  * ServiceCard — name, duration, price. Nothing else.
@@ -17,9 +18,11 @@ export default function ServiceCard({
   selectable = false,
   disabled = false
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
-  const name = service.Name || service.name;
+  /* Services.NameAr has carried real Arabic since migration 026 and nothing
+     had ever displayed it. Falls back to the base name. */
+  const name = localized(service, "Name", locale) || service.name;
   const duration = service.DurationMinutes ?? service.durationMinutes ?? service.duration;
   const price = service.Price ?? service.price;
 
