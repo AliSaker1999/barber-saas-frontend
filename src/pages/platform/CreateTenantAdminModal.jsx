@@ -1,77 +1,131 @@
 import { useState } from "react";
 import { useAppDispatch } from "../../app/hooks";
-import { createTenantAdmin } from "../../features/platformTenants/platformTenantsSlice";
-import Modal from "../../components/Modal";
+import {
+  createTenantAdmin,
+  clearPlatformTenantsError
+} from "../../features/platformTenants/platformTenantsSlice";
+import BottomSheet from "../../components/ui/BottomSheet";
+import Button from "../../components/ui/Button";
+import Field from "../../components/ui/Field";
+import { InlineError } from "../../components/ui/States";
 
-export default function CreateTenantAdminModal({ tenantId, open, onClose }) {
+/*
+ * Platform staff tooling — deliberately English-only, see REDESIGN.md.
+ *
+ * Same fault as the reset dialogs: `await dispatch(...)` with no `.unwrap()`,
+ * then clear and close regardless. A duplicate email — the most likely failure
+ * here — produced a silent no-op that read as success, and the shop sat there
+ * with no admin while the operator believed they had made one.
+ */
+
+const empty = { fullName: "", email: "", password: "" };
+
+export default function CreateTenantAdminModal({ tenantId, open, onClose, onCreated }) {
   const dispatch = useAppDispatch();
 
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [form, setForm] = useState(empty);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
-  const submit = async e => {
-    e.preventDefault();
-    await dispatch(
-      createTenantAdmin({
-        tenantId,
-        admin: { fullName, email, password }
-      })
-    );
-    setFullName("");
-    setEmail("");
-    setPassword("");
-    onClose();
+  const set = (patch) => {
+    setForm((current) => ({ ...current, ...patch }));
+    setError("");
   };
 
+  async function submit() {
+    if (!tenantId) return;
+
+    setError("");
+    if (!form.fullName.trim()) {
+      setError("Add the admin's name.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      setError("That email address does not look right.");
+      return;
+    }
+    if (form.password.length < 8) {
+      setError("Use at least 8 characters.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await dispatch(
+        createTenantAdmin({
+          tenantId,
+          admin: {
+            fullName: form.fullName.trim(),
+            email: form.email.trim(),
+            password: form.password
+          }
+        })
+      ).unwrap();
+      setForm(empty);
+      onCreated?.(tenantId);
+      onClose();
+    } catch (err) {
+      setError(typeof err === "string" ? err : "Could not create the admin account.");
+      /* This sheet shows it; the page banner should not repeat it. */
+      dispatch(clearPlatformTenantsError());
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function close() {
+    setError("");
+    setForm(empty);
+    onClose();
+  }
+
   return (
-    <Modal open={open} onClose={onClose}>
-      <div className="p-6 w-96">
-        <h3 className="text-xl font-semibold mb-4 text-app-text">
-          Create Tenant Admin
-        </h3>
-
-        <form onSubmit={submit} className="space-y-3">
-          <input
-            className="w-full px-3 py-2 bg-app-surface border-2 border-app-border rounded-[12px]"
-            placeholder="Full name"
-            value={fullName}
-            onChange={e => setFullName(e.target.value)}
-            required
-          />
-          <input
-            className="w-full px-3 py-2 bg-app-surface border-2 border-app-border rounded-[12px]"
-            placeholder="Email"
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-          />
-          <input
-            className="w-full px-3 py-2 bg-app-surface border-2 border-app-border rounded-[12px]"
-            placeholder="Password"
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-          />
-
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-[12px] text-app-muted bg-app-surface border-app-border"
-            >
-              Cancel
-            </button>
-            <button
-              className="px-4 py-2 bg-app-accent text-white rounded-[12px] hover:bg-app-accent-dark"
-            >
-              Create Admin
-            </button>
-          </div>
-        </form>
+    <BottomSheet
+      open={open}
+      onClose={close}
+      dismissible={!busy}
+      title="Add a shop admin"
+      footer={
+        <div className="flex gap-2.5">
+          <Button variant="secondary" block onClick={close} disabled={busy}>
+            Cancel
+          </Button>
+          <Button block onClick={submit} loading={busy}>
+            Create admin
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-3">
+        <p className="text-body-sm text-content-secondary">
+          This is the account the shop owner signs in with.
+        </p>
+        <Field
+          label="Full name"
+          value={form.fullName}
+          onChange={(event) => set({ fullName: event.target.value })}
+          autoComplete="name"
+        />
+        <Field
+          label="Email"
+          value={form.email}
+          onChange={(event) => set({ email: event.target.value })}
+          type="email"
+          inputMode="email"
+          dir="ltr"
+          autoComplete="email"
+        />
+        <Field
+          label="Password"
+          value={form.password}
+          onChange={(event) => set({ password: event.target.value })}
+          type="password"
+          dir="ltr"
+          autoComplete="new-password"
+          hint="At least 8 characters."
+        />
+        {error ? <InlineError message={error} /> : null}
       </div>
-    </Modal>
+    </BottomSheet>
   );
 }

@@ -1,8 +1,28 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAppDispatch } from "../../app/hooks";
-import { updateCustomerPlatform } from "../../features/platformCustomers/platformCustomersSlice";
-import Modal from "../../components/Modal";
+import {
+  updateCustomerPlatform,
+  clearPlatformCustomersError
+} from "../../features/platformCustomers/platformCustomersSlice";
+import BottomSheet from "../../components/ui/BottomSheet";
+import Button from "../../components/ui/Button";
+import Field from "../../components/ui/Field";
 import Select from "../../components/ui/Select";
+import { Toggle } from "../../components/ui/Primitives";
+import { InlineError } from "../../components/ui/States";
+
+/*
+ * Platform staff tooling — deliberately English-only, see REDESIGN.md.
+ *
+ * Two things replaced here. It reported failures through a native `alert()`
+ * carrying a raw error object, and it carried its own private `Field` and
+ * `Checkbox` components — a third set of form controls in a codebase that has
+ * one.
+ *
+ * Saving used to appear to do nothing: the thunk handed its camelCase form
+ * back to a reducer that spread it onto a row the list reads in PascalCase, so
+ * the card kept showing the old name. The thunk re-reads the list now.
+ */
 
 const GENDER_OPTIONS = [
   { value: "Male", label: "Male", icon: "gender-male" },
@@ -12,133 +32,132 @@ const GENDER_OPTIONS = [
 
 export default function EditCustomerModal({ customer, isOpen, onClose }) {
   const dispatch = useAppDispatch();
-  const [formData, setFormData] = useState({});
+
+  const [form, setForm] = useState(null);
+  const [hydratedFor, setHydratedFor] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (customer) {
-      setFormData({
-        fullName: customer.FullName || "",
-        phoneNumber: customer.PhoneNumber || "",
-        gender: customer.Gender || "",
-        birthdate: customer.Birthdate ? customer.Birthdate.split('T')[0] : "",
-        allowSMS: customer.AllowSMS ?? true,
-        allowWhatsApp: customer.AllowWhatsApp ?? true,
-        allowEmail: customer.AllowEmail ?? true,
-      });
-    }
-  }, [customer]);
+  if (customer && hydratedFor !== customer.Id) {
+    setForm({
+      fullName: customer.FullName || "",
+      phoneNumber: customer.PhoneNumber || "",
+      gender: customer.Gender || "",
+      birthdate: customer.Birthdate ? customer.Birthdate.split("T")[0] : "",
+      allowSMS: customer.AllowSMS ?? true,
+      allowWhatsApp: customer.AllowWhatsApp ?? true,
+      allowEmail: customer.AllowEmail ?? true
+    });
+    setHydratedFor(customer.Id);
+  }
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+  if (!customer || !form) return null;
+
+  const set = (patch) => {
+    setForm((current) => ({ ...current, ...patch }));
+    setError("");
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  async function save() {
+    setError("");
+    if (!form.fullName.trim()) {
+      setError("Add a name.");
+      return;
+    }
+
     setSaving(true);
     try {
-      await dispatch(updateCustomerPlatform({ 
-        id: customer.Id, 
-        data: formData 
-      })).unwrap();
+      await dispatch(
+        updateCustomerPlatform({
+          id: customer.Id,
+          data: { ...form, fullName: form.fullName.trim() }
+        })
+      ).unwrap();
       onClose();
     } catch (err) {
-      alert("Failed to update customer: " + (err.message || err));
+      setError(typeof err === "string" ? err : "Could not save the customer.");
+      /* This sheet shows it; the page banner should not repeat it. */
+      dispatch(clearPlatformCustomersError());
     } finally {
       setSaving(false);
     }
-  };
-
-  if (!customer) return null;
+  }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Edit Customer: ${customer.FullName}`}>
-      <form onSubmit={handleSubmit} className="p-6 space-y-8">
-        
-        {/* Profile Details */}
-        <section>
-           <div className="flex items-center gap-2 mb-4">
-             <div className="w-8 h-8 bg-app-surface-2 text-app-accent rounded-[12px] flex items-center justify-center font-bold">1</div>
-             <h3 className="text-lg font-black text-app-text uppercase tracking-tight">Personal Information</h3>
-           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Full Name" name="fullName" value={formData.fullName} onChange={handleChange} required />
-            <Field label="Phone Number" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} />
-            <div className="md:col-span-1">
-               <label className="block text-xs font-black text-app-muted uppercase tracking-widest ml-1 mb-1.5">Gender</label>
-               <Select
-                 name="gender"
-                 value={formData.gender}
-                 onChange={handleChange}
-                 placeholder="Select Gender"
-                 options={GENDER_OPTIONS}
-               />
-            </div>
-            <Field label="Birth Date" name="birthdate" value={formData.birthdate} onChange={handleChange} type="date" />
-          </div>
-        </section>
-
-        {/* Notifications */}
-        <section>
-           <div className="flex items-center gap-2 mb-4">
-             <div className="w-8 h-8 bg-app-surface-2 text-app-accent rounded-[12px] flex items-center justify-center font-bold">2</div>
-             <h3 className="text-lg font-black text-app-text uppercase tracking-tight">Notification Preferences</h3>
-           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Checkbox label="Allow SMS" name="allowSMS" checked={formData.allowSMS} onChange={handleChange} />
-            <Checkbox label="Allow WhatsApp" name="allowWhatsApp" checked={formData.allowWhatsApp} onChange={handleChange} />
-            <Checkbox label="Allow Email" name="allowEmail" checked={formData.allowEmail} onChange={handleChange} />
-          </div>
-        </section>
-
-        <div className="pt-6 border-t border-app-border flex justify-end gap-3 mt-8">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-6 py-2.5 rounded-[12px] font-bold text-app-muted hover:bg-app-surface-2 transition-colors"
-          >
+    <BottomSheet
+      open={isOpen}
+      onClose={onClose}
+      dismissible={!saving}
+      title={`Edit ${customer.FullName || "customer"}`}
+      footer={
+        <div className="flex gap-2.5">
+          <Button variant="secondary" block onClick={onClose} disabled={saving}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="px-8 py-2.5 rounded-[12px] font-black bg-app-accent text-white hover:bg-app-accent-dark shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
-          >
-            {saving ? "Saving Changes..." : "Update Profile"}
-          </button>
+          </Button>
+          <Button block onClick={save} loading={saving}>
+            Save
+          </Button>
         </div>
-      </form>
-    </Modal>
-  );
-}
+      }
+    >
+      <div className="space-y-3">
+        <Field
+          label="Full name"
+          value={form.fullName}
+          onChange={(event) => set({ fullName: event.target.value })}
+        />
+        <Field
+          label="Phone number"
+          value={form.phoneNumber}
+          onChange={(event) => set({ phoneNumber: event.target.value })}
+          type="tel"
+          dir="ltr"
+          inputClassName="tnum"
+        />
 
-function Field({ label, ...props }) {
-  return (
-    <div className="space-y-1.5">
-      <label className="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1">{label}</label>
-      <input
-        className="w-full px-4 py-2.5 bg-app-surface border-2 border-app-border rounded-[12px] focus:border-app-accent focus:bg-app-surface-2 focus:outline-none transition-all text-app-text font-bold"
-        {...props}
-      />
-    </div>
-  );
-}
+        <div className="flex gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-label uppercase text-content-muted mb-1.5">Gender</p>
+            <Select
+              value={form.gender}
+              onChange={(event) => set({ gender: event.target.value })}
+              options={GENDER_OPTIONS}
+              placeholder="Not set"
+              aria-label="Gender"
+            />
+          </div>
+          <Field
+            className="flex-1"
+            label="Date of birth"
+            value={form.birthdate}
+            onChange={(event) => set({ birthdate: event.target.value })}
+            type="date"
+            dir="ltr"
+          />
+        </div>
 
-function Checkbox({ label, name, checked, onChange }) {
-  return (
-    <label className="flex items-center gap-3 p-4 bg-app-surface rounded-[12px] border-2 border-transparent hover:border-app-border cursor-pointer transition-all group">
-      <input 
-        type="checkbox" 
-        name={name} 
-        checked={checked} 
-        onChange={onChange}
-        className="w-5 h-5 rounded border-app-border text-app-accent focus:ring-app-accent"
-      />
-      <span className="text-sm font-bold text-app-text group-hover:text-app-accent transition-colors">{label}</span>
-    </label>
+        <div className="space-y-2 pt-1">
+          <p className="text-label uppercase text-content-muted">How we may contact them</p>
+          {[
+            { key: "allowSMS", label: "SMS" },
+            { key: "allowWhatsApp", label: "WhatsApp" },
+            { key: "allowEmail", label: "Email" }
+          ].map((channel) => (
+            <div
+              key={channel.key}
+              className="rounded-card bg-surface-sunken px-3.5 py-2.5"
+            >
+              <Toggle
+                label={channel.label}
+                checked={form[channel.key]}
+                onChange={(next) => set({ [channel.key]: next })}
+              />
+            </div>
+          ))}
+        </div>
+
+        {error ? <InlineError message={error} /> : null}
+      </div>
+    </BottomSheet>
   );
 }

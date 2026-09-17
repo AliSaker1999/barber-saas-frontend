@@ -6,13 +6,15 @@
      3. tailwind base / components
      4. app base + utilities         (this file)
      5. tailwind utilities
-     6. legacy compatibility shim    (styles/legacy-compat.css — deprecated)
+
+   There is no longer a legacy compatibility shim. styles/legacy-compat.css
+   mapped every `app-*` class onto a semantic token so un-migrated screens kept
+   compiling during the redesign; the last screen using one was migrated and
+   the file is deleted. Every colour in the app now comes from tokens.css.
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap');
 @import './styles/tokens.css';
-/* Deprecated shim — imported last so it can only ever override legacy screens. */
-@import './styles/legacy-compat.css';
 
 @tailwind base;
 @tailwind components;

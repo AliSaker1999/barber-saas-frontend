@@ -949,7 +949,14 @@ const redesignEn = {
   consent_and: "and the",
   consent_read_first: "Open both to enable this.",
   create_account: "Create account",
-  onboarding_progress: "Step {step} of {total}"
+  onboarding_progress: "Step {step} of {total}",
+  message_not_sent: "That message did not send. Try again.",
+  send_code_whatsapp: "Send the code on WhatsApp",
+  verify_action: "Confirm",
+  change_number: "Change",
+  code_send_failed: "Could not send the code. Check the number and try again.",
+  code_invalid: "That code is not right. Check it, or send a new one.",
+  phone_country_code_hint: "Include the country code, for example +961."
 };
 
 export default redesignEn;

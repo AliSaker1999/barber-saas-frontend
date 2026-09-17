@@ -1,54 +1,91 @@
 import { useState } from "react";
 import { useAppDispatch } from "../../app/hooks";
-import { resetTenantAdminPassword } from "../../features/platformTenants/platformTenantsSlice";
-import Modal from "../../components/Modal";
+import {
+  resetTenantAdminPassword,
+  clearPlatformTenantsError
+} from "../../features/platformTenants/platformTenantsSlice";
+import BottomSheet from "../../components/ui/BottomSheet";
+import Button from "../../components/ui/Button";
+import Field from "../../components/ui/Field";
+import { InlineError } from "../../components/ui/States";
 
+/*
+ * Platform staff tooling — deliberately English-only, see REDESIGN.md.
+ *
+ * This used to `await dispatch(...)` without `.unwrap()`, then clear the field
+ * and close unconditionally. A rejected thunk resolves normally, so a failed
+ * reset looked exactly like a successful one: the operator walked away
+ * believing the shop owner's password had changed when it had not.
+ */
 export default function ResetTenantAdminModal({ tenantId, open, onClose }) {
   const dispatch = useAppDispatch();
-  const [password, setPassword] = useState("");
 
-  const submit = async e => {
-    e.preventDefault();
-    await dispatch(
-      resetTenantAdminPassword({ tenantId, password })
-    );
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function submit() {
+    if (!tenantId) return;
+
+    setError("");
+    if (password.length < 8) {
+      setError("Use at least 8 characters.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await dispatch(resetTenantAdminPassword({ tenantId, password })).unwrap();
+      setPassword("");
+      onClose();
+    } catch (err) {
+      setError(typeof err === "string" ? err : "Could not reset the password.");
+      /* This sheet shows it; the page banner should not repeat it. */
+      dispatch(clearPlatformTenantsError());
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function close() {
+    setError("");
     setPassword("");
     onClose();
-  };
+  }
 
   return (
-    <Modal open={open} onClose={onClose}>
-      <div className="p-6 w-96">
-        <h3 className="text-xl font-semibold mb-4 text-app-text">
-          Reset Admin Password
-        </h3>
-
-        <form onSubmit={submit} className="space-y-3">
-          <input
-            className="w-full px-3 py-2 bg-app-surface border-2 border-app-border rounded-[12px]"
-            type="password"
-            placeholder="New password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-          />
-
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-[12px] text-app-muted bg-app-surface border-app-border"
-            >
-              Cancel
-            </button>
-            <button
-              className="px-4 py-2 bg-app-accent text-white rounded-[12px] hover:bg-app-accent-dark"
-            >
-              Reset Password
-            </button>
-          </div>
-        </form>
+    <BottomSheet
+      open={open}
+      onClose={close}
+      dismissible={!busy}
+      title="Reset the shop admin's password"
+      footer={
+        <div className="flex gap-2.5">
+          <Button variant="secondary" block onClick={close} disabled={busy}>
+            Cancel
+          </Button>
+          <Button block onClick={submit} loading={busy}>
+            Reset password
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-3">
+        <p className="text-body-sm text-content-secondary">
+          Their current password stops working immediately. Nobody is emailed —
+          pass the new one on yourself.
+        </p>
+        <Field
+          label="New password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          type="password"
+          dir="ltr"
+          autoComplete="new-password"
+          hint="At least 8 characters."
+        />
+        {error ? <InlineError message={error} /> : null}
       </div>
-    </Modal>
+    </BottomSheet>
   );
 }

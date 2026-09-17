@@ -1,84 +1,91 @@
 import { useState } from "react";
 import { useAppDispatch } from "../../app/hooks";
-import { resetCustomerPassword } from "../../features/platformCustomers/platformCustomersSlice";
-import Modal from "../../components/Modal";
+import {
+  resetCustomerPassword,
+  clearPlatformCustomersError
+} from "../../features/platformCustomers/platformCustomersSlice";
+import BottomSheet from "../../components/ui/BottomSheet";
+import Button from "../../components/ui/Button";
+import Field from "../../components/ui/Field";
+import { InlineError } from "../../components/ui/States";
 
-export default function ResetCustomerPasswordModal({
-  customerId,
-  open,
-  onClose
-}) {
+/*
+ * Platform staff tooling — deliberately English-only, see REDESIGN.md.
+ *
+ * This is the modal that used to white-screen the Customers page. The thunk
+ * had no rejectWithValue, so `.unwrap()` rejected with RTK's SerializedError
+ * *object*; `setError(err)` stored the object and `{error}` rendered it as a
+ * React child, which React refuses. The one dialog here that tried to handle
+ * its errors properly was the only one that could crash the app.
+ */
+export default function ResetCustomerPasswordModal({ customerId, open, onClose }) {
   const dispatch = useAppDispatch();
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
-  const submit = async e => {
-    e.preventDefault();
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function submit() {
     if (!customerId) return;
 
-    try {
-      setLoading(true);
-      setError(null);
-      await dispatch(
-        resetCustomerPassword({
-          id: customerId,
-          password
-        })
-      ).unwrap();
+    setError("");
+    if (password.length < 8) {
+      setError("Use at least 8 characters.");
+      return;
+    }
 
+    setBusy(true);
+    try {
+      await dispatch(resetCustomerPassword({ id: customerId, password })).unwrap();
       setPassword("");
       onClose();
     } catch (err) {
-      setError(err || "Failed to reset password");
+      setError(typeof err === "string" ? err : "Could not reset the password.");
+      /* This sheet shows it; the page banner should not repeat it. */
+      dispatch(clearPlatformCustomersError());
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
-  };
+  }
+
+  function close() {
+    setError("");
+    setPassword("");
+    onClose();
+  }
 
   return (
-    <Modal open={open} onClose={onClose}>
-      <div className="w-96 p-6">
-        <h3 className="text-xl font-semibold mb-4 text-app-text">
-          Reset Customer Password
-        </h3>
-
-        {error && (
-            <div className="mb-4 p-3 bg-app-surface-2 text-red-600 rounded-[12px] text-sm font-semibold border border-red-100">
-                {error}
-            </div>
-        )}
-
-        <form onSubmit={submit} className="space-y-4">
-          <input
-            type="password"
-            placeholder="New password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-            className="w-full px-3 py-2 bg-app-surface border-2 border-app-border rounded-[12px] focus:outline-none focus:ring-2 focus:ring-app-accent"
-          />
-
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-[12px] text-app-muted bg-app-surface border-app-border hover:bg-app-surface-2"
-              disabled={loading}
-            >
-              Cancel
-            </button>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 bg-app-accent text-white rounded-[12px] hover:bg-app-accent-dark disabled:opacity-60"
-            >
-              {loading ? "Resetting..." : "Reset Password"}
-            </button>
-          </div>
-        </form>
+    <BottomSheet
+      open={open}
+      onClose={close}
+      dismissible={!busy}
+      title="Reset customer password"
+      footer={
+        <div className="flex gap-2.5">
+          <Button variant="secondary" block onClick={close} disabled={busy}>
+            Cancel
+          </Button>
+          <Button block onClick={submit} loading={busy}>
+            Reset password
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-3">
+        <p className="text-body-sm text-content-secondary">
+          The customer is not told. Give them the new password yourself.
+        </p>
+        <Field
+          label="New password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          type="password"
+          dir="ltr"
+          autoComplete="new-password"
+          hint="At least 8 characters."
+        />
+        {error ? <InlineError message={error} /> : null}
       </div>
-    </Modal>
+    </BottomSheet>
   );
 }

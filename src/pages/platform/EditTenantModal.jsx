@@ -1,175 +1,206 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAppDispatch } from "../../app/hooks";
-import { updateTenantPlatform } from "../../features/platformTenants/platformTenantsSlice";
-import Modal from "../../components/Modal";
+import {
+  updateTenantPlatform,
+  clearPlatformTenantsError
+} from "../../features/platformTenants/platformTenantsSlice";
+import BottomSheet from "../../components/ui/BottomSheet";
+import Button from "../../components/ui/Button";
+import Field from "../../components/ui/Field";
+import { Toggle } from "../../components/ui/Primitives";
+import { InlineError } from "../../components/ui/States";
 
+/*
+ * Platform staff tooling — deliberately English-only, see REDESIGN.md.
+ *
+ * Reported failures through a native `alert()` with a raw error object, and
+ * carried its own private `Field` component.
+ *
+ * It also read `tenant.Phone` while createTenant INSERTs into `PhoneNumber` —
+ * two columns for one fact. A shop created from this very screen therefore
+ * opened with an empty phone field, and saving wrote "" into `Phone` while the
+ * real number stayed in `PhoneNumber`. createTenant now writes `Phone` like
+ * everything else; this reads both so rows created before that still show
+ * their number.
+ */
 export default function EditTenantModal({ tenant, isOpen, onClose }) {
   const dispatch = useAppDispatch();
-  const [formData, setFormData] = useState({});
+
+  const [form, setForm] = useState(null);
+  const [hydratedFor, setHydratedFor] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (tenant) {
-      setFormData({
-        name: tenant.Name || "",
-        slug: tenant.Slug || "",
-        phone: tenant.Phone || "",
-        whatsappNumber: tenant.WhatsappNumber || "",
-        email: tenant.Email || "",
-        websiteUrl: tenant.WebsiteUrl || "",
-        city: tenant.City || "",
-        area: tenant.Area || "",
-        street: tenant.Street || "",
-        building: tenant.Building || "",
-        floor: tenant.Floor || "",
-        googleMapLink: tenant.GoogleMapLink || "",
-        taxNumber: tenant.TaxNumber || "",
-        registrationNumber: tenant.RegistrationNumber || "",
-        maxAdvanceBookingDays: tenant.MaxAdvanceBookingDays || 30,
-        allowSameDayBooking: tenant.AllowSameDayBooking ?? true,
-        cancellationPolicyHours: tenant.CancellationPolicyHours || 24,
-      });
-    }
-  }, [tenant]);
+  if (tenant && hydratedFor !== tenant.Id) {
+    setForm({
+      name: tenant.Name || "",
+      slug: tenant.Slug || "",
+      phone: tenant.Phone || tenant.PhoneNumber || "",
+      whatsappNumber: tenant.WhatsappNumber || "",
+      email: tenant.Email || "",
+      websiteUrl: tenant.WebsiteUrl || "",
+      city: tenant.City || "",
+      area: tenant.Area || "",
+      street: tenant.Street || "",
+      building: tenant.Building || "",
+      floor: tenant.Floor || "",
+      googleMapLink: tenant.GoogleMapLink || "",
+      taxNumber: tenant.TaxNumber || "",
+      registrationNumber: tenant.RegistrationNumber || "",
+      maxAdvanceBookingDays: String(tenant.MaxAdvanceBookingDays ?? 30),
+      allowSameDayBooking: tenant.AllowSameDayBooking ?? true,
+      cancellationPolicyHours: String(tenant.CancellationPolicyHours ?? 24)
+    });
+    setHydratedFor(tenant.Id);
+  }
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+  if (!tenant || !form) return null;
+
+  const set = (patch) => {
+    setForm((current) => ({ ...current, ...patch }));
+    setError("");
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  async function save() {
+    setError("");
+
+    if (!form.name.trim() || !form.slug.trim()) {
+      setError("A shop needs a name and a slug.");
+      return;
+    }
+    const days = Number(form.maxAdvanceBookingDays);
+    const hours = Number(form.cancellationPolicyHours);
+    if (!Number.isInteger(days) || days < 1) {
+      setError("Booking window must be a whole number of days, at least 1.");
+      return;
+    }
+    if (!Number.isInteger(hours) || hours < 0) {
+      setError("Cancellation window must be a whole number of hours.");
+      return;
+    }
+
     setSaving(true);
     try {
-      await dispatch(updateTenantPlatform({ 
-        tenantId: tenant.Id, 
-        data: formData 
-      })).unwrap();
+      await dispatch(
+        updateTenantPlatform({
+          tenantId: tenant.Id,
+          data: {
+            ...form,
+            name: form.name.trim(),
+            slug: form.slug.trim(),
+            maxAdvanceBookingDays: days,
+            cancellationPolicyHours: hours
+          }
+        })
+      ).unwrap();
       onClose();
     } catch (err) {
-      alert("Failed to update tenant: " + (err.message || err));
+      setError(typeof err === "string" ? err : "Could not save the shop.");
+      /* This sheet shows it; the page banner should not repeat it. */
+      dispatch(clearPlatformTenantsError());
     } finally {
       setSaving(false);
     }
-  };
+  }
 
-  if (!tenant) return null;
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Manage: ${tenant.Name}`}>
-      <form onSubmit={handleSubmit} className="p-6 space-y-8 max-h-[80vh] overflow-y-auto custom-scrollbar">
-        
-        {/* Basic Info */}
-        <section>
-           <div className="flex items-center gap-2 mb-4">
-             <div className="w-8 h-8 bg-app-surface-2 text-app-accent rounded-[12px] flex items-center justify-center font-bold">1</div>
-             <h3 className="text-lg font-black text-app-text uppercase tracking-tight">Basic Identification</h3>
-           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Business Name" name="name" value={formData.name} onChange={handleChange} required />
-            <Field label="URL Slug" name="slug" value={formData.slug} onChange={handleChange} required />
-          </div>
-        </section>
-
-        {/* Contact Info */}
-        <section>
-           <div className="flex items-center gap-2 mb-4">
-             <div className="w-8 h-8 bg-app-surface-2 text-app-accent rounded-[12px] flex items-center justify-center font-bold">2</div>
-             <h3 className="text-lg font-black text-app-text uppercase tracking-tight">Contact & Social</h3>
-           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Landline Phone" name="phone" value={formData.phone} onChange={handleChange} />
-            <Field label="WhatsApp Number" name="whatsappNumber" value={formData.whatsappNumber} onChange={handleChange} />
-            <Field label="Public Email" name="email" value={formData.email} onChange={handleChange} type="email" />
-            <Field label="Website URL" name="websiteUrl" value={formData.websiteUrl} onChange={handleChange} />
-          </div>
-        </section>
-
-        {/* Location */}
-        <section>
-           <div className="flex items-center gap-2 mb-4">
-             <div className="w-8 h-8 bg-app-surface-2 text-app-accent rounded-[12px] flex items-center justify-center font-bold">3</div>
-             <h3 className="text-lg font-black text-app-text uppercase tracking-tight">Physical Location</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="City" name="city" value={formData.city} onChange={handleChange} />
-            <Field label="Area / Neighborhood" name="area" value={formData.area} onChange={handleChange} />
-            <Field label="Street" name="street" value={formData.street} onChange={handleChange} />
-            <Field label="Building / Floor" name="building" value={formData.building} onChange={handleChange} placeholder="e.g. Tower 1, 4th Floor" />
-            <div className="md:col-span-2">
-               <Field label="Google Maps Link" name="googleMapLink" value={formData.googleMapLink} onChange={handleChange} />
-            </div>
-          </div>
-        </section>
-
-        {/* Booking Policy */}
-        <section>
-           <div className="flex items-center gap-2 mb-4">
-             <div className="w-8 h-8 bg-app-surface-2 text-app-accent rounded-[12px] flex items-center justify-center font-bold">4</div>
-             <h3 className="text-lg font-black text-app-text uppercase tracking-tight">Booking Policy</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Field label="Max Advance Days" name="maxAdvanceBookingDays" value={formData.maxAdvanceBookingDays} onChange={handleChange} type="number" />
-            <Field label="Cancellation (Hours)" name="cancellationPolicyHours" value={formData.cancellationPolicyHours} onChange={handleChange} type="number" />
-            <div className="flex items-end pb-3">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <input 
-                  type="checkbox" 
-                  name="allowSameDayBooking" 
-                  checked={formData.allowSameDayBooking} 
-                  onChange={handleChange}
-                  className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm font-bold text-gray-700 group-hover:text-gray-900 transition-colors">Allow Same-Day</span>
-              </label>
-            </div>
-          </div>
-        </section>
-
-        {/* Legal/Official */}
-        <section>
-           <div className="flex items-center gap-2 mb-4">
-             <div className="w-8 h-8 bg-app-surface-2 text-app-muted rounded-[12px] flex items-center justify-center font-bold">5</div>
-             <h3 className="text-lg font-black text-app-text uppercase tracking-tight">Business Registration</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Tax Number (VAT/TRN)" name="taxNumber" value={formData.taxNumber} onChange={handleChange} />
-            <Field label="Registration Number" name="registrationNumber" value={formData.registrationNumber} onChange={handleChange} />
-          </div>
-        </section>
-
-        <div className="sticky bottom-0 bg-app-surface pt-6 border-t border-app-border flex justify-end gap-3 mt-8">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-6 py-2.5 rounded-[12px] font-bold text-app-muted hover:bg-app-surface-2 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="px-8 py-2.5 rounded-[12px] font-black bg-app-accent text-white hover:bg-app-accent-dark shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
-          >
-            {saving ? "Saving Changes..." : "Save All Settings"}
-          </button>
-        </div>
-      </form>
-    </Modal>
+  const text = (key, label, extra = {}) => (
+    <Field
+      label={label}
+      value={form[key]}
+      onChange={(event) => set({ [key]: event.target.value })}
+      {...extra}
+    />
   );
-}
 
-function Field({ label, ...props }) {
   return (
-    <div className="space-y-1.5">
-      <label className="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1">{label}</label>
-      <input
-        className="w-full px-4 py-2.5 bg-app-surface border-2 border-app-border rounded-[12px] focus:border-app-accent focus:bg-app-surface-2 focus:outline-none transition-all text-app-text font-bold placeholder:text-app-muted"
-        {...props}
-      />
-    </div>
+    <BottomSheet
+      open={isOpen}
+      onClose={onClose}
+      dismissible={!saving}
+      title={`Settings for ${tenant.Name}`}
+      footer={
+        <div className="flex gap-2.5">
+          <Button variant="secondary" block onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button block onClick={save} loading={saving}>
+            Save
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        <section className="space-y-3">
+          <p className="text-label uppercase text-content-muted">Identity</p>
+          {text("name", "Shop name")}
+          {text("slug", "Slug", { dir: "ltr", hint: "Used in the booking link" })}
+        </section>
+
+        <section className="space-y-3">
+          <p className="text-label uppercase text-content-muted">Contact</p>
+          {text("phone", "Phone number", { type: "tel", dir: "ltr", inputClassName: "tnum" })}
+          {text("whatsappNumber", "WhatsApp", { type: "tel", dir: "ltr", inputClassName: "tnum" })}
+          {text("email", "Email", { type: "email", dir: "ltr" })}
+          {text("websiteUrl", "Website", { type: "url", dir: "ltr" })}
+        </section>
+
+        <section className="space-y-3">
+          <p className="text-label uppercase text-content-muted">Where it is</p>
+          <div className="flex gap-3">
+            <div className="flex-1">{text("city", "City")}</div>
+            <div className="flex-1">{text("area", "Area")}</div>
+          </div>
+          {text("street", "Street")}
+          <div className="flex gap-3">
+            <div className="flex-1">{text("building", "Building")}</div>
+            <div className="flex-1">{text("floor", "Floor")}</div>
+          </div>
+          {text("googleMapLink", "Map link", { type: "url", dir: "ltr" })}
+        </section>
+
+        <section className="space-y-3">
+          <p className="text-label uppercase text-content-muted">Paperwork</p>
+          {text("taxNumber", "Tax number", { dir: "ltr", inputClassName: "tnum" })}
+          {text("registrationNumber", "Registration number", {
+            dir: "ltr",
+            inputClassName: "tnum"
+          })}
+        </section>
+
+        <section className="space-y-3">
+          <p className="text-label uppercase text-content-muted">Booking rules</p>
+          {text("maxAdvanceBookingDays", "How far ahead customers can book", {
+            type: "number",
+            inputMode: "numeric",
+            min: "1",
+            dir: "ltr",
+            inputClassName: "tnum",
+            hint: "In days."
+          })}
+          <div className="rounded-card bg-surface-sunken px-3.5 py-2.5">
+            <Toggle
+              label="Same-day booking"
+              hint={
+                form.allowSameDayBooking
+                  ? "Customers can book a slot for today."
+                  : "The earliest customers can book is tomorrow."
+              }
+              checked={form.allowSameDayBooking}
+              onChange={(next) => set({ allowSameDayBooking: next })}
+            />
+          </div>
+          {text("cancellationPolicyHours", "Free cancellation window", {
+            type: "number",
+            inputMode: "numeric",
+            min: "0",
+            dir: "ltr",
+            inputClassName: "tnum",
+            hint: "In hours before the appointment."
+          })}
+        </section>
+
+        {error ? <InlineError message={error} /> : null}
+      </div>
+    </BottomSheet>
   );
 }

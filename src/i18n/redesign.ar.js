@@ -948,7 +948,14 @@ const redesignAr = {
   consent_and: "و",
   consent_read_first: "افتح كليهما لتفعيل هذا الخيار.",
   create_account: "إنشاء الحساب",
-  onboarding_progress: "الخطوة {step} من {total}"
+  onboarding_progress: "الخطوة {step} من {total}",
+  message_not_sent: "لم تُرسل الرسالة. حاول مرة أخرى.",
+  send_code_whatsapp: "أرسل الرمز عبر واتساب",
+  verify_action: "تأكيد",
+  change_number: "تغيير",
+  code_send_failed: "تعذّر إرسال الرمز. تحقق من الرقم وحاول مرة أخرى.",
+  code_invalid: "الرمز غير صحيح. تحقق منه أو اطلب رمزاً جديداً.",
+  phone_country_code_hint: "أدرج رمز الدولة، مثلاً ‎+961."
 };
 
 export default redesignAr;

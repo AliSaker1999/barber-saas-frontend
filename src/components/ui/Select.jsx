@@ -15,9 +15,11 @@ import { useI18n } from "../../i18n";
  *
  * The panel renders in a portal at fixed coordinates, so it is never clipped
  * by an `overflow-hidden` card and never trapped under a sheet's stacking
- * context. Its z-index has to clear every layer it can be opened from — the
- * legacy `.app-modal-overlay` is 9999 and BottomSheet is 300 — because as a
- * body-level sibling of those it would otherwise paint behind them.
+ * context. Its z-index has to clear every layer it can be opened from —
+ * BottomSheet is 300 — because as a body-level sibling of those it would
+ * otherwise paint behind them. (It also used to have to clear the legacy
+ * modal's 9999; that modal is gone, and the headroom is kept rather than
+ * retuned for no reason.)
  *
  * `onChange` is handed a synthetic `{ target: { name, value } }` so the call
  * sites that already read `e.target.value` — or pass a shared `handleChange`

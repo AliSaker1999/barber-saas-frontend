@@ -1,3 +1,11 @@
+/*
+ * Page numbers.
+ *
+ * Used only by the platform-admin screens. It hardcoded `bg-white`,
+ * `border-gray-200`, `text-gray-700` and `bg-blue-600` with no dark variant,
+ * so on every one of those screens in dark mode it rendered white buttons with
+ * grey text on a dark page — the one control that never got a theme.
+ */
 export default function Pagination({ currentPage, totalPages, onPageChange }) {
   if (!totalPages || totalPages <= 1) return null;
 
@@ -9,26 +17,30 @@ export default function Pagination({ currentPage, totalPages, onPageChange }) {
     pages.push(page);
   }
 
+  const base =
+    "press min-h-[40px] min-w-[40px] px-3 rounded-control text-body-sm font-semibold border transition-colors disabled:opacity-50";
+
   return (
-    <div className="flex items-center justify-center gap-2 mt-6">
+    <nav className="flex items-center justify-center gap-2 mt-6" aria-label="Pagination">
       <button
         type="button"
         onClick={() => onPageChange(Math.max(1, currentPage - 1))}
         disabled={currentPage === 1}
-        className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 disabled:opacity-50"
+        className={`${base} bg-surface-raised border-line-subtle text-content-primary`}
       >
         Prev
       </button>
 
-      {pages.map(page => (
+      {pages.map((page) => (
         <button
           key={page}
           type="button"
           onClick={() => onPageChange(page)}
-          className={`px-3 py-1.5 rounded-lg text-sm font-semibold border ${
+          aria-current={page === currentPage ? "page" : undefined}
+          className={`${base} tnum ${
             page === currentPage
-              ? "bg-blue-600 text-white border-blue-600"
-              : "bg-white text-gray-700 border-gray-200"
+              ? "bg-brand-gold border-brand-gold text-content-on-gold"
+              : "bg-surface-raised border-line-subtle text-content-primary"
           }`}
         >
           {page}
@@ -39,10 +51,10 @@ export default function Pagination({ currentPage, totalPages, onPageChange }) {
         type="button"
         onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
         disabled={currentPage === totalPages}
-        className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 disabled:opacity-50"
+        className={`${base} bg-surface-raised border-line-subtle text-content-primary`}
       >
         Next
       </button>
-    </div>
+    </nav>
   );
 }

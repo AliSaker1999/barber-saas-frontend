@@ -186,9 +186,11 @@ describe("resetting a forgotten password", () => {
     await userEvent.type(within(sheet).getByLabelText("Email or phone number"), "rami@example.com");
     await userEvent.click(within(sheet).getByRole("button", { name: "Continue" }));
 
-    await screen.findByLabelText("6-digit code");
-    await userEvent.type(screen.getByLabelText("6-digit code"), "12");
-    await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+    /* Wait for the sheet to actually be on the code step before touching it —
+       clicking Continue while it is still swapping is what made this flaky. */
+    await screen.findByText(/6-digit code to your email/);
+    await userEvent.type(await screen.findByLabelText("6-digit code"), "12");
+    await userEvent.click(within(sheet).getByRole("button", { name: "Continue" }));
 
     expect(await screen.findByText("Enter all six digits.")).toBeInTheDocument();
     expect(screen.queryByLabelText("New password")).not.toBeInTheDocument();

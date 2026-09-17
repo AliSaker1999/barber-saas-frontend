@@ -1,97 +1,175 @@
 import { useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { updateTenantSubscription } from "../../features/platformTenants/platformTenantsSlice";
-import Modal from "../../components/Modal";
+import {
+  updateTenantSubscription,
+  clearPlatformTenantsError
+} from "../../features/platformTenants/platformTenantsSlice";
+import { formatMoney } from "../../utils/format";
+import BottomSheet from "../../components/ui/BottomSheet";
+import Button from "../../components/ui/Button";
+import Field from "../../components/ui/Field";
+import Icon from "../../components/ui/Icon";
 import Select from "../../components/ui/Select";
+import { InlineError } from "../../components/ui/States";
 
+/*
+ * Platform staff tooling — deliberately English-only, see REDESIGN.md.
+ *
+ * This dialog already told the truth and then ignored it: it rendered "Saving
+ * with no plan will also deactivate this shop — its staff won't be able to log
+ * in" and then saved on one click, with no confirmation and no `.unwrap()`, so
+ * a failure closed silently too.
+ *
+ * Clearing the plan now takes a second, deliberate step in the same sheet
+ * rather than a nested dialog — the same shape as the password-reset flow on
+ * the login screen.
+ */
 export default function ManageSubscriptionModal({ tenant, open, onClose }) {
   const dispatch = useAppDispatch();
-  const plans = useAppSelector(s => s.platformTenants.plans);
+  const plans = useAppSelector((s) => s.platformTenants.plans);
 
   const [planId, setPlanId] = useState("");
   const [renewsAt, setRenewsAt] = useState("");
-  const [hydratedTenantId, setHydratedTenantId] = useState(null);
+  const [hydratedFor, setHydratedFor] = useState(null);
+  const [confirmingRemoval, setConfirmingRemoval] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  if (tenant && tenant.Id !== hydratedTenantId) {
+  if (tenant && tenant.Id !== hydratedFor) {
     setPlanId(tenant.PlanId ?? "");
     setRenewsAt(tenant.SubscriptionRenewsAt?.slice(0, 10) ?? "");
-    setHydratedTenantId(tenant.Id);
+    setHydratedFor(tenant.Id);
+    setConfirmingRemoval(false);
+    setError("");
   }
 
-  const submit = async (e) => {
-    e.preventDefault();
-    await dispatch(
-      updateTenantSubscription({
-        tenantId: tenant.Id,
-        planId: planId === "" ? null : Number(planId),
-        subscriptionRenewsAt: renewsAt || null
-      })
-    );
+  const removingPlan = planId === "";
+
+  async function save() {
+    setError("");
+    setSaving(true);
+    try {
+      await dispatch(
+        updateTenantSubscription({
+          tenantId: tenant.Id,
+          planId: removingPlan ? null : Number(planId),
+          subscriptionRenewsAt: renewsAt || null
+        })
+      ).unwrap();
+      onClose();
+    } catch (err) {
+      setError(typeof err === "string" ? err : "Could not change the plan.");
+      /* This sheet shows it; the page banner should not repeat it. */
+      dispatch(clearPlatformTenantsError());
+      setConfirmingRemoval(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function primaryAction() {
+    if (removingPlan && !confirmingRemoval) {
+      setConfirmingRemoval(true);
+      return;
+    }
+    save();
+  }
+
+  function close() {
+    setConfirmingRemoval(false);
+    setError("");
     onClose();
-  };
+  }
 
   return (
-    <Modal open={open} onClose={onClose}>
-      <div className="p-6 w-96">
-        <h3 className="text-xl font-semibold mb-2 text-app-text">
-          Manage Subscription
-        </h3>
-        <p className="text-sm text-app-muted mb-4">
-          {tenant?.Name} — set this shop's plan and when their next payment is due. This is manual bookkeeping only; nothing is charged automatically.
-        </p>
+    <BottomSheet
+      open={open}
+      onClose={close}
+      dismissible={!saving}
+      title={confirmingRemoval ? "Take this shop offline?" : "Plan and renewal"}
+      footer={
+        <div className="flex gap-2.5">
+          <Button
+            variant="secondary"
+            block
+            onClick={confirmingRemoval ? () => setConfirmingRemoval(false) : close}
+            disabled={saving}
+          >
+            {confirmingRemoval ? "Back" : "Cancel"}
+          </Button>
+          <Button
+            block
+            variant={removingPlan ? "danger-solid" : "primary"}
+            onClick={primaryAction}
+            loading={saving}
+          >
+            {!removingPlan ? "Save" : confirmingRemoval ? "Remove the plan" : "Continue"}
+          </Button>
+        </div>
+      }
+    >
+      {confirmingRemoval ? (
+        <div className="space-y-3">
+          <div className="flex items-start gap-2.5 rounded-card bg-surface-sunken px-3.5 py-3">
+            <Icon name="alert" size={18} className="text-state-danger mt-0.5 flex-shrink-0" />
+            <p className="text-body-sm text-content-secondary">
+              Removing {tenant?.Name}&apos;s plan deactivates the shop. Everyone who works
+              there stops being able to log in, and it disappears from Explore and from
+              its booking link.
+            </p>
+          </div>
+          <p className="text-caption text-content-muted">
+            Existing bookings are not cancelled. Assigning a plan again brings the shop
+            back.
+          </p>
+          {error ? <InlineError message={error} /> : null}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-body-sm text-content-secondary">
+            {tenant?.Name} — bookkeeping only. Nothing is charged automatically.
+          </p>
 
-        <form onSubmit={submit} className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-app-text mb-1">Plan</label>
+            <p className="text-label uppercase text-content-muted mb-1.5">Plan</p>
             <Select
               value={planId}
-              onChange={(e) => setPlanId(e.target.value)}
-              placeholder="No plan assigned"
-              searchPlaceholder="Search plans..."
+              onChange={(event) => setPlanId(event.target.value)}
+              placeholder="No plan"
+              searchPlaceholder="Search plans"
+              aria-label="Plan"
               options={[
-                { value: "", label: "No plan assigned", icon: "x" },
-                ...plans.map((p) => ({
-                  value: p.Id,
-                  label: p.Name,
+                { value: "", label: "No plan", icon: "x" },
+                ...plans.map((plan) => ({
+                  value: plan.Id,
+                  label: plan.Name,
                   icon: "card",
-                  hint: `$${Number(p.MonthlyPrice).toFixed(0)}/mo · ${p.MinBarbers}${p.MaxBarbers ? `–${p.MaxBarbers}` : "+"} barbers`
+                  /* The platform's own billing currency, never the shop's. */
+                  hint: `${formatMoney(plan.MonthlyPrice, "USD")}/mo · ${plan.MinBarbers}${
+                    plan.MaxBarbers ? `-${plan.MaxBarbers}` : "+"
+                  } barbers`
                 }))
               ]}
             />
-            {planId === "" && (
-              <p className="text-xs text-red-600 mt-1">
-                Saving with no plan will also deactivate this shop — its staff won't be able to log in.
+            {removingPlan ? (
+              <p className="text-caption text-state-danger mt-1.5">
+                Saving with no plan deactivates the shop.
               </p>
-            )}
+            ) : null}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-app-text mb-1">Next renewal date</label>
-            <input
-              type="date"
-              className="w-full px-3 py-2 bg-app-surface border-2 border-app-border rounded-[12px] focus:border-app-accent focus:outline-none text-app-text"
-              value={renewsAt}
-              onChange={(e) => setRenewsAt(e.target.value)}
-            />
-            <p className="text-xs text-app-muted mt-1">
-              If this date passes by more than a day without being pushed forward, the shop is deactivated automatically.
-            </p>
-          </div>
+          <Field
+            label="Next renewal date"
+            value={renewsAt}
+            onChange={(event) => setRenewsAt(event.target.value)}
+            type="date"
+            dir="ltr"
+            hint="If this passes by more than a day without being moved forward, the shop is deactivated automatically."
+          />
 
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-[12px] text-app-muted bg-app-surface border-app-border"
-            >
-              Cancel
-            </button>
-            <button className="px-4 py-2 bg-app-accent text-white rounded-[12px] hover:bg-app-accent-dark">
-              Save
-            </button>
-          </div>
-        </form>
-      </div>
-    </Modal>
+          {error ? <InlineError message={error} /> : null}
+        </div>
+      )}
+    </BottomSheet>
   );
 }
