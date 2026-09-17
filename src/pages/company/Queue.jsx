@@ -68,6 +68,9 @@ export default function Queue() {
      with no services and a permanently disabled Save. */
   const barbers = useAppSelector((state) => state.barbers.items);
   const services = useAppSelector((state) => state.services.items);
+  /* This file had no currency in scope, so the edit-services total
+     fell back to formatMoney's USD default. */
+  const currency = useAppSelector((state) => state.company?.profile?.Currency) || "USD";
   const user = useAppSelector((state) => state.auth.user);
 
   const isOwner = Boolean(user?.roles?.includes("ADMIN") || user?.roles?.includes("STAFF"));
@@ -611,7 +614,7 @@ export default function Queue() {
             </div>
             <p className="mt-3.5 text-body-sm text-content-secondary tnum">
               {t("total")}:{" "}
-              <span className="font-bold text-content-primary">{formatMoney(editTotal)}</span>
+              <span className="font-bold text-content-primary">{formatMoney(editTotal, currency)}</span>
             </p>
           </>
         ) : (

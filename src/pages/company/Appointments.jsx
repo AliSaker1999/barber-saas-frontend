@@ -87,6 +87,12 @@ export default function Appointments() {
 
   const { items, loading, error } = useAppSelector((state) => state.appointments);
   const user = useAppSelector((state) => state.auth.user);
+  /* The shop prices in one currency and nothing converts, so a total
+     needs it as much as a single price does. This rendered through
+     formatMoney with no currency, which defaults to USD — an LBP shop
+     read its day as "$1,500,000". The per-row price at :250 was already
+     correct, from appointment.Currency. */
+  const currency = useAppSelector((state) => state.company?.profile?.Currency) || "USD";
 
   const isOwner = Boolean(user?.roles?.includes("ADMIN") || user?.roles?.includes("STAFF"));
   const tenantId = user?.tenantId;
@@ -529,7 +535,7 @@ export default function Appointments() {
             {isOwner && revenue > 0 ? (
               <p className="text-body-sm text-content-secondary tnum">
                 {t("revenue_today")}:{" "}
-                <span className="font-bold text-content-primary">{formatMoney(revenue)}</span>
+                <span className="font-bold text-content-primary">{formatMoney(revenue, currency)}</span>
               </p>
             ) : null}
 

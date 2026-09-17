@@ -974,7 +974,8 @@ const redesignEn = {
   gallery_load_failed: "Could not load your photos.",
   gallery_add_failed: "Could not add the photo. Please try again.",
   gallery_delete_failed: "Could not remove the photo. Please try again.",
-  discard: "Discard"
+  discard: "Discard",
+  deposit_then_rest: "This is the deposit that holds your place. You pay the rest ({total}) at the shop."
 };
 
 export default redesignEn;

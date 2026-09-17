@@ -973,7 +973,8 @@ const redesignAr = {
   gallery_load_failed: "تعذّر تحميل صورك.",
   gallery_add_failed: "تعذّرت إضافة الصورة. حاول مرة أخرى.",
   gallery_delete_failed: "تعذّرت إزالة الصورة. حاول مرة أخرى.",
-  discard: "تجاهل"
+  discard: "تجاهل",
+  deposit_then_rest: "هذا العربون الذي يحجز دورك. تدفع الباقي ({total}) في المحل."
 };
 
 export default redesignAr;

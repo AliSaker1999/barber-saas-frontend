@@ -382,8 +382,20 @@ export default function QueueTracker() {
             </p>
             <p className="mt-2 text-caption text-content-muted">{t("amount_due")}</p>
             <p className="text-h3 text-content-primary tnum">
-              {formatMoney(servicesTotal, currency)}
+              {/* The hold the shop asked for, not the price of the haircut.
+                  This showed servicesTotal, so a customer sitting in an
+                  AWAITING_PAYMENT entry — which exists because of
+                  Queue.DepositAmount — was told to transfer the full service
+                  price. The appointment side has always used the deposit. */}
+              {formatMoney(queue.depositAmount ?? servicesTotal, currency)}
             </p>
+            {queue.depositAmount != null && queue.depositAmount < servicesTotal ? (
+              <p className="text-caption text-content-muted">
+                {t("deposit_then_rest", {
+                  total: formatMoney(servicesTotal, currency)
+                })}
+              </p>
+            ) : null}
           </div>
 
           <p className="text-body-sm text-content-secondary">{t("whish_instructions")}</p>
