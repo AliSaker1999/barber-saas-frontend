@@ -955,7 +955,25 @@ const redesignAr = {
   change_number: "تغيير",
   code_send_failed: "تعذّر إرسال الرمز. تحقق من الرقم وحاول مرة أخرى.",
   code_invalid: "الرمز غير صحيح. تحقق منه أو اطلب رمزاً جديداً.",
-  phone_country_code_hint: "أدرج رمز الدولة، مثلاً ‎+961."
+  phone_country_code_hint: "أدرج رمز الدولة، مثلاً ‎+961.",
+
+  /* ---- barber portfolio ---- */
+  gallery_title: "أعمالك",
+  gallery_sub: "صور قصّات نفّذتها. يراها الزبائن على صفحة المحل.",
+  gallery_add: "أضف صورة",
+  gallery_added: "أُضيفت الصورة.",
+  gallery_publish: "أضف إلى أعمالك",
+  gallery_caption: "تعليق",
+  gallery_caption_hint: "ما هي القصّة، أو لمن تناسب. اختياري.",
+  gallery_empty_title: "لا صور بعد",
+  gallery_empty_sub: "بضع صور من عملك تكسب حجزاً أكثر من أي شيء آخر على الصفحة.",
+  gallery_delete_title: "إزالة هذه الصورة؟",
+  gallery_delete_message: "ستختفي من صفحة المحل ومن رابط الحجز. وسيلزم رفعها من جديد.",
+  gallery_remove_one: "إزالة الصورة {name}",
+  gallery_load_failed: "تعذّر تحميل صورك.",
+  gallery_add_failed: "تعذّرت إضافة الصورة. حاول مرة أخرى.",
+  gallery_delete_failed: "تعذّرت إزالة الصورة. حاول مرة أخرى.",
+  discard: "تجاهل"
 };
 
 export default redesignAr;

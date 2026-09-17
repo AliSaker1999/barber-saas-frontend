@@ -956,7 +956,25 @@ const redesignEn = {
   change_number: "Change",
   code_send_failed: "Could not send the code. Check the number and try again.",
   code_invalid: "That code is not right. Check it, or send a new one.",
-  phone_country_code_hint: "Include the country code, for example +961."
+  phone_country_code_hint: "Include the country code, for example +961.",
+
+  /* ---- barber portfolio ---- */
+  gallery_title: "Your work",
+  gallery_sub: "Photos of cuts you have done. Customers see these on the shop page.",
+  gallery_add: "Add a photo",
+  gallery_added: "Photo added.",
+  gallery_publish: "Add to your work",
+  gallery_caption: "Caption",
+  gallery_caption_hint: "What the cut was, or who it suits. Optional.",
+  gallery_empty_title: "No photos yet",
+  gallery_empty_sub: "A few photos of your work do more to win a booking than anything else on the page.",
+  gallery_delete_title: "Remove this photo?",
+  gallery_delete_message: "It disappears from the shop page and from your booking link. You would have to upload it again.",
+  gallery_remove_one: "Remove photo {name}",
+  gallery_load_failed: "Could not load your photos.",
+  gallery_add_failed: "Could not add the photo. Please try again.",
+  gallery_delete_failed: "Could not remove the photo. Please try again.",
+  discard: "Discard"
 };
 
 export default redesignEn;

@@ -15,6 +15,7 @@ import Select from "../../components/ui/Select";
 import ImagePicker from "../../components/ui/ImagePicker";
 import { Rating, Toggle } from "../../components/ui/Primitives";
 import { ErrorState, InlineError, ListSkeleton } from "../../components/ui/States";
+import GalleryEditor from "../../components/setup/GalleryEditor";
 import MyScheduleRequests from "../../components/setup/MyScheduleRequests";
 
 /*
@@ -311,6 +312,13 @@ export default function BarberMyProfile() {
           <Button block onClick={save} loading={saving}>
             {saved ? t("saved") : t("save")}
           </Button>
+        </section>
+
+        <section>
+          <GalleryEditor
+            barberId={selectedProfile.Id}
+            barberName={draft.displayName || selectedProfile.FullName}
+          />
         </section>
 
         <MyScheduleRequests barberId={selectedProfile.Id} />

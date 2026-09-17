@@ -7,6 +7,7 @@ import { SectionHeader } from "../../components/ui/Primitives";
 import TeamEditor from "../../components/setup/TeamEditor";
 import BarberServicesEditor from "../../components/setup/BarberServicesEditor";
 import BarberHoursEditor from "../../components/setup/BarberHoursEditor";
+import GalleryEditor from "../../components/setup/GalleryEditor";
 import ScheduleRequestsSection from "../../components/setup/ScheduleRequestsSection";
 
 /*
@@ -53,6 +54,15 @@ export default function Barbers() {
             <section>
               <SectionHeader title={t("working_hours")} subtitle={t("working_hours_sub")} />
               <BarberHoursEditor barberId={selectedId} />
+            </section>
+
+            {/* An owner can curate a barber's portfolio too — most shops here
+                are small enough that the owner is the one with the photos. */}
+            <section>
+              <GalleryEditor
+                barberId={selectedId}
+                barberName={selected?.DisplayName || selected?.FullName}
+              />
             </section>
           </div>
         ) : null}

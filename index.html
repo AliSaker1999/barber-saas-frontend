@@ -3,14 +3,44 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#1a1a2e" />
+
+    <!-- Brand gold, matching --brand-gold. This was #1a1a2e, a navy from before
+         the redesign, so the browser chrome and the PWA splash were the last
+         two surfaces still showing the old brand. -->
+    <meta name="theme-color" content="#c9a34a" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="description" content="Ajmal - The Best Barber Booking App in Lebanon. Book your next haircut, join queues, and discover top-rated barbershops near you." />
-    <meta name="keywords" content="barber, barbershop, Lebanon, booking, haircut, grooming, queue, Ajmal" />
-    <title>Ajmal - أجمل | Barber Booking App</title>
+
+    <title>Ajmal - أجمل | Book a barber in Lebanon</title>
+    <meta name="description" content="Book a barber in Lebanon, join a queue, and see the wait before you leave the house." />
+
+    <!--
+      Open Graph and Twitter cards.
+
+      There were none at all, so every share of a booking link — and every
+      channel this product acquires through is a shared link: the countertop QR
+      card, the printed poster, the Instagram bio, the WhatsApp message — showed
+      a bare URL with no title, no description and no image.
+
+      These are app-level. Per-shop tags (the shop's own name and cover photo on
+      its /book/:slug card) need the crawler to see server-rendered HTML, and
+      this is a client-rendered SPA with no SSR or prerender step, so they are
+      still outstanding rather than solved here.
+    -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ajmal" />
+    <meta property="og:title" content="Ajmal — book a barber in Lebanon" />
+    <meta property="og:description" content="Book a barber, join a queue, and see the wait before you leave the house." />
+    <meta property="og:image" content="/favicon.svg" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="ar_LB" />
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Ajmal — book a barber in Lebanon" />
+    <meta name="twitter:description" content="Book a barber, join a queue, and see the wait before you leave the house." />
+    <meta name="twitter:image" content="/favicon.svg" />
+
     <link rel="manifest" href="/manifest.json" />
   </head>
   <body>
