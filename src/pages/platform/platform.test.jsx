@@ -238,3 +238,40 @@ describe("rows that would have taken the page down", () => {
     expect(screen.getByText("No name on file")).toBeInTheDocument();
   });
 });
+
+describe("a self-serve shop signup waiting on review", () => {
+  it("is badged 'Pending review', not 'Inactive' -- it was never deactivated", async () => {
+    served.tenants = [tenant({ Id: "t-2", Name: "New Shop Request", IsActive: false, PlanId: null })];
+    renderScreen(<PlatformTenants />);
+
+    expect(await screen.findByText("Pending review")).toBeInTheDocument();
+    expect(screen.queryByText("Inactive")).not.toBeInTheDocument();
+  });
+
+  it("a shop someone actually took offline still reads 'Inactive'", async () => {
+    served.tenants = [
+      tenant({ Id: "t-3", Name: "Closed Shop", IsActive: false, PlanId: 1, PlanName: "Solo" })
+    ];
+    renderScreen(<PlatformTenants />);
+
+    expect(await screen.findByText("Inactive")).toBeInTheDocument();
+    expect(screen.queryByText("Pending review")).not.toBeInTheDocument();
+  });
+
+  it("the Pending review filter isolates it from every other shop", async () => {
+    served.tenants = [
+      tenant({ Id: "t-1", Name: "Cedar Cuts", IsActive: true }),
+      tenant({ Id: "t-2", Name: "New Shop Request", IsActive: false, PlanId: null }),
+      tenant({ Id: "t-3", Name: "Closed Shop", IsActive: false, PlanId: 1, PlanName: "Solo" })
+    ];
+    renderScreen(<PlatformTenants />);
+
+    await screen.findByText("Cedar Cuts");
+    await userEvent.click(screen.getByRole("combobox", { name: "Filter by status" }));
+    await userEvent.click(screen.getByRole("option", { name: "Pending review" }));
+
+    expect(screen.getByText("New Shop Request")).toBeInTheDocument();
+    expect(screen.queryByText("Cedar Cuts")).not.toBeInTheDocument();
+    expect(screen.queryByText("Closed Shop")).not.toBeInTheDocument();
+  });
+});

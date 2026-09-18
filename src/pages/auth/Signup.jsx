@@ -293,15 +293,22 @@ export default function Signup() {
             </Link>
           </p>
 
-          <div className="pt-3 border-t border-line-subtle">
+          <div className="pt-3 border-t border-line-subtle space-y-2">
+            <Link
+              to="/register-shop"
+              className="press flex items-center justify-center gap-2 min-h-[44px] w-full rounded-control bg-surface-sunken border border-line-subtle text-body font-semibold text-content-primary"
+            >
+              <Icon name="scissors" size={18} />
+              {t("partner_with_us")}
+            </Link>
             <a
               href="https://wa.me/96171368470?text=I%20am%20interested%20in%20listing%20my%20barbershop%20on%20Ajmal"
               target="_blank"
               rel="noopener noreferrer"
-              className="press flex items-center justify-center gap-2 min-h-[44px] w-full rounded-control bg-surface-sunken border border-line-subtle text-body font-semibold text-content-primary"
+              className="press flex items-center justify-center gap-2 min-h-[44px] w-full text-body-sm font-semibold text-content-secondary"
             >
-              <Icon name="whatsapp" size={18} />
-              {t("partner_with_us")}
+              <Icon name="whatsapp" size={16} />
+              {t("partner_with_us_whatsapp")}
             </a>
           </div>
         </form>

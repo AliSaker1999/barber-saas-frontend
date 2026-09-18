@@ -43,8 +43,16 @@ import { EmptyState, InlineError, ListSkeleton } from "../../components/ui/State
 const STATUS_OPTIONS = [
   { value: "ALL", label: "All statuses", icon: "list" },
   { value: "ACTIVE", label: "Active only", icon: "check" },
+  /* Never had a plan at all, as opposed to a shop someone deliberately took
+     offline — a self-serve /register-shop signup lands here, waiting on
+     someone to review it and assign a plan. */
+  { value: "PENDING", label: "Pending review", icon: "clock" },
   { value: "INACTIVE", label: "Inactive only", icon: "x" }
 ];
+
+function isPending(tenant) {
+  return !tenant.IsActive && tenant.PlanId == null;
+}
 
 const emptyDraft = { name: "", slug: "", phoneNumber: "" };
 
@@ -84,6 +92,7 @@ export default function PlatformTenants() {
       const matchesStatus =
         statusFilter === "ALL" ||
         (statusFilter === "ACTIVE" && tenant.IsActive) ||
+        (statusFilter === "PENDING" && isPending(tenant)) ||
         (statusFilter === "INACTIVE" && !tenant.IsActive);
       return matchesSearch && matchesStatus;
     });
@@ -272,8 +281,10 @@ export default function PlatformTenants() {
                           /{tenant.Slug}
                         </p>
                       </div>
-                      <Pill tone={tenant.IsActive ? "success" : "danger"}>
-                        {tenant.IsActive ? "Active" : "Inactive"}
+                      <Pill
+                        tone={tenant.IsActive ? "success" : isPending(tenant) ? "warning" : "danger"}
+                      >
+                        {tenant.IsActive ? "Active" : isPending(tenant) ? "Pending review" : "Inactive"}
                       </Pill>
                     </div>
 

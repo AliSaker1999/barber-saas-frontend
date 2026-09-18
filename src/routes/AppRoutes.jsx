@@ -12,6 +12,7 @@ import CustomerLayout from "../layouts/CustomerLayout";
 /* Auth */
 const Login = lazy(() => import("../pages/auth/Login"));
 const Signup = lazy(() => import("../pages/auth/Signup"));
+const RegisterShop = lazy(() => import("../pages/auth/RegisterShop"));
 const Onboarding = lazy(() => import("../pages/auth/Onboarding"));
 
 /* Legal — reachable without an account, and linked from the Play listing. */
@@ -103,6 +104,7 @@ export default function AppRoutes() {
           />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/register-shop" element={<RegisterShop />} />
 
           {/* Legal pages must be reachable without an account — the Play
               listing links to them and reviewers open them signed out. */}
