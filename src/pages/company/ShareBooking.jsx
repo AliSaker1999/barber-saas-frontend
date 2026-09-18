@@ -3,6 +3,7 @@ import { toast } from "react-hot-toast";
 import QRCode from "qrcode";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { fetchCompanyProfile } from "../../features/company/companySlice";
+import api from "../../services/api";
 
 import TopBar from "../../components/ui/TopBar";
 import Icon from "../../components/ui/Icon";
@@ -32,19 +33,19 @@ const CHANNELS = [
   { id: "direct", labelKey: "channel_direct", icon: "globe" }
 ];
 
-/* The public origin the customer will open. In the Android build the app runs
-   from a capacitor:// or https://localhost origin, which is useless in a
-   printed link, so a configured public web origin always wins. */
-const PUBLIC_ORIGIN = (import.meta.env.VITE_PUBLIC_WEB_URL || "").replace(/\/$/, "");
+/*
+ * Every shared/printed link points at the backend's GET /share/:slug rather
+ * than straight at the SPA's /book/:slug. The SPA is client-rendered with no
+ * SSR, so a link pasted into Instagram, WhatsApp or any other crawler-driven
+ * preview always showed Ajmal's own app-level tags, never this shop's name
+ * or cover photo. /share/:slug renders that shop's real tags for a crawler
+ * and 302s a real visitor straight on to /book/:slug — one extra hop, same
+ * destination.
+ */
+const SHARE_ORIGIN = api.defaults.baseURL.replace(/\/api\/?$/, "").replace(/\/$/, "");
 
 function bookingUrl(slug, source) {
-  const origin =
-    PUBLIC_ORIGIN ||
-    (typeof window !== "undefined" && /^https?:$/.test(window.location.protocol)
-      ? window.location.origin
-      : "");
-
-  const base = `${origin}/book/${slug}`;
+  const base = `${SHARE_ORIGIN}/share/${slug}`;
   return source && source !== "direct" ? `${base}?src=${source}` : base;
 }
 
