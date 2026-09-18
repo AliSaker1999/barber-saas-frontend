@@ -228,7 +228,7 @@ export default function CustomerReports() {
                         {localized(activity, "TenantName", locale)}
                       </p>
                       <p className="text-caption text-content-muted truncate">
-                        {activity.Services || t("stats_no_services_listed")}
+                        {localized(activity, "Services", locale) || t("stats_no_services_listed")}
                       </p>
                       <p className="text-caption text-content-muted tnum">
                         {formatDateOnly(activity.Date)}

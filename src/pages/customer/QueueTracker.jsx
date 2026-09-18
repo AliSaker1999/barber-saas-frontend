@@ -22,6 +22,7 @@ import { EmptyState, ErrorState, Skeleton } from "../../components/ui/States";
 import { useI18n } from "../../i18n";
 import { formatDuration, formatMoney, formatTime } from "../../utils/format";
 import { shopWhatsappHref, telHref } from "../../config/support";
+import { localized } from "../../utils/localized";
 
 /*
  * Live queue tracker (spec §12) — the screen that makes the product's core
@@ -265,7 +266,10 @@ export default function QueueTracker() {
             <div className="flex-1 min-w-0">
               <p className="text-caption text-content-muted">{t("service")}</p>
               <p className="text-body font-semibold text-content-primary">
-                {(queue.services || []).map((s) => s.name).filter(Boolean).join(" + ") || "—"}
+                {(queue.services || [])
+                  .map((s) => localized(s, "name", locale))
+                  .filter(Boolean)
+                  .join(" + ") || "—"}
               </p>
               <p className="text-caption text-content-muted tnum">
                 {formatDuration(servicesDuration, t)}

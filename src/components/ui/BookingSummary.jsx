@@ -1,6 +1,7 @@
 import Icon from "./Icon";
 import { formatDuration, formatMoney, formatLongDate, formatTime } from "../../utils/format";
 import { useI18n } from "../../i18n";
+import { localized } from "../../utils/localized";
 
 /*
  * BookingSummary — the single review block shown before "Confirm booking", and
@@ -50,7 +51,13 @@ export default function BookingSummary({
 }) {
   const { t, locale } = useI18n();
 
-  const serviceLabel = services.map((s) => s.name || s.Name).filter(Boolean).join(" + ");
+  // Callers hand this component both shapes: appointments/queue map services
+  // to lowercase `name`/`nameAr`, while a couple of others pass the raw
+  // Services-table row (`Name`/`NameAr`) straight through.
+  const serviceLabel = services
+    .map((s) => localized(s, "name", locale) || localized(s, "Name", locale))
+    .filter(Boolean)
+    .join(" + ");
   const price = Number(totalPrice) || 0;
   const finalPrice = Math.max(0, price - (Number(discount) || 0));
 

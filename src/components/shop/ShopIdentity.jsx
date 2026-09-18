@@ -56,6 +56,12 @@ export default function ShopIdentity({ shop, reviews, onOpenReviews }) {
         ) : null}
       </div>
 
+      {localized(shop, "Description", locale) ? (
+        <p className="mt-2 text-body-sm text-content-secondary">
+          {localized(shop, "Description", locale)}
+        </p>
+      ) : null}
+
       {mapsHref || phone || whatsapp ? (
         <div className="mt-3.5 flex gap-2 flex-wrap">
           {mapsHref ? (

@@ -44,6 +44,8 @@ export default function ShopIdentityForm({ section = "identity", onProgress }) {
     setDraft({
       name: profile.Name || "",
       nameAr: profile.NameAr || "",
+      description: profile.Description || "",
+      descriptionAr: profile.DescriptionAr || "",
       city: profile.City || "",
       area: profile.Area || "",
       phone: profile.Phone || profile.PhoneNumber || "",
@@ -97,6 +99,8 @@ export default function ShopIdentityForm({ section = "identity", onProgress }) {
             ? {
                 name: draft.name.trim(),
                 nameAr: draft.nameAr.trim(),
+                description: draft.description.trim(),
+                descriptionAr: draft.descriptionAr.trim(),
                 city: draft.city.trim(),
                 area: draft.area.trim(),
                 phone: draft.phone.trim(),
@@ -161,6 +165,26 @@ export default function ShopIdentityForm({ section = "identity", onProgress }) {
         onChange={(event) => set({ nameAr: event.target.value })}
         dir="rtl"
         hint={t("shop_name_ar_hint")}
+      />
+      <Field
+        as="textarea"
+        rows={3}
+        label={t("shop_description")}
+        optional
+        optionalLabel={t("optional")}
+        value={draft.description}
+        onChange={(event) => set({ description: event.target.value })}
+        hint={t("shop_description_hint")}
+      />
+      <Field
+        as="textarea"
+        rows={3}
+        label={t("shop_description_ar")}
+        optional
+        optionalLabel={t("optional")}
+        value={draft.descriptionAr}
+        onChange={(event) => set({ descriptionAr: event.target.value })}
+        dir="rtl"
       />
       <div className="flex gap-3">
         <Field
