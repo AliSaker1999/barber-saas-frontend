@@ -1,4 +1,5 @@
 import { Component } from "react";
+import { captureException } from "../core/monitoring/sentry";
 
 /*
  * The last thing standing when a render throws.
@@ -20,6 +21,7 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error, info) {
     console.error("Unhandled render error:", error, info?.componentStack);
+    captureException(error, { componentStack: info?.componentStack });
   }
 
   handleReload = () => {

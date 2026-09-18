@@ -10,6 +10,9 @@ import { store } from "./app/store";
 import { connectSocket } from "./services/socket";
 import { initTheme } from "./utils/theme";
 import { I18nProvider } from "./i18n";
+import { initSentry } from "./core/monitoring/sentry";
+
+initSentry();
 
 const token = localStorage.getItem("token");
 if (token) {
