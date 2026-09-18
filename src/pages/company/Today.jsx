@@ -344,7 +344,10 @@ export default function Today() {
                             message: t("are_you_sure"),
                             confirmLabel: t("complete_service"),
                             destructive: false,
-                            action: moveNext(item.barberId)
+                            action: moveNext({
+                              barberId: item.barberId,
+                              expectedInChairId: item.id
+                            })
                           })
                         }
                       >
@@ -376,7 +379,12 @@ export default function Today() {
                         message: t("are_you_sure"),
                         confirmLabel: t("start_service"),
                         destructive: false,
-                        action: moveNext(myQueue.waiting[0].barberId)
+                        /* Starting a service when the chair is empty — there
+                           is nobody to complete, so nobody to name. */
+                        action: moveNext({
+                          barberId: myQueue.waiting[0].barberId,
+                          expectedInChairId: null
+                        })
                       })
                     }
                   >

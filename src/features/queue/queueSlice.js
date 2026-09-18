@@ -65,11 +65,17 @@ export const fetchQueue = createAsyncThunk(
 );
 
 /* Move to next */
+/*
+ * `expectedInChairId` is the entry the screen could see in the chair when the
+ * button was tapped. The server completes only that person, so a second tap —
+ * from another device, or from Today while Queue is open on the counter
+ * tablet — cannot complete whoever the first tap just seated.
+ */
 export const moveNext = createAsyncThunk(
   "queue/next",
-  async (barberId, { rejectWithValue }) => {
+  async ({ barberId, expectedInChairId = null }, { rejectWithValue }) => {
     try {
-      await api.post("/queue/next", { barberId }); 
+      await api.post("/queue/next", { barberId, expectedInChairId });
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || "Failed to move next");
     }

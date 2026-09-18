@@ -486,7 +486,10 @@ export default function Queue() {
                                 }),
                             confirmLabel: t("call_next"),
                             destructive: false,
-                            thunk: moveNext(group.barberId),
+                            thunk: moveNext({
+                              barberId: group.barberId,
+                              expectedInChairId: group.inChair?.id ?? null
+                            }),
                             success: t("moved_to_next")
                           })
                       : undefined
