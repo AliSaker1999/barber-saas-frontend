@@ -32,14 +32,12 @@ export default function NotificationHistory() {
   const navigate = useNavigate();
   const { t, locale } = useI18n();
 
-  const { items, loading, error } = useAppSelector((state) => state.notifications);
+  const { items, loading, error, hasMore, page, unreadCount } = useAppSelector((state) => state.notifications);
   const user = useAppSelector((state) => state.auth.user);
 
   useEffect(() => {
-    dispatch(fetchNotifications());
+    dispatch(fetchNotifications({ page: 1 }));
   }, [dispatch]);
-
-  const unread = items.filter((item) => !item.IsRead).length;
 
   function open(item) {
     if (!item.IsRead) dispatch(markAsRead(item.Id));
@@ -53,7 +51,7 @@ export default function NotificationHistory() {
         title={t("notifications")}
         subtitle={t("notifications_sub")}
         actions={
-          unread ? (
+          unreadCount ? (
             <Button variant="ghost" size="sm" onClick={() => dispatch(markAllAsRead())}>
               {t("mark_all_read")}
             </Button>
@@ -120,6 +118,19 @@ export default function NotificationHistory() {
             ))}
           </ul>
         )}
+
+        {items.length && hasMore ? (
+          <div className="pt-3 flex justify-center">
+            <Button
+              variant="secondary"
+              size="sm"
+              loading={loading}
+              onClick={() => dispatch(fetchNotifications({ page: page + 1 }))}
+            >
+              {t("load_more")}
+            </Button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

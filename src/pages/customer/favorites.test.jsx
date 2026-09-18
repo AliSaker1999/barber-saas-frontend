@@ -26,7 +26,13 @@ vi.mock("../../services/api", () => ({
     get: vi.fn((url) => {
       if (url === "/favorites") return Promise.resolve({ data: { data: served.favorites } });
       if (url === "/notifications")
-        return Promise.resolve({ data: { data: served.notifications } });
+        return Promise.resolve({
+          data: {
+            data: served.notifications,
+            hasMore: false,
+            unreadCount: served.notifications.filter((n) => !n.IsRead).length
+          }
+        });
       return Promise.resolve({ data: { data: [] } });
     }),
     post: vi.fn((url, body) => {

@@ -208,6 +208,7 @@ const ar = {
   // Notifications
   notifications: "الإشعارات",
   mark_all_read: "تحديد الكل كمقروء",
+  load_more: "عرض المزيد",
   no_notifications: "لا توجد إشعارات",
   notification_empty: "أنت على اطلاع بكل شيء!",
 

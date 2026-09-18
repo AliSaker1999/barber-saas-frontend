@@ -208,6 +208,7 @@ const en = {
   // Notifications
   notifications: "Notifications",
   mark_all_read: "Mark all read",
+  load_more: "Load more",
   no_notifications: "No notifications",
   notification_empty: "You're all caught up!",
 

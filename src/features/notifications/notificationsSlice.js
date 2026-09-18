@@ -4,10 +4,11 @@ import api from "../../services/api";
 
 export const fetchNotifications = createAsyncThunk(
   "notifications/fetch",
-  async (_, { rejectWithValue }) => {
+  async ({ page = 1 } = {}, { rejectWithValue }) => {
     try {
-      const res = await api.get("/notifications");
-      return res.data.data;
+      const res = await api.get("/notifications", { params: { page } });
+      const { data, hasMore, unreadCount } = res.data;
+      return { items: data, page, hasMore, unreadCount };
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || "Failed to fetch notifications");
     }
@@ -44,6 +45,8 @@ const notificationsSlice = createSlice({
     items: [],
     loading: false,
     unreadCount: 0,
+    hasMore: false,
+    page: 1,
     error: null
   },
   reducers: {
@@ -67,9 +70,14 @@ const notificationsSlice = createSlice({
     });
 
     builder.addCase(fetchNotifications.fulfilled, (state, action) => {
+      const { items, page, hasMore, unreadCount } = action.payload;
       state.loading = false;
-      state.items = action.payload;
-      state.unreadCount = action.payload.filter(n => !n.IsRead).length;
+      // page 1 replaces (a fresh mount or a pull-to-refresh); anything after
+      // that is a "Load more" append.
+      state.items = page === 1 ? items : [...state.items, ...items];
+      state.page = page;
+      state.hasMore = hasMore;
+      state.unreadCount = unreadCount;
     });
 
     builder.addCase(fetchNotifications.rejected, (state, action) => {
